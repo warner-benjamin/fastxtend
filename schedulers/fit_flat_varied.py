@@ -18,8 +18,8 @@ def fit_flat_varied(self:Learner, n_epoch, start_lr=None, div_final=1e5, pct_sta
     `change_by` single or list of epochs or percent of training to switch to next_lr by. Must be same length as next_lr.
     `change_time` if greater than 0 (pct of training or epochs), how long to cosine anneal to next_lr. Can single or list. 
     """
-    assert isinstance(next_lr, (float, int)) or (is_listy(next_lr) and len(next_lr)>=1), '`next_lr` must be numeric or list of numeric'
-    assert isinstance(change_by, (float, int)) or (is_listy(change_by) and len(change_by)>=1), '`change_by` must be numeric or list of numeric'
+    assert isinstance(next_lr, (float, slice)) or (is_listy(next_lr) and len(next_lr)>=1), '`next_lr` must be float, slice, or list of float or slice'
+    assert isinstance(change_by, (float, slice)) or (is_listy(change_by) and len(change_by)>=1), '`change_by` must be float, slice, or list of float or slice'
 
     if self.opt is None: self.create_opt()
     self.opt.set_hyper('lr', self.lr if start_lr is None else start_lr)
