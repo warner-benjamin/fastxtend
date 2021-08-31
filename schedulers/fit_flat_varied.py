@@ -39,7 +39,7 @@ def fit_flat_varied(self:Learner, n_epoch, start_lr=None, div_final=1e5, pct_sta
         if ra < pct_start:
             rlr = next_lr[i]
             change_pct = ra - change_time[i]
-            assert change_pct > last_pct, f'{change_pct} in pos {i} of `change_by` overlaps with previous schedule {last_pct}'
+            assert change_pct >= last_pct, f'{change_pct} in pos {i} of `change_by` overlaps with previous schedule {last_pct}'
             pcts.append(change_pct - sum(pcts))
             cos_scheds.append(SchedCos(rlr, rlr))
             if change_time[i] > 0:
