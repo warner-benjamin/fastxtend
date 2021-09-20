@@ -19,7 +19,7 @@ def fit_flat_varied(self:Learner, n_epoch, start_lr=None, div_final=1e5, pct_sta
     `change_time` if greater than 0 (pct of training or epochs), how long to cosine anneal to next_lr. Can single or list. 
     """
     assert isinstance(next_lr, (float, slice)) or (is_listy(next_lr) and len(next_lr)>=1), '`next_lr` must be float, slice, or list of float or slice'
-    assert isinstance(change_by, (float, slice)) or (is_listy(change_by) and len(change_by)>=1), '`change_by` must be float, slice, or list of float or slice'
+    assert isinstance(change_by, (int, float, slice)) or (is_listy(change_by) and len(change_by)>=1), '`change_by` must be int, float, slice, or list of int, float, or slice'
 
     if self.opt is None: self.create_opt()
     self.opt.set_hyper('lr', self.lr if start_lr is None else start_lr)
