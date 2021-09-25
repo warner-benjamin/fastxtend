@@ -52,12 +52,20 @@ def _do_crop_pad(x: (TensorImage, TensorMask), sz, tl, orig_sz,
     return x
 
 @patch
-def crop_pad(x: (TensorImage, TensorMask),
+def crop_pad(x:TensorImage,
              sz, tl=None, orig_sz=None, pad_mode=PadMode.Zeros, resize_mode=Image.BILINEAR, resize_to=None):
     if isinstance(sz,int): sz = (sz,sz)
     orig_sz = fastuple(_get_sz(x) if orig_sz is None else orig_sz)
     sz,tl = fastuple(sz),fastuple(((_get_sz(x)-sz)//2) if tl is None else tl)
     return x._do_crop_pad(sz, tl, orig_sz=orig_sz, pad_mode=pad_mode, resize_mode=resize_mode, resize_to=resize_to)
+
+@patch
+def crop_pad(x:TensorMask,
+             sz, tl=None, orig_sz=None, pad_mode=PadMode.Zeros, resize_mode=Image.NEAREST, resize_to=None):
+    if isinstance(sz,int): sz = (sz,sz)
+    orig_sz = fastuple(_get_sz(x) if orig_sz is None else orig_sz)
+    sz,tl = fastuple(sz),fastuple(((_get_sz(x)-sz)//2) if tl is None else tl)
+    return x.float()._do_crop_pad(sz, tl, orig_sz=orig_sz, pad_mode=pad_mode, resize_mode=resize_mode, resize_to=resize_to).long()
 
 @patch
 def encodes(self:RandomCrop, x: (TensorImage, TensorMask)):
