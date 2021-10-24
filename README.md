@@ -19,3 +19,6 @@ pip install -e ".[dev]"
 ## Requirements
 
 fastai_snippets requires the fastai package to be installed. See http://docs.fast.ai/ for installation instructions.
+
+## Documentation
+https://warner-benjamin.github.io/fastai_snippets/
