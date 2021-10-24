@@ -1,2 +1,21 @@
 # fastai_snippets
-Usefull code I've created or found for fastai v2
+> fastai_snippets is a collection of useful code and small extensions I have created or modified for version 2 of the fastai framework.
+
+
+## Install
+
+To install, run:
+```
+pip install git+https://github.com/warner-benjamin/fastai_snippets.git
+```
+
+Or to create an editable install:
+```
+git clone https://github.com/warner-benjamin/fastai_snippets.git
+cd fastai_snippets
+pip install -e ".[dev]"
+```
+
+## Requirements
+
+fastai_snippets requires the fastai package to be installed. See http://docs.fast.ai/ for installation instructions.
