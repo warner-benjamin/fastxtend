@@ -27,9 +27,6 @@ class CutMixUp(MixUp, CutMix):
             self.distrib = self.cut_distrib
             CutMix.before_batch(self)
 
-    def after_cancel_fit(self): # remove once MixHandler pull request is accepted
-        MixUp.after_train(self)
-
 # Cell
 class CutMixUpAugment(MixUp, CutMix):
     "Combo implementation of https://arxiv.org/abs/1710.09412 and https://arxiv.org/abs/1905.04899 plus Augmentation"
@@ -81,7 +78,7 @@ class CutMixUpAugment(MixUp, CutMix):
 
     def after_cancel_fit(self):
         self.after_fit()
-        MixUp.after_train(self) # change to after_cancel_fit once MixHandler pull request is accepted
+        MixUp.after_cancel_fit(self)
 
     def lf(self, pred, *yb):
         if not self.training or self._aug: return self.old_lf(pred, *yb)
