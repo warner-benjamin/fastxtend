@@ -15,13 +15,20 @@ class CutMixUp(MixUp, CutMix):
     def __init__(self, mix_alpha=.4, cut_alpha=1., cutmix_ratio=1, mixup_ratio=1):
         MixUp.__init__(self, mix_alpha)
         CutMix.__init__(self, cut_alpha)
+        self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
+        self.cut_distrib = Beta(tensor(cut_alpha), tensor(cut_alpha))
         self.ratio = mixup_ratio / (cutmix_ratio + mixup_ratio)
 
     def before_batch(self):
         if torch.rand(1) <= self.ratio: #mixup
+            self.distrib = self.mix_distrib
             MixUp.before_batch(self)
         else:
+            self.distrib = self.cut_distrib
             CutMix.before_batch(self)
+
+    def after_cancel_fit(self): # remove once MixHandler pull request is accepted
+        MixUp.after_train(self)
 
 # Cell
 class CutMixUpAugment(MixUp, CutMix):
@@ -30,6 +37,8 @@ class CutMixUpAugment(MixUp, CutMix):
     def __init__(self, mix_alpha=.4, cut_alpha=1., augment_ratio=1, cutmix_ratio=1, mixup_ratio=1):
         MixUp.__init__(self, mix_alpha)
         CutMix.__init__(self, cut_alpha)
+        self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
+        self.cut_distrib = Beta(tensor(cut_alpha), tensor(cut_alpha))
         self.aug_cutmix_ratio = augment_ratio / (augment_ratio + cutmix_ratio + mixup_ratio)
         if self.aug_cutmix_ratio == 1: self.cut_mix_ratio = 0
         else: self.cut_mix_ratio = mixup_ratio / (cutmix_ratio + mixup_ratio)
@@ -54,14 +63,28 @@ class CutMixUpAugment(MixUp, CutMix):
 
     def before_batch(self):
         if torch.rand(1) >= self.aug_cutmix_ratio: # augs or mixup/cutmix
+            self._aug = False
             self.learn.xb = self._inttofloat_pipe(self.xb) # apply inttofloat first
             if self.cut_mix_ratio > 0 and torch.rand(1) <= self.cut_mix_ratio: # mixup or cutmix
+                self.distrib = self.mix_distrib
                 MixUp.before_batch(self)
             else:
+                self.distrib = self.cut_distrib
                 CutMix.before_batch(self)
             self.learn.xb = self._norm_pipe(self.xb) # now normalize
         else:
+            self._aug = True
             self.learn.xb = self._orig_pipe(self.xb) # original transforms
 
     def after_fit(self):
         self.dls.train.after_batch = self._orig_pipe
+
+    def after_cancel_fit(self):
+        self.after_fit()
+        MixUp.after_train(self) # change to after_cancel_fit once MixHandler pull request is accepted
+
+    def lf(self, pred, *yb):
+        if not self.training or self._aug: return self.old_lf(pred, *yb)
+        with NoneReduce(self.old_lf) as lf:
+            loss = torch.lerp(lf(pred,*self.yb1), lf(pred,*yb), self.lam)
+        return reduce_loss(loss, getattr(self.old_lf, 'reduction', 'mean'))
