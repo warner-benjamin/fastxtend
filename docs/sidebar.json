@@ -2,6 +2,7 @@
   "fastai_snippets": {
     "Overview": "/",
     "TensorImage & TensorMask item transforms": "augment.tensor_item_tfm.html",
+    "CutMixUp": "callback.cutmixup.html",
     "Fit Flat Varied": "schedulers.fit_flat_varied.html"
   }
 }
