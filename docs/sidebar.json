@@ -1,8 +1,15 @@
 {
-  "fastai_snippets": {
-    "Overview": "/",
-    "TensorImage & TensorMask item transforms": "augment.tensor_item_tfm.html",
+  "Fastai Snippets": {
+    "Overview": "/"
+  },
+  "Augmentation": {
+    "TensorImage & TensorMask item transforms": "augment.tensor_item_tfm.html"
+  },
+  "Callbacks": {
     "CutMixUp": "callback.cutmixup.html",
+    "LR Finder": "callback.lr_finder.html"
+  },
+  "Schedulers": {
     "Fit Flat Varied": "schedulers.fit_flat_varied.html"
   }
 }

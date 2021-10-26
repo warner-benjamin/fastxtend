@@ -9,16 +9,28 @@ entries:
     - output: web,pdf
       title: Overview
       url: /
+    output: web
+    title: Fastai Snippets
+  - folderitems:
     - output: web,pdf
       title: TensorImage & TensorMask item transforms
       url: augment.tensor_item_tfm.html
+    output: web
+    title: Augmentation
+  - folderitems:
     - output: web,pdf
       title: CutMixUp
       url: callback.cutmixup.html
     - output: web,pdf
+      title: LR Finder
+      url: callback.lr_finder.html
+    output: web
+    title: Callbacks
+  - folderitems:
+    - output: web,pdf
       title: Fit Flat Varied
       url: schedulers.fit_flat_varied.html
     output: web
-    title: fastai_snippets
+    title: Schedulers
   output: web
   title: Sidebar

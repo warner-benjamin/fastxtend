@@ -13,11 +13,14 @@ index = {"TensorImage.resize": "augment.tensor_item_tfm.ipynb",
          "RatioResize.encodes": "augment.tensor_item_tfm.ipynb",
          "CutMixUp": "callback.cutmixup.ipynb",
          "CutMixUpAugment": "callback.cutmixup.ipynb",
+         "LRFinder": "callback.lr_finder.ipynb",
+         "Learner.lr_find": "callback.lr_finder.ipynb",
          "is_listish": "schedulers.fit_flat_varied.ipynb",
          "Learner.fit_flat_varied": "schedulers.fit_flat_varied.ipynb"}
 
 modules = ["augment/tensor_item_tfm.py",
            "callback/cutmixup.py",
+           "callback/lr_finder.py",
            "schedulers/fit_flat_varied.py"]
 
 doc_url = "https://warner-benjamin.github.io/fastai_snippets/"

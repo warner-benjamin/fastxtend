@@ -1,4 +1,4 @@
-# fastai_snippets
+# Fastai Snippets
 > fastai_snippets is a collection of useful code and small extensions I have created or modified for version 2 of the fastai framework.
 
 
@@ -18,7 +18,7 @@ pip install -e ".[dev]"
 
 ## Requirements
 
-fastai_snippets requires the fastai package to be installed. See http://docs.fast.ai/ for installation instructions.
+fastai_snippets requires fast.ai to be installed. See http://docs.fast.ai/ for installation instructions.
 
 ## Documentation
 https://warner-benjamin.github.io/fastai_snippets/
