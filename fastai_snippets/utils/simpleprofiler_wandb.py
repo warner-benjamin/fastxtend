@@ -19,12 +19,12 @@ def before_fit(self:WandbCallback):
     else:
         self.log_simple_profiler = False
 
-    self._orig_before_fit(self)
+    self._orig_before_fit()
 
 # Internal Cell
 @patch
 def after_fit(self:WandbCallback):
-    self._orig_after_fit(self)
+    self._orig_after_fit()
 
     if self.log_simple_profiler:
         report = wandb.Table(dataframe=self.learn.simple_profile_report)

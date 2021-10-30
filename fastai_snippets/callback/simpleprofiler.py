@@ -182,7 +182,7 @@ class SimpleProfilerCallback(Callback):
 
     def _generate_report(self):
         total_time = self._raw_time['fit'][0]
-        self.report = pd.DataFrame(columns=['Phase', 'Action', 'Mean Duration', 'Duration St.Dev.',
+        self.report = pd.DataFrame(columns=['Phase', 'Action', 'Mean Duration', 'Duration Std Dev',
                                                'Number of Calls', 'Total Time', 'Percent of Total'])
 
         for c in _all:
@@ -197,7 +197,7 @@ class SimpleProfilerCallback(Callback):
 
         self.report = self.report.sort_values(['Phase','Total Time'], ascending=[True,False])
         self.learn.simple_profile_results = self.report.copy()
-        for c in ['Mean Duration', 'Duration St.Dev.', 'Total Time']:
+        for c in ['Mean Duration', 'Duration Std Dev', 'Total Time']:
             self.report[c] = self.report[c].apply(self._scale)
         self.report['Phase'] = self.report['Phase'].where(~self.report['Phase'].duplicated(), '')
 
