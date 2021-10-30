@@ -13,7 +13,7 @@ entries:
     title: Fastai Snippets
   - folderitems:
     - output: web,pdf
-      title: TensorImage & TensorMask item transforms
+      title: TensorImage & TensorMask item_tfms
       url: augment.tensor_item_tfm.html
     output: web
     title: Augmentation
@@ -35,5 +35,11 @@ entries:
       url: schedulers.fit_flat_varied.html
     output: web
     title: Schedulers
+  - folderitems:
+    - output: web,pdf
+      title: Simple Profiler WandB
+      url: utils.simpleprofiler_wandb.html
+    output: web
+    title: Utils
   output: web
   title: Sidebar

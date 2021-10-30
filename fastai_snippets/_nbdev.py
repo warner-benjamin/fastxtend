@@ -22,13 +22,16 @@ index = {"TensorImage.resize": "augment.tensor_item_tfm.ipynb",
          "SimpleProfilerCallback": "callback.simpleprofiler.ipynb",
          "Learner.profile": "callback.simpleprofiler.ipynb",
          "is_listish": "schedulers.fit_flat_varied.ipynb",
-         "Learner.fit_flat_varied": "schedulers.fit_flat_varied.ipynb"}
+         "Learner.fit_flat_varied": "schedulers.fit_flat_varied.ipynb",
+         "WandbCallback.before_fit": "utils.simpleprofiler_wandb.ipynb",
+         "WandbCallback.after_fit": "utils.simpleprofiler_wandb.ipynb"}
 
 modules = ["augment/tensor_item_tfm.py",
            "callback/cutmixup.py",
            "callback/lr_finder.py",
            "callback/simpleprofiler.py",
-           "schedulers/fit_flat_varied.py"]
+           "schedulers/fit_flat_varied.py",
+           "utils/simpleprofiler_wandb.py"]
 
 doc_url = "https://warner-benjamin.github.io/fastai_snippets/"
 

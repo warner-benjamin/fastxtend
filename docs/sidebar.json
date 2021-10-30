@@ -3,7 +3,7 @@
     "Overview": "/"
   },
   "Augmentation": {
-    "TensorImage & TensorMask item transforms": "augment.tensor_item_tfm.html"
+    "TensorImage & TensorMask item_tfms": "augment.tensor_item_tfm.html"
   },
   "Callbacks": {
     "CutMixUp": "callback.cutmixup.html",
@@ -12,5 +12,8 @@
   },
   "Schedulers": {
     "Fit Flat Varied": "schedulers.fit_flat_varied.html"
+  },
+  "Utils": {
+    "Simple Profiler WandB": "utils.simpleprofiler_wandb.html"
   }
 }

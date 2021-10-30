@@ -13,6 +13,7 @@ from fastai.learner import Learner, Recorder
 from fastai.test_utils import synth_learner
 from fastai.callback.core import *
 
+
 if in_notebook():
     from IPython.display import display
 
@@ -127,11 +128,11 @@ class SimpleProfilerPostCallback(Callback):
 # Cell
 class SimpleProfilerCallback(Callback):
     """
-    Adds a simple profiler to the fastai `Learner`. Optionally showing report or saving report as csv.
+    Adds a simple profiler to the fastai `Learner`. Optionally showing formatted report or saving unformatted results as csv.
 
     Pair with SimpleProfilerPostCallback to profile training performance.
 
-    Post fitting, a Pandas Dataframe of results can be accessed via `Learner.simple_profile_report`.
+    Post fit, access report & results via `Learner.simple_profile_report` & `Learner.simple_profile_results`.
     """
     order,remove_on_fetch = TrainEvalCallback.order+1,True
     def __init__(self, show_report=True, plain=False, markdown=False,
@@ -181,7 +182,7 @@ class SimpleProfilerCallback(Callback):
 
     def _generate_report(self):
         total_time = self._raw_time['fit'][0]
-        self.dataframe = pd.DataFrame(columns=['Phase', 'Action', 'Mean Duration', 'Duration St.Dev.',
+        self.report = pd.DataFrame(columns=['Phase', 'Action', 'Mean Duration', 'Duration St.Dev.',
                                                'Number of Calls', 'Total Time', 'Percent of Total'])
 
         for c in _all:
@@ -194,32 +195,32 @@ class SimpleProfilerCallback(Callback):
         for p in ['train', 'valid']:
             for c in _multiple: self._append_to_df(self._create_row(p, f'{c}', self._raw_time[f'{p}_{c}']))
 
-        self.dataframe = self.dataframe.sort_values(['Phase','Total Time'], ascending=[True,False])
-        for c in ['Mean Duration', 'Duration St.Dev.']:
-            self.dataframe[c] = self.dataframe[c].apply(self._scale)
-        self.dataframe['Total Time'] = self.dataframe['Total Time'].apply(self._scale)
-        self.dataframe['Phase'] = self.dataframe['Phase'].where(~self.dataframe['Phase'].duplicated(), '')
+        self.report = self.report.sort_values(['Phase','Total Time'], ascending=[True,False])
+        self.learn.simple_profile_results = self.report.copy()
+        for c in ['Mean Duration', 'Duration St.Dev.', 'Total Time']:
+            self.report[c] = self.report[c].apply(self._scale)
+        self.report['Phase'] = self.report['Phase'].where(~self.report['Phase'].duplicated(), '')
 
-        self.learn.simple_profile_report = self.dataframe
+        self.learn.simple_profile_report = self.report
 
     def _display_report(self):
         if self.show_report:
-            if self.markdown: print(self.dataframe.to_markdown(index=False))
+            if self.markdown: print(self.report.to_markdown(index=False))
             else:
                 if in_notebook() and not self.plain:
-                    with pd.option_context('display.max_rows', len(self.dataframe.index)):
-                        s = self.dataframe.style.set_caption("Simple Profiler Results").hide_index()
+                    with pd.option_context('display.max_rows', len(self.report.index)):
+                        s = self.report.style.set_caption("Simple Profiler Results").hide_index()
                         display(s)
                 else:
                     print('Simple Profiler Results')
-                    print(self.dataframe.to_string(index=False))
+                    print(self.report.to_string(index=False))
 
         if self.save_csv:
             self.path.parent.mkdir(parents=True, exist_ok=True)
-            self.dataframe.to_csv(self.path/self.csv_name, index=False)
+            self.learn.simple_profile_results.to_csv(self.path/self.csv_name, index=False)
 
     def _append_to_df(self, row):
-        self.dataframe.loc[len(self.dataframe.index)] = row
+        self.report.loc[len(self.report.index)] = row
 
     def _calc_percent(self, time):
         return time / self._raw_time['fit'][0]
@@ -240,7 +241,7 @@ class SimpleProfilerCallback(Callback):
 # Cell
 @patch
 def profile(self:Learner, show_report=True, plain=False, markdown=False,
-                   save_csv=False, csv_name='simple_profile.csv'):
+            save_csv=False, csv_name='simple_profile.csv'):
     "Run Simple Profiler when training. Simple Profiler removes itself when finished."
     self.add_cbs([SimpleProfilerCallback(show_report, plain, markdown, save_csv, csv_name),
                   SimpleProfilerPostCallback()])
