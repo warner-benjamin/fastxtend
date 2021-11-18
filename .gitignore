@@ -132,3 +132,4 @@ dmypy.json
 .vscode
 
 scratch/
+docs/Gemfile.lock
