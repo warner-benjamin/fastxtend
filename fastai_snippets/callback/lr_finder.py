@@ -4,15 +4,15 @@ __all__ = ['LRFinder']
 
 # Cell
 from fastcore.xtras import is_listy
-from fastcore.foundation import patch, docs
+from fastcore.foundation import patch, docs, Path
 from fastcore.basics import tuplify
 from fastai.callback.schedule import ParamScheduler, SchedExp, SuggestionMethod
-from fastai.callback.core import *
 from fastai.torch_core import tensor, get_random_states, set_random_states
-from fastai.learner import Learner
+from fastai.learner import Learner, CancelFitException, CancelValidException
 from functools import partial
 from copy import deepcopy
-import os, torch, collections
+import torch
+import collections, tempfile
 
 # Cell
 @docs
@@ -29,7 +29,11 @@ class LRFinder(ParamScheduler):
         if self.restore_state:
             self.old_dls = deepcopy(self.learn.dls)
             self.states = get_random_states()
-        self.learn.save('_tmp')
+        path = self.path/self.model_dir
+        path.mkdir(parents=True, exist_ok=True)
+        self.tmp_d = tempfile.TemporaryDirectory(dir=path)
+        self.tmp_p = Path(self.tmp_d.name).stem
+        self.learn.save(f'{self.tmp_p}/_tmp')
         self.best_loss = float('inf')
 
     def before_batch(self): self._update_val(self.train_iter/self.num_it)
@@ -44,10 +48,10 @@ class LRFinder(ParamScheduler):
 
     def after_fit(self):
         self.learn.opt.zero_grad() # Needed before detaching the optimizer for future fits
-        tmp_f = self.path/self.model_dir/'_tmp.pth'
+        tmp_f = self.path/self.model_dir/self.tmp_p/'_tmp.pth'
         if tmp_f.exists():
-            self.learn.load('_tmp', with_opt=True)
-            os.remove(tmp_f)
+            self.learn.load(f'{self.tmp_p}/_tmp', with_opt=True)
+            self.tmp_d.cleanup()
         if self.restore_state:
             self.learn.dls = self.old_dls
             set_random_states(**self.states)

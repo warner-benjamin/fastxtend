@@ -47,7 +47,7 @@ nb_path: "nbs/schedulers.fit_flat_varied.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Learner.fit_flat_varied" class="doc_header"><code>Learner.fit_flat_varied</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/schedulers/fit_flat_varied.py#L19" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.fit_flat_varied</code>(<strong><code>n_epoch</code></strong>, <strong><code>start_lr</code></strong>=<em><code>None</code></em>, <strong><code>div_final</code></strong>=<em><code>100000.0</code></em>, <strong><code>pct_start</code></strong>=<em><code>0.75</code></em>, <strong><code>wd</code></strong>=<em><code>None</code></em>, <strong><code>next_lr</code></strong>=<em><code>None</code></em>, <strong><code>change_by</code></strong>=<em><code>None</code></em>, <strong><code>change_time</code></strong>=<em><code>1</code></em>, <strong><code>change_sched</code></strong>=<em><code>None</code></em>, <strong><code>cbs</code></strong>=<em><code>None</code></em>, <strong><code>reset_opt</code></strong>=<em><code>False</code></em>)</p>
+<h4 id="Learner.fit_flat_varied" class="doc_header"><code>Learner.fit_flat_varied</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/schedulers/fit_flat_varied.py#L15" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.fit_flat_varied</code>(<strong><code>n_epoch</code></strong>, <strong><code>start_lr</code></strong>=<em><code>None</code></em>, <strong><code>div_final</code></strong>=<em><code>100000.0</code></em>, <strong><code>pct_start</code></strong>=<em><code>0.75</code></em>, <strong><code>wd</code></strong>=<em><code>None</code></em>, <strong><code>next_lr</code></strong>=<em><code>None</code></em>, <strong><code>change_by</code></strong>=<em><code>None</code></em>, <strong><code>change_time</code></strong>=<em><code>1</code></em>, <strong><code>change_sched</code></strong>=<em><code>None</code></em>, <strong><code>cbs</code></strong>=<em><code>None</code></em>, <strong><code>reset_opt</code></strong>=<em><code>False</code></em>)</p>
 </blockquote>
 <p>Fit <code>self.model</code> for <code>n_epoch</code> at flat <code>start_lr</code>, then change to flat <code>next_lr</code> at <code>change_by</code>,
 optionally with cosine annealing or custom <code>change_sched</code> over <code>change_time</code>. Final cosine annealing at <code>pct_start</code>.</p>
@@ -56,6 +56,31 @@ optionally with cosine annealing or custom <code>change_sched</code> over <code>
 <p><code>change_by</code> single or list of epochs or percent of steps to switch to <code>next_lr</code> by. Must be same length as <code>next_lr</code>.</p>
 <p><code>change_time</code> if greater than 0 (percent of steps or epochs), how long to cosine anneal to <code>next_lr</code>. Can be single or list of same length as <code>next_lr</code>.</p>
 <p><code>change_sched</code> optional single or list of fast.ai schedules. If <code>None</code> defaults to <code>SchedCos</code>. Must be same length as <code>next_lr</code>. <code>SchedPoly</code> must be passed as partial: <code>partial(SchedPoly, power=0.5)</code>.</p>
+<p><strong>Parameters:</strong></p>
+<ul>
+<li><p><strong><code>n_epoch</code></strong> : <em><code>&lt;class 'inspect._empty'&gt;</code></em></p>
+</li>
+<li><p><strong><code>start_lr</code></strong> : <em><code>&lt;class 'NoneType'&gt;</code></em>, <em>optional</em></p>
+</li>
+<li><p><strong><code>div_final</code></strong> : <em><code>&lt;class 'float'&gt;</code></em>, <em>optional</em></p>
+</li>
+<li><p><strong><code>pct_start</code></strong> : <em><code>&lt;class 'float'&gt;</code></em>, <em>optional</em></p>
+</li>
+<li><p><strong><code>wd</code></strong> : <em><code>&lt;class 'NoneType'&gt;</code></em>, <em>optional</em></p>
+</li>
+<li><p><strong><code>next_lr</code></strong> : <em><code>&lt;class 'NoneType'&gt;</code></em>, <em>optional</em></p>
+</li>
+<li><p><strong><code>change_by</code></strong> : <em><code>&lt;class 'NoneType'&gt;</code></em>, <em>optional</em></p>
+</li>
+<li><p><strong><code>change_time</code></strong> : <em><code>&lt;class 'int'&gt;</code></em>, <em>optional</em></p>
+</li>
+<li><p><strong><code>change_sched</code></strong> : <em><code>&lt;class 'NoneType'&gt;</code></em>, <em>optional</em></p>
+</li>
+<li><p><strong><code>cbs</code></strong> : <em><code>&lt;class 'NoneType'&gt;</code></em>, <em>optional</em></p>
+</li>
+<li><p><strong><code>reset_opt</code></strong> : <em><code>&lt;class 'bool'&gt;</code></em>, <em>optional</em></p>
+</li>
+</ul>
 
 </div>
 

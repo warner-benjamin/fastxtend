@@ -9,11 +9,7 @@ from fastcore.basics import even_mults
 from fastcore.foundation import patch, L
 from fastai.learner import Learner
 from fastai.callback.schedule import SchedCos, SchedNo, combine_scheds, ParamScheduler
-
-# Internal Cell
-def is_listish(x):
-    "Subset of `is_listy`: (tuple,list,L)"
-    return isinstance(x, (tuple,list,L))
+from ..basics import is_listish
 
 # Cell
 @patch

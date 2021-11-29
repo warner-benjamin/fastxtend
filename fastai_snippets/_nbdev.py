@@ -21,7 +21,6 @@ index = {"TensorImage.resize": "augment.tensor_item_tfm.ipynb",
          "SimpleProfilerPostCallback": "callback.simpleprofiler.ipynb",
          "SimpleProfilerCallback": "callback.simpleprofiler.ipynb",
          "Learner.profile": "callback.simpleprofiler.ipynb",
-         "is_listish": "schedulers.fit_flat_varied.ipynb",
          "Learner.fit_flat_varied": "schedulers.fit_flat_varied.ipynb",
          "WandbCallback.before_fit": "utils.simpleprofiler_wandb.ipynb",
          "WandbCallback.after_fit": "utils.simpleprofiler_wandb.ipynb"}
