@@ -50,19 +50,6 @@ nb_path: "nbs/callback.lr_finder.ipynb"
 <h2 id="LRFinder" class="doc_header"><code>class</code> <code>LRFinder</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/callback/lr_finder.py#L18" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>LRFinder</code>(<strong><code>start_lr</code></strong>=<em><code>1e-07</code></em>, <strong><code>end_lr</code></strong>=<em><code>10</code></em>, <strong><code>num_it</code></strong>=<em><code>100</code></em>, <strong><code>stop_div</code></strong>=<em><code>True</code></em>, <strong><code>restore_state</code></strong>=<em><code>True</code></em>) :: <code>ParamScheduler</code></p>
 </blockquote>
 <p>Training with exponentially growing learning rate</p>
-<p><strong>Parameters:</strong></p>
-<ul>
-<li><p><strong><code>start_lr</code></strong> : <em><code>&lt;class 'float'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>end_lr</code></strong> : <em><code>&lt;class 'int'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>num_it</code></strong> : <em><code>&lt;class 'int'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>stop_div</code></strong> : <em><code>&lt;class 'bool'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>restore_state</code></strong> : <em><code>&lt;class 'bool'&gt;</code></em>, <em>optional</em></p>
-</li>
-</ul>
 
 </div>
 
@@ -226,23 +213,6 @@ nb_path: "nbs/callback.lr_finder.ipynb"
 <h4 id="Learner.lr_find" class="doc_header"><code>Learner.lr_find</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/callback/lr_finder.py#L66" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.lr_find</code>(<strong><code>start_lr</code></strong>=<em><code>1e-07</code></em>, <strong><code>end_lr</code></strong>=<em><code>10</code></em>, <strong><code>num_it</code></strong>=<em><code>100</code></em>, <strong><code>stop_div</code></strong>=<em><code>True</code></em>, <strong><code>show_plot</code></strong>=<em><code>True</code></em>, <strong><code>suggest_funcs</code></strong>=<em><code>valley</code></em>, <strong><code>restore_state</code></strong>=<em><code>True</code></em>)</p>
 </blockquote>
 <p>Launch a mock training to find a good learning rate and return suggestions based on <code>suggest_funcs</code> as a named tuple. Use <code>restore_state</code> to reset dataloaders and random state after running.</p>
-<p><strong>Parameters:</strong></p>
-<ul>
-<li><p><strong><code>start_lr</code></strong> : <em><code>&lt;class 'float'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>end_lr</code></strong> : <em><code>&lt;class 'int'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>num_it</code></strong> : <em><code>&lt;class 'int'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>stop_div</code></strong> : <em><code>&lt;class 'bool'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>show_plot</code></strong> : <em><code>&lt;class 'bool'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>suggest_funcs</code></strong> : <em><code>&lt;class 'function'&gt;</code></em>, <em>optional</em></p>
-</li>
-<li><p><strong><code>restore_state</code></strong> : <em><code>&lt;class 'bool'&gt;</code></em>, <em>optional</em></p>
-</li>
-</ul>
 
 </div>
 

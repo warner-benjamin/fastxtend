@@ -19,6 +19,9 @@ entries:
     title: Augmentation
   - folderitems:
     - output: web,pdf
+      title: Channels Last
+      url: callback.channelslast.html
+    - output: web,pdf
       title: CutMixUp
       url: callback.cutmixup.html
     - output: web,pdf
@@ -36,6 +39,9 @@ entries:
     output: web
     title: Schedulers
   - folderitems:
+    - output: web,pdf
+      title: Less Random
+      url: utils.lessrandom.html
     - output: web,pdf
       title: Simple Profiler WandB
       url: utils.simpleprofiler_wandb.html

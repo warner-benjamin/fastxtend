@@ -11,6 +11,10 @@ index = {"TensorImage.resize": "augment.tensor_item_tfm.ipynb",
          "Resize.encodes": "augment.tensor_item_tfm.ipynb",
          "RandomResizedCrop.encodes": "augment.tensor_item_tfm.ipynb",
          "RatioResize.encodes": "augment.tensor_item_tfm.ipynb",
+         "ChannelsLastTfm": "callback.channelslast.ipynb",
+         "ChannelsLastCallback": "callback.channelslast.ipynb",
+         "Learner.to_channelslast": "callback.channelslast.ipynb",
+         "Learner.to_contiguous": "callback.channelslast.ipynb",
          "CutMixUp": "callback.cutmixup.ipynb",
          "CutMixUpAugment": "callback.cutmixup.ipynb",
          "LRFinder": "callback.lr_finder.ipynb",
@@ -22,14 +26,17 @@ index = {"TensorImage.resize": "augment.tensor_item_tfm.ipynb",
          "SimpleProfilerCallback": "callback.simpleprofiler.ipynb",
          "Learner.profile": "callback.simpleprofiler.ipynb",
          "Learner.fit_flat_varied": "schedulers.fit_flat_varied.ipynb",
+         "less_random": "utils.lessrandom.ipynb",
          "WandbCallback.before_fit": "utils.simpleprofiler_wandb.ipynb",
          "WandbCallback.after_fit": "utils.simpleprofiler_wandb.ipynb"}
 
 modules = ["augment/tensor_item_tfm.py",
+           "callback/channelslast.py",
            "callback/cutmixup.py",
            "callback/lr_finder.py",
            "callback/simpleprofiler.py",
            "schedulers/fit_flat_varied.py",
+           "utils/lessrandom.py",
            "utils/simpleprofiler_wandb.py"]
 
 doc_url = "https://warner-benjamin.github.io/fastai_snippets/"

@@ -5,7 +5,7 @@ __all__ = ['CutMixUp', 'CutMixUpAugment']
 # Cell
 from fastai.basics import *
 from fastai.data.transforms import IntToFloatTensor, Normalize
-from fastai.callback.mixup import CutMix, MixUp
+from fastai.callback.mixup import CutMix, MixUp, reduce_loss
 from torch.distributions.beta import Beta
 
 # Cell
