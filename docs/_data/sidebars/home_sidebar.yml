@@ -10,7 +10,7 @@ entries:
       title: Overview
       url: /
     output: web
-    title: Fastai Snippets
+    title: fastxtend
   - folderitems:
     - output: web,pdf
       title: TensorImage & TensorMask item_tfms

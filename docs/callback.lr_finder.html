@@ -47,7 +47,7 @@ nb_path: "nbs/callback.lr_finder.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="LRFinder" class="doc_header"><code>class</code> <code>LRFinder</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/callback/lr_finder.py#L18" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>LRFinder</code>(<strong><code>start_lr</code></strong>=<em><code>1e-07</code></em>, <strong><code>end_lr</code></strong>=<em><code>10</code></em>, <strong><code>num_it</code></strong>=<em><code>100</code></em>, <strong><code>stop_div</code></strong>=<em><code>True</code></em>, <strong><code>restore_state</code></strong>=<em><code>True</code></em>) :: <code>ParamScheduler</code></p>
+<h2 id="LRFinder" class="doc_header"><code>class</code> <code>LRFinder</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/lr_finder.py#L18" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>LRFinder</code>(<strong><code>start_lr</code></strong>=<em><code>1e-07</code></em>, <strong><code>end_lr</code></strong>=<em><code>10</code></em>, <strong><code>num_it</code></strong>=<em><code>100</code></em>, <strong><code>stop_div</code></strong>=<em><code>True</code></em>, <strong><code>restore_state</code></strong>=<em><code>True</code></em>) :: <code>ParamScheduler</code></p>
 </blockquote>
 <p>Training with exponentially growing learning rate</p>
 
@@ -79,7 +79,7 @@ nb_path: "nbs/callback.lr_finder.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="LRFinder.before_fit" class="doc_header"><code>LRFinder.before_fit</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/callback/lr_finder.py#L27" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.before_fit</code>()</p>
+<h4 id="LRFinder.before_fit" class="doc_header"><code>LRFinder.before_fit</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/lr_finder.py#L27" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.before_fit</code>()</p>
 </blockquote>
 <p>Initialize container for hyper-parameters and save the model &amp; optimizer, optionally saving dataloader &amp; random state</p>
 
@@ -104,7 +104,7 @@ nb_path: "nbs/callback.lr_finder.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="LRFinder.before_batch" class="doc_header"><code>LRFinder.before_batch</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/callback/lr_finder.py#L39" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.before_batch</code>()</p>
+<h4 id="LRFinder.before_batch" class="doc_header"><code>LRFinder.before_batch</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/lr_finder.py#L39" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.before_batch</code>()</p>
 </blockquote>
 <p>Set the proper hyper-parameters in the optimizer</p>
 
@@ -129,7 +129,7 @@ nb_path: "nbs/callback.lr_finder.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="LRFinder.after_batch" class="doc_header"><code>LRFinder.after_batch</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/callback/lr_finder.py#L41" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.after_batch</code>()</p>
+<h4 id="LRFinder.after_batch" class="doc_header"><code>LRFinder.after_batch</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/lr_finder.py#L41" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.after_batch</code>()</p>
 </blockquote>
 <p>Record hyper-parameters of this batch and potentially stop training</p>
 
@@ -154,7 +154,7 @@ nb_path: "nbs/callback.lr_finder.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="LRFinder.before_validate" class="doc_header"><code>LRFinder.before_validate</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/callback/lr_finder.py#L47" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.before_validate</code>()</p>
+<h4 id="LRFinder.before_validate" class="doc_header"><code>LRFinder.before_validate</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/lr_finder.py#L47" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.before_validate</code>()</p>
 </blockquote>
 <p>Skip the validation part of training</p>
 
@@ -179,7 +179,7 @@ nb_path: "nbs/callback.lr_finder.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="LRFinder.after_fit" class="doc_header"><code>LRFinder.after_fit</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/callback/lr_finder.py#L49" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.after_fit</code>()</p>
+<h4 id="LRFinder.after_fit" class="doc_header"><code>LRFinder.after_fit</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/lr_finder.py#L49" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>LRFinder.after_fit</code>()</p>
 </blockquote>
 <p>Save the hyper-parameters in the recorder if there is one and load the original model &amp; optimizer, optionally restoring dataloader &amp; random state</p>
 
@@ -210,7 +210,7 @@ nb_path: "nbs/callback.lr_finder.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Learner.lr_find" class="doc_header"><code>Learner.lr_find</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/callback/lr_finder.py#L66" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.lr_find</code>(<strong><code>start_lr</code></strong>=<em><code>1e-07</code></em>, <strong><code>end_lr</code></strong>=<em><code>10</code></em>, <strong><code>num_it</code></strong>=<em><code>100</code></em>, <strong><code>stop_div</code></strong>=<em><code>True</code></em>, <strong><code>show_plot</code></strong>=<em><code>True</code></em>, <strong><code>suggest_funcs</code></strong>=<em><code>valley</code></em>, <strong><code>restore_state</code></strong>=<em><code>True</code></em>)</p>
+<h4 id="Learner.lr_find" class="doc_header"><code>Learner.lr_find</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/lr_finder.py#L66" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.lr_find</code>(<strong><code>start_lr</code></strong>=<em><code>1e-07</code></em>, <strong><code>end_lr</code></strong>=<em><code>10</code></em>, <strong><code>num_it</code></strong>=<em><code>100</code></em>, <strong><code>stop_div</code></strong>=<em><code>True</code></em>, <strong><code>show_plot</code></strong>=<em><code>True</code></em>, <strong><code>suggest_funcs</code></strong>=<em><code>valley</code></em>, <strong><code>restore_state</code></strong>=<em><code>True</code></em>)</p>
 </blockquote>
 <p>Launch a mock training to find a good learning rate and return suggestions based on <code>suggest_funcs</code> as a named tuple. Use <code>restore_state</code> to reset dataloaders and random state after running.</p>
 

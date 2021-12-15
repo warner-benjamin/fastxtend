@@ -2,11 +2,11 @@
 SHELL := /bin/bash
 SRC = $(wildcard nbs/*.ipynb)
 
-all: fastai_snippets docs
+all: fastxtend docs
 
-fastai_snippets: $(SRC)
+fastxtend: $(SRC)
 	nbdev_build_lib
-	touch fastai_snippets
+	touch fastxtend
 
 sync:
 	nbdev_update_lib

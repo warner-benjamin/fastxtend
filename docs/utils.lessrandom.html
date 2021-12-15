@@ -31,7 +31,7 @@ nb_path: "nbs/utils.lessrandom.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Unlike fast.ai's <code>no_random</code>, <a href="/fastai_snippets/utils.lessrandom.html#less_random"><code>less_random</code></a> does not set <code>torch.backends.cudnn.benchmark = False</code> so it's possible to train faster. Training runs on the same GPU, PyTorch, &amp; CUDA setup should be reproducable, but differnet hardware/software setup will probably have less reproducability then using <code>no_random</code>.</p>
+<p>Unlike fast.ai's <code>no_random</code>, <a href="/fastxtend/utils.lessrandom.html#less_random"><code>less_random</code></a> does not set <code>torch.backends.cudnn.benchmark = False</code> so it's possible to train faster. Training runs on the same GPU, PyTorch, &amp; CUDA setup should be reproducable, but differnet hardware/software setup will probably have less reproducability then using <code>no_random</code>.</p>
 
 </div>
 </div>
@@ -54,7 +54,7 @@ nb_path: "nbs/utils.lessrandom.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="less_random" class="doc_header"><code>less_random</code><a href="https://github.com/warner-benjamin/fastai_snippets/tree/main/fastai_snippets/utils/lessrandom.py#L12" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>less_random</code>(<strong><code>seed</code></strong>=<em><code>42</code></em>, <strong><code>deterministic</code></strong>=<em><code>True</code></em>)</p>
+<h4 id="less_random" class="doc_header"><code>less_random</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/utils/lessrandom.py#L12" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>less_random</code>(<strong><code>seed</code></strong>=<em><code>42</code></em>, <strong><code>deterministic</code></strong>=<em><code>True</code></em>)</p>
 </blockquote>
 <p>Stores and retrieves state of random number generators. Sets random seed for <code>random</code>, <code>torch</code>, and <code>numpy</code>. Does not set <code>torch.backends.cudnn.benchmark = False</code></p>
 

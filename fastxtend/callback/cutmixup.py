@@ -31,7 +31,7 @@ class CutMixUp(MixUp, CutMix):
 class CutMixUpAugment(MixUp, CutMix):
     "Combo implementation of https://arxiv.org/abs/1710.09412 and https://arxiv.org/abs/1905.04899 plus Augmentation"
     run_valid = False
-    def __init__(self, mix_alpha=.4, cut_alpha=1., augment_ratio=1, cutmix_ratio=1, mixup_ratio=1):
+    def __init__(self, mix_alpha=.4, cut_alpha=1., augment_ratio=1, cutmix_ratio=1, mixup_ratio=1, augs_only=None):
         MixUp.__init__(self, mix_alpha)
         CutMix.__init__(self, cut_alpha)
         self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
@@ -39,6 +39,9 @@ class CutMixUpAugment(MixUp, CutMix):
         self.aug_cutmix_ratio = augment_ratio / (augment_ratio + cutmix_ratio + mixup_ratio)
         if self.aug_cutmix_ratio == 1: self.cut_mix_ratio = 0
         else: self.cut_mix_ratio = mixup_ratio / (cutmix_ratio + mixup_ratio)
+        if augs_only is None: self.augs_only = (self.learn.n_epoch + 1)/self.learn.n_epoch
+        elif augs_only >=1: self.augs_only = augs_only/self.learn.n_epoch
+        else: self.augs_only = augs_only
 
     def before_fit(self):
         self._inttofloat_pipe = Pipeline([])
@@ -59,7 +62,7 @@ class CutMixUpAugment(MixUp, CutMix):
         self.dls.train.after_batch = Pipeline([])
 
     def before_batch(self):
-        if torch.rand(1) >= self.aug_cutmix_ratio: # augs or mixup/cutmix
+        if self.augs_only >= self.learn.pct_train and torch.rand(1) >= self.aug_cutmix_ratio: # augs or mixup/cutmix
             self._aug = False
             self.learn.xb = self._inttofloat_pipe(self.xb) # apply inttofloat first
             if self.cut_mix_ratio > 0 and torch.rand(1) <= self.cut_mix_ratio: # mixup or cutmix

@@ -2,7 +2,7 @@ topnav:
 - title: Topnav
   items:
     - title: github
-      external_url: https://github.com/warner-benjamin/fastai_snippets/tree/main/
+      external_url: https://github.com/warner-benjamin/fastxtend/tree/main/
 
 #Topnav dropdowns
 topnav_dropdowns:

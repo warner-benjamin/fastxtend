@@ -1,7 +1,7 @@
-repository: warner-benjamin/fastai_snippets
+repository: warner-benjamin/fastxtend
 output: web
-topnav_title: fastai_snippets
-site_title: fastai_snippets
+topnav_title: fastxtend
+site_title: fastxtend
 company_name: Benjamin Warner
 description: A collection of useful code and extensions I have created or modified for version 2 of the fastai framework
 # Set to false to disable KaTeX math
@@ -66,4 +66,4 @@ plugins:
     - jekyll-remote-theme
     
 remote_theme: fastai/nbdev-jekyll-theme
-baseurl: /fastai_snippets/
+baseurl: /fastxtend/

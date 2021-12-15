@@ -17,6 +17,7 @@ index = {"TensorImage.resize": "augment.tensor_item_tfm.ipynb",
          "Learner.to_contiguous": "callback.channelslast.ipynb",
          "CutMixUp": "callback.cutmixup.ipynb",
          "CutMixUpAugment": "callback.cutmixup.ipynb",
+         "EMACallback": "callback.ema.ipynb",
          "LRFinder": "callback.lr_finder.ipynb",
          "Learner.lr_find": "callback.lr_finder.ipynb",
          "Callback.__call__": "callback.simpleprofiler.ipynb",
@@ -33,14 +34,15 @@ index = {"TensorImage.resize": "augment.tensor_item_tfm.ipynb",
 modules = ["augment/tensor_item_tfm.py",
            "callback/channelslast.py",
            "callback/cutmixup.py",
+           "callback/ema.py",
            "callback/lr_finder.py",
            "callback/simpleprofiler.py",
            "schedulers/fit_flat_varied.py",
            "utils/lessrandom.py",
            "utils/simpleprofiler_wandb.py"]
 
-doc_url = "https://warner-benjamin.github.io/fastai_snippets/"
+doc_url = "https://warner-benjamin.github.io/fastxtend/"
 
-git_url = "https://github.com/warner-benjamin/fastai_snippets/tree/main/"
+git_url = "https://github.com/warner-benjamin/fastxtend/tree/main/"
 
 def custom_doc_links(name): return None
