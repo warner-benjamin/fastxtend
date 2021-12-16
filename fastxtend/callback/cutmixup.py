@@ -39,11 +39,13 @@ class CutMixUpAugment(MixUp, CutMix):
         self.aug_cutmix_ratio = augment_ratio / (augment_ratio + cutmix_ratio + mixup_ratio)
         if self.aug_cutmix_ratio == 1: self.cut_mix_ratio = 0
         else: self.cut_mix_ratio = mixup_ratio / (cutmix_ratio + mixup_ratio)
-        if augs_only is None: self.augs_only = (self.learn.n_epoch + 1)/self.learn.n_epoch
-        elif augs_only >=1: self.augs_only = augs_only/self.learn.n_epoch
-        else: self.augs_only = augs_only
+        self.augs_only = augs_only
 
     def before_fit(self):
+        if self.augs_only is None: self.augs_only = (self.learn.n_epoch + 1)/self.learn.n_epoch
+        elif self.augs_only >=1: self.augs_only = self.augs_only/self.learn.n_epoch
+        else: self.augs_only = self.augs_only
+
         self._inttofloat_pipe = Pipeline([])
         self._norm_pipe = Pipeline([])
 
