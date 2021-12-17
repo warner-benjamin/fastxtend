@@ -10,7 +10,6 @@ except ImportError:
 
 # Cell
 import torch
-from copy import deepcopy
 from timm.utils.model_ema import ModelEmaV2
 from fastai.callback.core import Callback
 from fastcore.basics import store_attr
@@ -23,7 +22,7 @@ class EMACallback(Callback):
         store_attr()
 
     @torch.no_grad()
-    def before_train(self):
+    def before_fit(self):
         self.ema_model = ModelEmaV2(self.learn.model, self.decay, self.ema_device)
 
     def after_batch(self):
