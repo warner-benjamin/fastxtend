@@ -5,8 +5,37 @@ __all__ = ['CutMixUp', 'CutMixUpAugment']
 # Cell
 from fastai.basics import *
 from fastai.data.transforms import IntToFloatTensor, Normalize
-from fastai.callback.mixup import CutMix, MixUp, reduce_loss
+from fastai.callback.mixup import MixHandler, CutMix, MixUp, reduce_loss
 from torch.distributions.beta import Beta
+
+# Internal Cell
+class CutMix(MixHandler):
+    "Implementation of https://arxiv.org/abs/1905.04899"
+    def __init__(self, alpha=1.): super().__init__(alpha)
+    def before_batch(self):
+        bs, _, H, W = self.x.size()
+        self.lam = self.distrib.sample((1,)).to(self.x.device)
+        shuffle = torch.randperm(bs).to(self.x.device)
+        xb1,self.yb1 = self.x[shuffle], tuple((self.y[shuffle],))
+        x1, y1, x2, y2 = self.rand_bbox(W, H, self.lam)
+        self.learn.xb[0][..., y1:y2, x1:x2] = xb1[..., y1:y2, x1:x2]
+        self.lam = (1 - ((x2-x1)*(y2-y1))/float(W*H))
+        if not self.stack_y:
+            ny_dims = len(self.y.size())
+            self.learn.yb = tuple(L(self.yb1,self.yb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=ny_dims-1)))
+
+    def rand_bbox(self, W, H, lam):
+        cut_rat = torch.sqrt(1. - lam).to(self.x.device)
+        cut_w = torch.round(W * cut_rat).type(torch.long).to(self.x.device)
+        cut_h = torch.round(H * cut_rat).type(torch.long).to(self.x.device)
+        # uniform
+        cx = torch.randint(0, W, (1,)).to(self.x.device)
+        cy = torch.randint(0, H, (1,)).to(self.x.device)
+        x1 = torch.clamp(cx - torch.div(cut_w, 2, rounding_mode='floor'), 0, W)
+        y1 = torch.clamp(cy - torch.div(cut_h, 2, rounding_mode='floor'), 0, H)
+        x2 = torch.clamp(cx + torch.div(cut_w, 2, rounding_mode='floor'), 0, W)
+        y2 = torch.clamp(cy + torch.div(cut_h, 2, rounding_mode='floor'), 0, H)
+        return x1, y1, x2, y2
 
 # Cell
 class CutMixUp(MixUp, CutMix):

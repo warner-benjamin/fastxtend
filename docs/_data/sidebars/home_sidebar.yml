@@ -13,12 +13,6 @@ entries:
     title: fastxtend
   - folderitems:
     - output: web,pdf
-      title: TensorImage & TensorMask item_tfms
-      url: augment.tensor_item_tfm.html
-    output: web
-    title: Augmentation
-  - folderitems:
-    - output: web,pdf
       title: Channels Last
       url: callback.channelslast.html
     - output: web,pdf
@@ -40,8 +34,14 @@ entries:
     title: Schedulers
   - folderitems:
     - output: web,pdf
-      title: Less Random
-      url: utils.lessrandom.html
+      title: TensorImage & TensorMask item_tfms
+      url: vision.augment.itemtensor.html
+    output: web
+    title: Vision
+  - folderitems:
+    - output: web,pdf
+      title: Basic
+      url: utils.html
     - output: web,pdf
       title: Simple Profiler WandB
       url: utils.simpleprofiler_wandb.html

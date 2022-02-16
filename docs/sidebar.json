@@ -2,9 +2,6 @@
   "fastxtend": {
     "Overview": "/"
   },
-  "Augmentation": {
-    "TensorImage & TensorMask item_tfms": "augment.tensor_item_tfm.html"
-  },
   "Callbacks": {
     "Channels Last": "callback.channelslast.html",
     "CutMixUp": "callback.cutmixup.html",
@@ -14,8 +11,11 @@
   "Schedulers": {
     "Fit Flat Varied": "schedulers.fit_flat_varied.html"
   },
+  "Vision": {
+    "TensorImage & TensorMask item_tfms": "vision.augment.itemtensor.html"
+  },
   "Utils": {
-    "Less Random": "utils.lessrandom.html",
+    "Basic": "utils.html",
     "Simple Profiler WandB": "utils.simpleprofiler_wandb.html"
   }
 }

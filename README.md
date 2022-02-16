@@ -1,5 +1,5 @@
 # fastxtend
-> fastxtend (fastai extensions) is a collection of useful tools and extensions I have created or adapted for version 2 of the fastai framework.
+> fastxtend (fastai extended) is a collection of useful tools and extensions I have created or adapted for version 2 of the fastai framework.
 
 
 ## Install

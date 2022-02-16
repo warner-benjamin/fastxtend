@@ -6,8 +6,8 @@ title: EMA Callback (Exponential Moving Average)
 keywords: fastai
 sidebar: home_sidebar
 
-summary: "First pass at a fastai callback to add Exponential Moving Average similar to <a href='https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage'>tensorflow</a>."
-description: "First pass at a fastai callback to add Exponential Moving Average similar to <a href='https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage'>tensorflow</a>."
+summary: "First pass at a fastai callback to add Exponential Moving Average similar to <a href='https://github.com/rwightman/pytorch-image-models/blob/master/timm/utils/model_ema.py'>tensorflow](https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage). Implementation from [timm</a>."
+description: "First pass at a fastai callback to add Exponential Moving Average similar to <a href='https://github.com/rwightman/pytorch-image-models/blob/master/timm/utils/model_ema.py'>tensorflow](https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage). Implementation from [timm</a>."
 nb_path: "nbs/callback.ema.ipynb"
 ---
 <!--
@@ -54,7 +54,7 @@ nb_path: "nbs/callback.ema.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="EMACallback" class="doc_header"><code>class</code> <code>EMACallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/ema.py#L19" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>EMACallback</code>(<strong><code>decay</code></strong>=<em><code>0.9998</code></em>, <strong><code>ema_device</code></strong>=<em><code>None</code></em>) :: <code>Callback</code></p>
+<h2 id="EMACallback" class="doc_header"><code>class</code> <code>EMACallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/ema.py#L18" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>EMACallback</code>(<strong><code>decay</code></strong>=<em><code>0.9998</code></em>, <strong><code>ema_device</code></strong>=<em><code>None</code></em>) :: <code>Callback</code></p>
 </blockquote>
 <p>Basic class handling tweaks of the training loop by changing a <code>Learner</code> in various events</p>
 
