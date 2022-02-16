@@ -7,8 +7,8 @@ from kornia.filters import BlurPool2D, MaxBlurPool2D
 
 # Cell
 def BlurPool(
-    ks:int=3, # The kernel size for pooling
     stride:int=2, # The stride size for pooling
+    ks:int=3, # The kernel size for pooling
     padding:int=0, # Unused, for fastai compatibility
     ndim:int=2, # Unused, for fastai compatibility
     ceil_mode:bool=False # Unused, for fastai compatibility
@@ -19,8 +19,8 @@ def BlurPool(
 
 # Cell
 def MaxBlurPool(
-    ks:int=3, # The kernel size for blur pooling
     stride:int=2, # The stride size for blur pooling
+    ks:int=3, # The kernel size for blur pooling
     padding:int=0, # Unused, for fastai compatibility
     ndim:int=2, # Unused, for fastai compatibility
     ceil_mode:int=True, # If True, output size matches conv2d with same kernel size
