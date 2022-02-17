@@ -77,12 +77,12 @@ class ShuffleAttention(Module):
         # channel attention
         yc = self.pool(xc)
         yc = self.cweight * yc + self.cbias
-        xc = xc * self.act_cls(yc)
+        xc = xc * self.sigmoid(yc)
 
         # spatial attention
         ys = self.norm(xs)
         ys = self.sweight * ys + self.sbias
-        xs = xs * self.act_cls(ys)
+        xs = xs * self.sigmoid(ys)
 
         # concat and shuffle
         x = torch.cat([xc, xs], dim=1)
