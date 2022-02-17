@@ -113,6 +113,7 @@ class AttentionGate(Module):
 class TripletAttention(Module):
     "Lightly modified implementation of Triplet Attention, from http://arxiv.org/abs/2010.03045"
     def __init__(self,
+        nf, # unused input features, for compatibility
         ks:int=7, # kernel size for AttentionGate
         no_spatial=False # exclude Spatial attention as third attention
     ):
