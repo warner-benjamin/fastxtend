@@ -20,7 +20,7 @@ class ResBlock(Module):
     @delegates(ConvLayer.__init__)
     def __init__(self, expansion, ni, nf, stride=1, groups=1, attn_mod=None, nh1=None, nh2=None,
                  dw=False, g2=1, sa=False, sym=False, norm_type=NormType.Batch, act_cls=defaults.activation,
-                 ndim=2, ks=3, pool=AvgPool, pool_first=True, stoch_depth=0, **kwargs):
+                 ndim=2, ks=3, block_pool=AvgPool, pool_first=True, stoch_depth=0, **kwargs):
         norm2 = (NormType.BatchZero if norm_type==NormType.Batch else
                  NormType.InstanceZero if norm_type==NormType.Instance else norm_type)
         if nh2 is None: nh2 = nf
@@ -40,7 +40,7 @@ class ResBlock(Module):
         idpath = []
         if ni!=nf: idpath.append(ConvLayer(ni, nf, 1, act_cls=None, ndim=ndim, **kwargs))
         if stride!=1:
-            idpath.insert((1,0)[pool_first], pool(stride, ndim=ndim, ceil_mode=True))
+            idpath.insert((1,0)[pool_first], block_pool(stride, ndim=ndim, ceil_mode=True))
         self.idpath = nn.Sequential(*idpath)
         self.act = act_cls(inplace=True) if act_cls is defaults.activation else act_cls()
         self.depth = nn.Identity() if stoch_depth==0 else StochasticDepth(stoch_depth, 'batch')
