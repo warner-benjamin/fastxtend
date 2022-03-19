@@ -318,6 +318,22 @@ class VOSAvgMetric(VOSMetric):
     @property
     def value(self): return self.total/self.count if self.count != 0 else None
 
+# Internal Cell
+@delegates(VOSMetric)
+def func_to_metric(func, metric_type, is_class, thresh=None, axis=-1, activation=None, log_metric=LogMetric.Valid, **kwargs):
+    "Convert `func` metric to a fastai metric"
+
+    dim_argmax = axis if is_class and thresh is None else None
+    if activation is None:
+        activation = ActivationType.Sigmoid if (is_class and thresh is not None) else ActivationType.No
+
+    if metric_type==MetricType.Avg:
+        return VOSAvgMetric(func, dim_argmax=dim_argmax, activation=activation,
+                         thresh=thresh, log_metric=log_metric, **kwargs)
+    else:
+        name = func.func.__name__ if hasattr(func, 'func') else  func.__name__
+        raise ValueError(f"Unsupported `metric_type` {metric_type} for metric {name}.")
+
 # Cell
 def VOSAccuracy(axis=-1, metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
     "Compute accuracy with `targ` when `pred` is bs * n_classes"
