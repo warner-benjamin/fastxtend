@@ -183,6 +183,9 @@ class VOSCallback(Callback):
                 self.energy_loss_func = self.learn.loss_func
             elif self.energy_loss_func is None:
                 self.energy_loss_func = torch.nn.CrossEntropyLoss()
+        self.train_vos = self.learn.state != LearnerState.LRFind
+        self.eval_vos  = self.learn.state == LearnerState.Eval
+        self.targ_vos  = len(self.learn.dls.valid.one_batch()) - self.learn.dls.valid.n_inp > 1
 
     def after_pred(self):
         pred, self.batch_features = self.learn.pred
@@ -190,12 +193,18 @@ class VOSCallback(Callback):
         self.learn.pred = pred
 
     def after_loss(self):
-        if self.training and self.learn.state != LearnerState.LRFind:
-              self.train_step()
-        else: self.valid_step()
+        if self.train_vos:
+            if self.training: self._vos_train_step()
+            else:             self._vos_valid_step()
 
-    def train_step(self):
-        self.orig_loss, targs = self.learn.loss.detach(), *self.learn.yb
+    def _vos_train_step(self):
+        if self.targ_vos:
+            self.orig_loss, self.learn.loss.detach
+            targs, self.vos_targs = self.learn.yb
+            self.learn.yb = (targs,)
+        else:
+            self.orig_loss, targs = self.learn.loss.detach(), *self.learn.yb
+
         cpu_targs = targs.cpu().int().numpy()
         if self.sample_count >= self.total_samples:
             # Enque and deque ID features
@@ -251,11 +260,12 @@ class VOSCallback(Callback):
                     self.features[targ] = torch.cat((self.features[targ][1:], self.batch_features[idx].view(1, -1)), dim=0)
             self.energy_loss = torch.tensor(0., device=self.device)
 
-    def valid_step(self):
+    def _vos_valid_step(self):
         self.orig_loss = self.learn.loss.detach()
-        if self.learn.state==LearnerState.Eval or (self.learn.pct_train >= self.start_pct and self.sample_count >= self.total_samples):
+        if self.eval_vos or (self.learn.pct_train >= self.start_pct and self.sample_count >= self.total_samples):
             id_energy = self._log_sum_exp(self.learn.pred, 1)
-            self.energy_targ = torch.ones(len(id_energy), device=self.device, dtype=torch.long)
+            if self.targ_vos: self.energy_targ = self.vos_targs
+            else:             self.energy_targ = torch.ones(len(id_energy), device=self.device, dtype=torch.long)
             self.energy_pred = self.learn.model[1].log_reg(id_energy.view(-1, 1))
 
             self.energy_loss = self.energy_loss_weight * self.energy_loss_func(self.energy_pred, self.energy_targ)
