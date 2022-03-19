@@ -16,8 +16,9 @@ __all__ = ['VOSHead', 'create_vos_model', 'VOSCallback', 'VOSAccuracy', 'vos_lea
 # Cell
 #nbdev_comment from __future__ import annotations
 from fastai.learner import Learner, replacing_yield
-from fastai.torch_core import Module, defaults
+from fastai.torch_core import Module, defaults, default_device
 from fastai.callback.core import Callback
+from fastai.callback.fp16 import MixedPrecision
 from fastai.data.transforms import get_c
 from fastcore.basics import store_attr, ifnone
 from fastcore.foundation import L, mk_class, patch
@@ -57,8 +58,8 @@ def __init__(self:Learner, dls, model, loss_func=None, opt_func=Adam, lr=default
     self.state=LearnerState.Idle
 
 # Internal Cell
-@contextmanager
 @patch
+@contextmanager
 def set_state(self:Learner, state): return replacing_yield(self, 'state', state)
 
 # Internal Cell
@@ -118,7 +119,7 @@ class VOSHead(Module):
             p = p if p is not None else 0.0
             self.pool = nn.Sequential(*[head_pool(sz=1, ndim=2), Flatten()])
             self.head = nn.Sequential(*[nn.Dropout(p), nn.Linear(nf, n_out)])
-        self.weight_energy = torch.nn.Linear(self.n_out, 1)
+        self.weight_energy = torch.nn.Linear(n_out, 1)
         self.log_reg = torch.nn.Linear(1, 2)
         self.nf = nf
 
@@ -153,6 +154,7 @@ def create_vos_model(
 
 # Cell
 class VOSCallback(Callback):
+    order = MixedPrecision.order-1
     "Base class with shared initializtion for Virtual Outlier Synthesis"
     def __init__(self,
         n_out:int|None=None, # Number of labels, defaults to `learn.dls.c``
@@ -169,7 +171,7 @@ class VOSCallback(Callback):
     def before_fit(self):
         assert isinstance(self.learn.model[1], VOSHead), 'VOSCallback requires model have a be `VOSHead'
         if self.learn.state == LearnerState.Fit:
-            self.device = self.learn.model.device
+            self.device = device = getattr(self.learn.dls, 'device', default_device())
             self.n_out = ifnone(self.n_out, get_c(self.learn.dls))
             assert self.n_out, "`n_out` is not defined, and could not be inferred from data, set `dls.c` or pass `n_out`"
             self.eye_matrix = torch.eye(self.learn.model[1].nf, device=self.device)
@@ -193,11 +195,11 @@ class VOSCallback(Callback):
         else: self.valid_step()
 
     def train_step(self):
-        targs = self.learn.targ.detach().clone()
-        self.orig_loss = self.learn.loss.detatch()
+        self.orig_loss, targs = self.learn.loss.detach(), *self.learn.yb
+        cpu_targs = targs.cpu().int().numpy()
         if self.sample_count >= self.total_samples:
             # Enque and deque ID features
-            for idx, targ in enumerate(targs.int()):
+            for idx, targ in enumerate(cpu_targs):
                 self.features[targ] = torch.cat((self.features[targ][1:], self.batch_features[idx].view(1, -1)), dim=0)
 
             if self.learn.pct_train >= self.start_pct:
@@ -227,43 +229,45 @@ class VOSCallback(Callback):
                         ood_samples = torch.cat((ood_samples, negative_samples[idx_prob]), 0)
 
                 id_energy = self._log_sum_exp(self.learn.pred, 1)
-                ood_pred = self.learn.model.head(ood_samples)
+                ood_pred = self.learn.model[1].head(ood_samples)
                 ood_energy = self._log_sum_exp(ood_pred, 1)
 
                 self.energy_pred = torch.cat((id_energy, ood_energy), -1)
-                self.energy_targ = torch.cat((torch.ones(self.n_out, device=self.device, dtype=torch.long),
+                self.energy_targ = torch.cat((torch.ones(len(id_energy), device=self.device, dtype=torch.long),
                                               torch.zeros(len(ood_pred), device=self.device, dtype=torch.long)), -1)
 
-                self.energy_pred = self.log_reg(self.energy_pred.view(-1, 1))
+                self.energy_pred = self.learn.model[1].log_reg(self.energy_pred.view(-1, 1))
                 self.energy_loss = self.energy_loss_weight * self.energy_loss_func(self.energy_pred, self.energy_targ)
                 self.learn.loss_grad += self.energy_loss
-                self.learn.loss += self.energy_loss.detatch()
+                self.learn.loss += self.energy_loss.detach()
 
         else:
-            for idx, targ in enumerate(targs.int()):
+            for idx, targ in enumerate(cpu_targs):
                 if self.number_dict[targ] < self.n_sample:
                     self.features[targ][self.number_dict[targ]] = self.batch_features[idx]
                     self.number_dict[targ] += 1
                     self.sample_count += 1
                 else:
                     self.features[targ] = torch.cat((self.features[targ][1:], self.batch_features[idx].view(1, -1)), dim=0)
-            self.energy_loss = torch.Tensor(0.)
+            self.energy_loss = torch.tensor(0., device=self.device)
 
     def valid_step(self):
-        self.orig_loss = self.learn.loss.detatch()
-        if self.learn.state==LearnerState.Eval or self.sample_count >= self.total_samples:
+        self.orig_loss = self.learn.loss.detach()
+        if self.learn.state==LearnerState.Eval or (self.learn.pct_train >= self.start_pct and self.sample_count >= self.total_samples):
             id_energy = self._log_sum_exp(self.learn.pred, 1)
-            self.energy_targ = torch.ones(self.n_out, device=self.device, dtype=torch.long)
-            self.energy_pred = self.log_reg(id_energy.view(-1, 1))
+            self.energy_targ = torch.ones(len(id_energy), device=self.device, dtype=torch.long)
+            self.energy_pred = self.learn.model[1].log_reg(id_energy.view(-1, 1))
 
             self.energy_loss = self.energy_loss_weight * self.energy_loss_func(self.energy_pred, self.energy_targ)
-            self.learn.loss += self.energy_loss.detatch()
+            self.learn.loss += self.energy_loss.detach()
         else:
-            self.energy_loss = torch.Tensor(0.)
+            self.energy_loss = torch.tensor(0., device=self.device)
+            self.energy_pred = torch.tensor(0., device=self.device)
+            self.energy_targ = torch.tensor(1., device=self.device)
 
-    def after_batch(self):
-        if self.learn.state==LearnerState.Eval or self.sample_count >= self.total_samples:
-            self.learn.pred = self.learn.pred, self.energy_pred
+    # def after_batch(self):
+    #     if self.learn.state==LearnerState.Eval or (self.learn.pct_train >= self.start_pct and self.sample_count >= self.total_samples):
+    #         self.learn.pred = self.learn.pred, self.energy_pred
 
     def _log_sum_exp(self, value, dim=None, keepdim=False):
         "Numerically stable implementation of the operation value.exp().sum(dim, keepdim).log()"
@@ -342,8 +346,7 @@ def VOSAccuracy(axis=-1, metric_type=MetricType.Avg, log_metric=LogMetric.Valid,
 # Internal Cell
 class VOSAvgLoss(AvgLoss):
     "Average the MultiLoss losses taking into account potential different batch sizes"
-    def __init__(self, i, name):
-        store_attr(but='vos_loss')
+    def __init__(self, name='vos_loss'):
         self._name = name
 
     def accumulate(self, learn):
@@ -354,20 +357,19 @@ class VOSAvgLoss(AvgLoss):
 # Internal Cell
 class OrigAvgLoss(AvgLoss):
     "Average the MultiLoss losses taking into account potential different batch sizes"
-    def __init__(self, i, name):
-        store_attr(but='orig_loss')
+    def __init__(self, name='orig_loss'):
         self._name = name
 
     def accumulate(self, learn):
         bs = find_bs(learn.yb)
-        self.total += learn.to_detach(learn.vos.original_loss.mean())*bs
+        self.total += learn.to_detach(learn.vos.orig_loss.mean())*bs
         self.count += bs
 
 # Internal Cell
 class VOSAvgSmoothLoss(AvgSmoothLoss):
     "Smooth average of the MultiLoss losses (exponentially weighted with `beta`)"
-    def __init__(self, i, name, beta=0.98):
-        store_attr(but='vos_loss')
+    def __init__(self, name='vos_loss', beta=0.98):
+        super().__init__(beta)
         self._name = name
 
     def accumulate(self, learn):
@@ -377,13 +379,13 @@ class VOSAvgSmoothLoss(AvgSmoothLoss):
 # Internal Cell
 class OrigAvgSmoothLoss(AvgSmoothLoss):
     "Smooth average of the MultiLoss losses (exponentially weighted with `beta`)"
-    def __init__(self, i, name, beta=0.98):
-        store_attr(but='orig_loss')
+    def __init__(self, name='orig_loss', beta=0.98):
+        super().__init__(beta)
         self._name = name
 
     def accumulate(self, learn):
         self.count += 1
-        self.val = torch.lerp(to_detach(learn.vos.original_loss.mean(), gather=False), self.val, self.beta)
+        self.val = torch.lerp(to_detach(learn.vos.orig_loss.mean(), gather=False), self.val, self.beta)
 
 # Cell
 @delegates(create_vos_model)
@@ -403,7 +405,9 @@ def vos_learner(dls, arch, n_out=None, pretrained=True, fastai_head=False, vos_m
     assert n_out, "`n_out` is not defined, and could not be inferred from data, set `dls.c` or pass `n_out`"
     model = create_vos_model(arch, n_out, pretrained=pretrained, fastai_head=fastai_head, **kwargs)
 
-    metrics = [OrigAvgSmoothLoss(), VOSAvgSmoothLoss(), OrigAvgLoss(), VOSAvgLoss()] + metrics
+    if metrics is None: metrics = L()
+    else: metrics=L(metrics)
+    metrics = L([OrigAvgSmoothLoss(), VOSAvgSmoothLoss(), OrigAvgLoss(), VOSAvgLoss()]) + metrics
     for m in vos_metrics:
         if m not in metrics:
             metrics.append(m)
@@ -419,5 +423,5 @@ def vos_learner(dls, arch, n_out=None, pretrained=True, fastai_head=False, vos_m
                    moms=moms)
     if pretrained: learn.freeze()
     # keep track of args for loggers
-    store_attr('arch,n_out,pretrained', self=learn, **kwargs)
+    store_attr('arch,pretrained', self=learn, **kwargs)
     return learn
