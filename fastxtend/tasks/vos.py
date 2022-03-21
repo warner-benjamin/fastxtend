@@ -173,9 +173,10 @@ class VOSCallback(Callback):
         if self.learn.state == LearnerState.Fit:
             self.device = device = getattr(self.learn.dls, 'device', default_device())
             self.n_out = ifnone(self.n_out, get_c(self.learn.dls))
+            self.nf = self.learn.model[1].nf
             assert self.n_out, "`n_out` is not defined, and could not be inferred from data, set `dls.c` or pass `n_out`"
-            self.eye_matrix = torch.eye(self.learn.model[1].nf, device=self.device)
-            self.features = torch.zeros(self.n_out, self.n_sample, self.learn.model[1].nf).to(device=self.device)
+            self.eye_matrix = torch.eye(self.nf, device=self.device)
+            self.features = torch.zeros(self.n_out, self.n_sample, self.nf).to(device=self.device)
             self.number_dict = {}
             for i in range(self.n_out): self.number_dict[i] = 0
             self.sample_count, self.total_samples = 0, self.n_out * self.n_sample
@@ -199,11 +200,11 @@ class VOSCallback(Callback):
 
     def _vos_train_step(self):
         if self.targ_vos:
-            self.orig_loss, self.learn.loss.detach
+            self.orig_loss = self.learn.loss.detach().clone()
             targs, self.vos_targs = self.learn.yb
             self.learn.yb = (targs,)
         else:
-            self.orig_loss, targs = self.learn.loss.detach(), *self.learn.yb
+            self.orig_loss, targs = self.learn.loss.detach().clone(), *self.learn.yb
 
         cpu_targs = targs.cpu().int().numpy()
         if self.sample_count >= self.total_samples:
@@ -213,29 +214,23 @@ class VOSCallback(Callback):
 
             if self.learn.pct_train >= self.start_pct:
                 # the covariance finder needs the data to be centered
-                for idx in range(self.n_out):
-                    if idx == 0:
-                        X = self.features[idx] - self.features[idx].mean(0)
-                        mean_embed_id = self.features[idx].mean(0).view(1, -1)
-                    else:
-                        X = torch.cat((X, self.features[idx] - self.features[idx].mean(0)), 0)
-                        mean_embed_id = torch.cat((mean_embed_id, self.features[idx].mean(0).view(1, -1)), 0)
+                fs = self.features.shape
+                mean_embed_id = self.features.mean(1)
+                X = (self.features - mean_embed_id[:, None, :]).view(fs[0]*fs[1], fs[2])
 
                 # add the variance.
                 temp_precision = torch.mm(X.t(), X) / len(X)
                 temp_precision += 0.0001 * self.eye_matrix
 
-                for idx in range(self.n_out):
-                    new_dis = MultivariateNormal(mean_embed_id[idx], covariance_matrix=temp_precision)
-                    negative_samples = new_dis.rsample((self.sample_from,))
-                    prob_density = new_dis.log_prob(negative_samples)
+                # gausian sample ood features
+                new_dis = MultivariateNormal(mean_embed_id, covariance_matrix=temp_precision)
+                negative_samples = new_dis.rsample((self.sample_from,))
+                prob_density = new_dis.log_prob(negative_samples)
 
-                    # keep the data in the low density area.
-                    cur_samples, idx_prob = torch.topk(-prob_density, self.energy_samples)
-                    if idx == 0:
-                        ood_samples = negative_samples[idx_prob]
-                    else:
-                        ood_samples = torch.cat((ood_samples, negative_samples[idx_prob]), 0)
+                # keep the data in the low density area
+                _, idx_prob = torch.topk(-prob_density.t(), self.energy_samples)
+                negative_samples = negative_samples.permute(1,0,2)
+                ood_samples = negative_samples.gather(dim=1, index=idx_prob.repeat(1,1,self.nf)).squeeze()
 
                 id_energy = self._log_sum_exp(self.learn.pred, 1)
                 ood_pred = self.learn.model[1].head(ood_samples)
@@ -261,7 +256,7 @@ class VOSCallback(Callback):
             self.energy_loss = torch.tensor(0., device=self.device)
 
     def _vos_valid_step(self):
-        self.orig_loss = self.learn.loss.detach()
+        self.orig_loss = self.learn.loss.detach().clone()
         if self.eval_vos or (self.learn.pct_train >= self.start_pct and self.sample_count >= self.total_samples):
             id_energy = self._log_sum_exp(self.learn.pred, 1)
             if self.targ_vos: self.energy_targ = self.vos_targs
