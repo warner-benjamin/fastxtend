@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 
-__all__ = ['VOSHead', 'create_vos_model', 'VOSCallback', 'VOSAccuracy', 'vos_learner']
+__all__ = ['VOSHead', 'create_vos_model', 'VOSDistSample', 'VOSCallback', 'VOSAccuracy', 'vos_learner']
 
 # Internal Cell
 
@@ -15,6 +15,7 @@ __all__ = ['VOSHead', 'create_vos_model', 'VOSCallback', 'VOSAccuracy', 'vos_lea
 
 # Cell
 #nbdev_comment from __future__ import annotations
+import numpy as np
 from fastai.learner import Learner, replacing_yield
 from fastai.torch_core import Module, defaults, default_device
 from fastai.callback.core import Callback
@@ -153,6 +154,56 @@ def create_vos_model(
     return model
 
 # Cell
+mk_class('VOSDistSample', **{o:o.lower() for o in ['List', 'Fork', 'Batch']},
+         doc="Sample features via simple for loop, torch.jit.fork for loop, as a batch. Batch will affect variance of samples.")
+
+#nbdev_comment _all_=['VOSDistSample']
+
+# Internal Cell
+def list_dist(mean_embed_id, temp_precision, sample_from, select, nf, n_out):
+    ood_samples = []
+    temp_precision = torch.linalg.cholesky(temp_precision)
+    for idx in range(n_out):
+        new_dis = MultivariateNormal(mean_embed_id, scale_tril=temp_precision)
+        negative_samples = new_dis.rsample((sample_from,))
+        prob_density = new_dis.log_prob(negative_samples)
+        # keep the data in the low density area.
+        _, index_prob = torch.topk(-prob_density, select)
+        ood_samples.append(negative_samples[index_prob])
+    return torch.cat(ood_samples, 0)
+
+# Internal Cell
+def calc_forked_dist(mean_embed_id, temp_precision, sample_from, select):
+    new_dis = MultivariateNormal(mean_embed_id, scale_tril=temp_precision)
+    negative_samples = new_dis.rsample((sample_from,))
+    prob_density = new_dis.log_prob(negative_samples)
+    # keep the data in the low density area.
+    _, index_prob = torch.topk(-prob_density, select)
+    return negative_samples[index_prob]
+
+def forked_dist(mean_embed_id, temp_precision, sample_from, select, nf, n_out):
+    temp_precision = torch.linalg.cholesky(temp_precision)
+    futures:list[torch.jit.Future[torch.Tensor]] = []
+    ood_samples = []
+    for idx in range(n_out):
+        futures.append(torch.jit.fork(calc_forked_dist, mean_embed_id[idx],
+                                      temp_precision, sample_from, select))
+    for future in futures:
+        ood_samples.append(torch.jit.wait(future))
+    return torch.cat(ood_samples, 0)
+
+# Internal Cell
+def batched_dist(mean_embed_id, temp_precision, sample_from, select, nf, n_out):
+    new_dis = MultivariateNormal(mean_embed_id, covariance_matrix=temp_precision)
+    negative_samples = new_dis.rsample((sample_from,))
+    prob_density = new_dis.log_prob(negative_samples)
+
+    # keep the data in the low density area
+    _, idx_prob = torch.topk(-prob_density.t(), select)
+    negative_samples = negative_samples.permute(1,0,2)
+    return negative_samples.gather(dim=1, index=idx_prob.repeat(1,1,nf)).squeeze()
+
+# Cell
 class VOSCallback(Callback):
     order = MixedPrecision.order-1
     "Base class with shared initializtion for Virtual Outlier Synthesis"
@@ -165,8 +216,12 @@ class VOSCallback(Callback):
         energy_samples:int=1,
         energy_loss_weight:float=0.1,
         energy_loss_func:nn.Module|None=None,
+        dist_sample:DistSample=VOSDistSample.Fork
     ):
-        store_attr()
+        store_attr(but='dist_sample')
+        if self.dist_sample==VOSDistSample.List:    self._sample_dist = list_dist
+        elif self.dist_sample==VOSDistSample.Fork:  self._sample_dist = forked_dist
+        elif self.dist_sample==VOSDistSample.Batch: self._sample_dist = batched_dist
 
     def before_fit(self):
         assert isinstance(self.learn.model[1], VOSHead), 'VOSCallback requires model have a be `VOSHead'
@@ -223,14 +278,8 @@ class VOSCallback(Callback):
                 temp_precision += 0.0001 * self.eye_matrix
 
                 # gausian sample ood features
-                new_dis = MultivariateNormal(mean_embed_id, covariance_matrix=temp_precision)
-                negative_samples = new_dis.rsample((self.sample_from,))
-                prob_density = new_dis.log_prob(negative_samples)
-
-                # keep the data in the low density area
-                _, idx_prob = torch.topk(-prob_density.t(), self.energy_samples)
-                negative_samples = negative_samples.permute(1,0,2)
-                ood_samples = negative_samples.gather(dim=1, index=idx_prob.repeat(1,1,self.nf)).squeeze()
+                ood_samples = self._sample_dist(mean_embed_id, temp_precision, self.sample_from,
+                                                self.energy_samples, self.nf, self.n_out)
 
                 id_energy = self._log_sum_exp(self.learn.pred, 1)
                 ood_pred = self.learn.model[1].head(ood_samples)
@@ -398,6 +447,7 @@ def vos_learner(dls, arch, n_out=None, pretrained=True, fastai_head=False, vos_m
                 # vos args
                 start_epoch:int|None=None, start_pct:float=0.40, n_sample:int=1000, sample_from:int=10000,
                 energy_samples:int=1, energy_loss_weight:float=0.1, energy_loss_func:nn.Module|None=None,
+                dist_sample:VOSDistSample=VOSDistSample.Fork,
                 # learner args
                 loss_func=None, opt_func=Adam, lr=defaults.lr, splitter=None, cbs=None, metrics=None, path=None,
                 model_dir='models', wd=None, wd_bn_bias=False, train_bn=True, moms=(0.95,0.85,0.95),
@@ -418,7 +468,7 @@ def vos_learner(dls, arch, n_out=None, pretrained=True, fastai_head=False, vos_m
             metrics.append(m)
 
     vos_cb = [VOSCallback(n_out, start_epoch, start_pct, n_sample, sample_from,
-                          energy_samples, energy_loss_weight, energy_loss_func)]
+                          energy_samples, energy_loss_weight, energy_loss_func, dist_sample)]
     if cbs is None: cbs = vos_cb
     else: cbs += vos_cb
 
