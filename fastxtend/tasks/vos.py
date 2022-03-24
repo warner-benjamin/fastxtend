@@ -164,7 +164,7 @@ def list_dist(mean_embed_id, temp_precision, sample_from, select, nf, n_out):
     ood_samples = []
     temp_precision = torch.linalg.cholesky(temp_precision)
     for idx in range(n_out):
-        new_dis = MultivariateNormal(mean_embed_id, scale_tril=temp_precision)
+        new_dis = MultivariateNormal(mean_embed_id[idx], scale_tril=temp_precision)
         negative_samples = new_dis.rsample((sample_from,))
         prob_density = new_dis.log_prob(negative_samples)
         # keep the data in the low density area.
@@ -306,7 +306,7 @@ class VOSCallback(Callback):
 
     def _vos_valid_step(self):
         self.orig_loss = self.learn.loss.detach().clone()
-        if self.eval_vos or (self.learn.pct_train >= self.start_pct and self.sample_count >= self.total_samples):
+        if self.eval_vos or (self.learn.pct_train > self.start_pct and self.sample_count >= self.total_samples):
             id_energy = self._log_sum_exp(self.learn.pred, 1)
             if self.targ_vos: self.energy_targ = self.vos_targs
             else:             self.energy_targ = torch.ones(len(id_energy), device=self.device, dtype=torch.long)
@@ -470,7 +470,7 @@ def vos_learner(dls, arch, n_out=None, pretrained=True, fastai_head=False, vos_m
     vos_cb = [VOSCallback(n_out, start_epoch, start_pct, n_sample, sample_from,
                           energy_samples, energy_loss_weight, energy_loss_func, dist_sample)]
     if cbs is None: cbs = vos_cb
-    else: cbs += vos_cb
+    else: cbs = L(cbs) + L(vos_cb)
 
     splitter=ifnone(splitter, meta['split'])
     learn = Learner(dls=dls, model=model, loss_func=loss_func, opt_func=opt_func, lr=lr, splitter=splitter, cbs=cbs,
