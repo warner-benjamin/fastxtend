@@ -219,9 +219,9 @@ class VOSCallback(Callback):
         dist_sample:DistSample=VOSDistSample.Fork
     ):
         store_attr(but='dist_sample')
-        if self.dist_sample==VOSDistSample.List:    self._sample_dist = list_dist
-        elif self.dist_sample==VOSDistSample.Fork:  self._sample_dist = forked_dist
-        elif self.dist_sample==VOSDistSample.Batch: self._sample_dist = batched_dist
+        if dist_sample==VOSDistSample.List:    self._sample_dist = list_dist
+        elif dist_sample==VOSDistSample.Fork:  self._sample_dist = forked_dist
+        elif dist_sample==VOSDistSample.Batch: self._sample_dist = batched_dist
 
     def before_fit(self):
         assert isinstance(self.learn.model[1], VOSHead), 'VOSCallback requires model have a be `VOSHead'
