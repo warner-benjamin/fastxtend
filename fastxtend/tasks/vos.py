@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 
-__all__ = ['VOSHead', 'create_vos_model', 'VOSDistSample', 'VOSCallback', 'VOSAccuracy', 'vos_learner']
+__all__ = ['VOSHead', 'create_vos_model', 'TensorVOSCategory', 'VOSCategorize', 'VOSCategoryBlock', 'VOSLossWrapper',
+           'VOSSampleStrat', 'VOSCallback', 'VOSEvalCallback', 'VOSAvgMetric', 'VOSAccumMetric', 'VOSAvgSmoothMetric',
+           'func_to_vos_metric', 'skm_to_vos_metric', 'VOSAccuracy', 'VOSAUROC', 'VOSAPScore', 'VOSFPR', 'vos_learner']
 
 # Internal Cell
 
@@ -15,19 +17,29 @@ __all__ = ['VOSHead', 'create_vos_model', 'VOSDistSample', 'VOSCallback', 'VOSAc
 
 # Cell
 #nbdev_comment from __future__ import annotations
+from enum import Enum, auto
+import functools
+
 import numpy as np
-from fastai.learner import Learner, replacing_yield
+
+from torch.distributions.multivariate_normal import MultivariateNormal
+
+from fastcore.basics import store_attr, ifnone
+from fastcore.foundation import L, mk_class, patch
+from fastcore.meta import delegates, contextmanager
+
+from fastai.learner import Learner, Recorder, replacing_yield
 from fastai.torch_core import Module, defaults, default_device
 from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
 from fastai.data.transforms import get_c
-from fastcore.basics import store_attr, ifnone
-from fastcore.foundation import L, mk_class, patch
-from fastcore.meta import delegates, contextmanager
-from torch.distributions.multivariate_normal import MultivariateNormal
 from fastai.vision.learner import create_body, num_features_model, apply_init, model_meta, _default_meta
-from fastai.losses import CrossEntropyLossFlat, LabelSmoothingCrossEntropy, LabelSmoothingCrossEntropyFlat
+from fastai.losses import CrossEntropyLossFlat, LabelSmoothingCrossEntropy, LabelSmoothingCrossEntropyFlat, BaseLoss
+from fastai.data.block import TransformBlock
+from fastai.data.transforms import Categorize, CategoryMap, Category
+from fastai.torch_core import TensorCategory
 from fastai.layers import *
+
 from ..imports import *
 
 # Internal Cell
@@ -39,8 +51,13 @@ from fastcore.xtras import ContextManagers
 # This section adds LearnerState to `Learner` via patches, which currently is a draft pr in the fastai repo.
 
 # Internal Cell
-mk_class('LearnerState', **{o:o.lower() for o in ['Fit', 'Eval', 'LRFind', 'Idle']},
-         doc="All built in states for `Learner")
+class LearnerState(Enum):
+    "All built in states for `Learner"
+    Fit = 1
+    Eval = 2
+    LRFind = 3
+    ContFit = 4
+    Idle = 5
 
 # Internal Cell
 @patch
@@ -76,8 +93,8 @@ def fit(self:Learner, n_epoch, lr=None, wd=None, cbs=None, reset_opt=False):
 
 # Internal Cell
 @patch
-def validation_context(self:Learner, cbs=None, inner=False):
-    cms = [self.no_logging(),self.no_mbar(),self.set_state(LearnerState.Eval)]
+def validation_context(self:Learner, cbs=None, inner=False, state=LearnerState.Eval):
+    cms = [self.no_logging(),self.no_mbar(),self.set_state(state)]
     if cbs: cms.append(self.added_cbs(cbs))
     if not inner: cms.append(self)
     return ContextManagers(cms)
@@ -154,48 +171,104 @@ def create_vos_model(
     return model
 
 # Cell
-mk_class('VOSDistSample', **{o:o.lower() for o in ['List', 'Fork', 'Batch']},
-         doc="Sample features via simple for loop, torch.jit.fork for loop, as a batch. Batch will affect variance of samples.")
+class TensorVOSCategory(TensorCategory):
+    pass
 
-#nbdev_comment _all_=['VOSDistSample']
+# Cell
+class VOSCategorize(Categorize):
+    "Reversible transform of category string to `vocab` id"
+    loss_func,order=CrossEntropyLossFlat(),1
+    def __init__(self, vocab=None, sort=True, add_na=False, ood_threshold=0.5):
+        if vocab is not None: vocab = CategoryMap(vocab, sort=sort, add_na=add_na)
+        store_attr()
+
+    def setups(self, dsets):
+        if self.vocab is None and dsets is not None:
+            vals = set()
+            for b in dsets: vals.add(b[0])
+            self.vocab = CategoryMap(list(vals), sort=self.sort, add_na=self.add_na)
+        self.c = len(self.vocab)
+
+    def encodes(self, o):
+        try:
+            return TensorVOSCategory([self.vocab.o2i[o[0]], o[1]])
+        except KeyError as e:
+            raise KeyError(f"Label '{o}' was not included in the training dataset") from e
+
+    def decodes(self, o):
+        if o[1] < self.ood_threshold:
+            return Category(self.vocab[o[0]])
+        else:
+            return(Category("Unknown: OOD"))
+
+# Cell
+def VOSCategoryBlock(vocab=None, sort=True, add_na=False, ood_threshold=0.5):
+    "`TransformBlock` for single-label categorical targets"
+    return TransformBlock(type_tfms=VOSCategorize(vocab=vocab, sort=sort,
+                                                  add_na=add_na, ood_threshold=ood_threshold))
+
+# Cell
+class VOSLossWrapper():
+    def __init__(self, loss):
+        self.loss = loss
+        functools.update_wrapper(self, self.loss)
+
+    def __repr__(self): return f"VOS {self.loss}"
+    @property
+    def reduction(self): return self.loss.reduction
+    @reduction.setter
+    def reduction(self, v): self.loss.reduction = v
+
+    def __call__(self, inp, targ, **kwargs):
+        return self.loss.__call__(inp, targ.view(-1) if self.flatten else targ, **kwargs)
+
+    def to(self, device):
+        if isinstance(self.loss, (nn.Module, BaseLoss)): self.loss.to(device)
+
+    def decodes(self, x):
+        return (self.loss.decodes(x[0]), x[1].argmax(dim=-1))
+
+    def activation(self, x):
+        return (self.loss.activation(x[0]), x[1].softmax(dim=-1))
+
+# Cell
+class VOSSampleStrat(Enum):
+    "Sample features via simple for loop, partial for loop, or as a batch. Batch will affect variance of samples."
+    Paper = 1
+    Partial = 2
+    Batch = 3
 
 # Internal Cell
-def list_dist(mean_embed_id, temp_precision, sample_from, select, nf, n_out):
+def list_dist(mean_embed_id, temp_precision, n_generate, select, nf, n_out, start, step):
     ood_samples = []
-    temp_precision = torch.linalg.cholesky(temp_precision)
     for idx in range(n_out):
         new_dis = MultivariateNormal(mean_embed_id[idx], scale_tril=temp_precision)
-        negative_samples = new_dis.rsample((sample_from,))
+        negative_samples = new_dis.rsample((n_generate,))
         prob_density = new_dis.log_prob(negative_samples)
+
         # keep the data in the low density area.
         _, index_prob = torch.topk(-prob_density, select)
         ood_samples.append(negative_samples[index_prob])
     return torch.cat(ood_samples, 0)
 
 # Internal Cell
-def calc_forked_dist(mean_embed_id, temp_precision, sample_from, select):
-    new_dis = MultivariateNormal(mean_embed_id, scale_tril=temp_precision)
-    negative_samples = new_dis.rsample((sample_from,))
-    prob_density = new_dis.log_prob(negative_samples)
-    # keep the data in the low density area.
-    _, index_prob = torch.topk(-prob_density, select)
-    return negative_samples[index_prob]
-
-def forked_dist(mean_embed_id, temp_precision, sample_from, select, nf, n_out):
-    temp_precision = torch.linalg.cholesky(temp_precision)
-    futures:list[torch.jit.Future[torch.Tensor]] = []
+def partial_dist(mean_embed_id, temp_precision, n_generate, select, nf, n_out, start, step):
     ood_samples = []
-    for idx in range(n_out):
-        futures.append(torch.jit.fork(calc_forked_dist, mean_embed_id[idx],
-                                      temp_precision, sample_from, select))
-    for future in futures:
-        ood_samples.append(torch.jit.wait(future))
+    for idx in range(start, n_out, step):
+        new_dis = MultivariateNormal(mean_embed_id[idx], scale_tril=temp_precision)
+        negative_samples = new_dis.rsample((n_generate,))
+        prob_density = new_dis.log_prob(negative_samples)
+
+        # keep the data in the low density area.
+        _, index_prob = torch.topk(-prob_density, select)
+        for i in range(step):
+            ood_samples.append(negative_samples[index_prob[i]])
     return torch.cat(ood_samples, 0)
 
 # Internal Cell
-def batched_dist(mean_embed_id, temp_precision, sample_from, select, nf, n_out):
-    new_dis = MultivariateNormal(mean_embed_id, covariance_matrix=temp_precision)
-    negative_samples = new_dis.rsample((sample_from,))
+def batched_dist(mean_embed_id, temp_precision, n_generate, select, nf, n_out, iter):
+    new_dis = MultivariateNormal(mean_embed_id, scale_tril=temp_precision)
+    negative_samples = new_dis.rsample((n_generate,))
     prob_density = new_dis.log_prob(negative_samples)
 
     # keep the data in the low density area
@@ -210,58 +283,69 @@ class VOSCallback(Callback):
     def __init__(self,
         n_out:int|None=None, # Number of labels, defaults to `learn.dls.c``
         start_epoch:int|None=None, # Epoch to start Virtual Outlier Synthesis, defaults to `start_pct`
-        start_pct:float=0.40, # Iteration percent to start Virtual Outlier Synthesis
-        n_sample:int=1000, # Number of virtual outliers to generate
-        sample_from:int=10000,
-        energy_samples:int=1,
-        energy_loss_weight:float=0.1,
-        energy_loss_func:nn.Module|None=None,
-        dist_sample:DistSample=VOSDistSample.Fork
+        start_pct:float=0.40, # Iteration percent to start Virtual Outlier Synthesis, overriden by `start_epoch`
+        n_generate:int=10000, # Number of VOS candidates to generate per class
+        n_samples:int=1, # Number of VOS candidates to select per class
+        feature_cache:int=1000, # Number of class features to cache for VOS generation
+        vos_loss_weight:float=0.1, # Weight for VOS loss
+        vos_loss_func:nn.Module|None=None, # Type of Cross Entropy loss, defaults to `Learner.loss_func` or `nn.CrossEntropyLoss`
+        sample_strategy:VOSSampleStrat=VOSSampleStrat.Paper, # Vos Sampling Strategy to use
+        every_n_batches:int|None=None # Sample all classes `every_n_batches`. Use with `sample_strategy=VOSSampleStart.Partial`. Recommend to increase `n_sample`
     ):
-        store_attr(but='dist_sample')
-        if dist_sample==VOSDistSample.List:    self._sample_dist = list_dist
-        elif dist_sample==VOSDistSample.Fork:  self._sample_dist = forked_dist
-        elif dist_sample==VOSDistSample.Batch: self._sample_dist = batched_dist
+        store_attr()
+        if sample_strategy==VOSSampleStrat.Paper:
+            self._sample_dist = list_dist
+        elif sample_strategy==VOSSampleStrat.Batch:
+            self._sample_dist = batched_dist
+        elif sample_strategy==VOSSampleStrat.Partial:
+            if every_n_batches is None: self.every_n_batches=2
+            if n_samples==1:
+                warn('Using the Partial sample strategy without increasing `n_samples`')
+                self.n_samples = every_n_batches
+            self._sample_dist = partial_dist
 
     def before_fit(self):
         assert isinstance(self.learn.model[1], VOSHead), 'VOSCallback requires model have a be `VOSHead'
+        self.mixed = hasattr(self.learn, 'mixed_precision')
         if self.learn.state == LearnerState.Fit:
             self.device = device = getattr(self.learn.dls, 'device', default_device())
             self.n_out = ifnone(self.n_out, get_c(self.learn.dls))
             self.nf = self.learn.model[1].nf
-            assert self.n_out, "`n_out` is not defined, and could not be inferred from data, set `dls.c` or pass `n_out`"
+            assert self.n_out, "`n_out` is not defined and could not be inferred from data, set `dls.c` or pass `n_out`"
             self.eye_matrix = torch.eye(self.nf, device=self.device)
-            self.features = torch.zeros(self.n_out, self.n_sample, self.nf).to(device=self.device)
+            self.features = torch.zeros(self.n_out, self.feature_cache, self.nf).to(device=self.device)
             self.number_dict = {}
             for i in range(self.n_out): self.number_dict[i] = 0
-            self.sample_count, self.total_samples = 0, self.n_out * self.n_sample
-            if isinstance(self.learn.loss_func, (nn.CrossEntropyLoss,CrossEntropyLossFlat,LabelSmoothingCrossEntropy,LabelSmoothingCrossEntropyFlat)):
-                self.energy_loss_func = self.learn.loss_func
-            elif self.energy_loss_func is None:
-                self.energy_loss_func = torch.nn.CrossEntropyLoss()
+            self.sample_count, self.total_samples = 0, self.n_out * self.feature_cache
+        if isinstance(self.learn.loss_func, (nn.CrossEntropyLoss,CrossEntropyLossFlat,LabelSmoothingCrossEntropy,LabelSmoothingCrossEntropyFlat)):
+            self.vos_loss_func = self.learn.loss_func
+        elif self.vos_loss_func is None:
+            self.vos_loss_func = nn.CrossEntropyLoss()
         self.train_vos = self.learn.state != LearnerState.LRFind
         self.eval_vos  = self.learn.state == LearnerState.Eval
-        self.targ_vos  = len(self.learn.dls.valid.one_batch()) - self.learn.dls.valid.n_inp > 1
+        self.targ_vos  = isinstance(self.learn.dls.valid.one_batch()[1], TensorVOSCategory)
+        if self.targ_vos: self.learn.loss_func = VOSLossWrapper(self.learn.loss_func)
+        self.sample_iter=0
 
     def after_pred(self):
         pred, self.batch_features = self.learn.pred
+        self.targs = self.y
         self.batch_features = self.batch_features.detach().clone()
         self.learn.pred = pred
+        if not self.training and self.targ_vos and len(self.yb):
+            self.targs, self.energy_targ = self.targs.split(1,-1)
+            self.targs, self.energy_targ= self.targs.squeeze(1), self.energy_targ.squeeze(1)
+            self.learn.yb = tuple([self.targs],)
 
     def after_loss(self):
         if self.train_vos:
-            if self.training: self._vos_train_step()
-            else:             self._vos_valid_step()
+            self.orig_loss = self.learn.loss.detach().clone()
+            if self.training:  self._vos_train_step()
+            elif len(self.yb): self._vos_valid_step()
+            else:              self._vos_pred_step()
 
     def _vos_train_step(self):
-        if self.targ_vos:
-            self.orig_loss = self.learn.loss.detach().clone()
-            targs, self.vos_targs = self.learn.yb
-            self.learn.yb = (targs,)
-        else:
-            self.orig_loss, targs = self.learn.loss.detach().clone(), *self.learn.yb
-
-        cpu_targs = targs.cpu().int().numpy()
+        cpu_targs = self.targs.cpu().int().numpy()
         if self.sample_count >= self.total_samples:
             # Enque and deque ID features
             for idx, targ in enumerate(cpu_targs):
@@ -276,10 +360,11 @@ class VOSCallback(Callback):
                 # add the variance.
                 temp_precision = torch.mm(X.t(), X) / len(X)
                 temp_precision += 0.0001 * self.eye_matrix
+                temp_precision = torch.linalg.cholesky(temp_precision)
 
                 # gausian sample ood features
-                ood_samples = self._sample_dist(mean_embed_id, temp_precision, self.sample_from,
-                                                self.energy_samples, self.nf, self.n_out)
+                ood_samples = self._sample_dist(mean_embed_id, temp_precision, self.n_generate, self.n_samples,
+                                                self.nf, self.n_out, self.sample_iter, self.every_n_batches)
 
                 id_energy = self._log_sum_exp(self.learn.pred, 1)
                 ood_pred = self.learn.model[1].head(ood_samples)
@@ -290,13 +375,17 @@ class VOSCallback(Callback):
                                               torch.zeros(len(ood_pred), device=self.device, dtype=torch.long)), -1)
 
                 self.energy_pred = self.learn.model[1].log_reg(self.energy_pred.view(-1, 1))
-                self.energy_loss = self.energy_loss_weight * self.energy_loss_func(self.energy_pred, self.energy_targ)
+                if self.mixed: self.energy_pred = self.energy_pred.float()
+                self.energy_loss = self.vos_loss_weight * self.vos_loss_func(self.energy_pred, self.energy_targ)
                 self.learn.loss_grad += self.energy_loss
                 self.learn.loss += self.energy_loss.detach()
-
+                if self.sample_iter >= self.every_n_batches:
+                    self.sample_iter = 0
+                else:
+                    self.sample_iter+=1
         else:
             for idx, targ in enumerate(cpu_targs):
-                if self.number_dict[targ] < self.n_sample:
+                if self.number_dict[targ] < self.feature_cache:
                     self.features[targ][self.number_dict[targ]] = self.batch_features[idx]
                     self.number_dict[targ] += 1
                     self.sample_count += 1
@@ -305,23 +394,25 @@ class VOSCallback(Callback):
             self.energy_loss = torch.tensor(0., device=self.device)
 
     def _vos_valid_step(self):
-        self.orig_loss = self.learn.loss.detach().clone()
         if self.eval_vos or (self.learn.pct_train > self.start_pct and self.sample_count >= self.total_samples):
-            id_energy = self._log_sum_exp(self.learn.pred, 1)
-            if self.targ_vos: self.energy_targ = self.vos_targs
-            else:             self.energy_targ = torch.ones(len(id_energy), device=self.device, dtype=torch.long)
-            self.energy_pred = self.learn.model[1].log_reg(id_energy.view(-1, 1))
+            energy = self._log_sum_exp(self.learn.pred, 1)
+            if not self.targ_vos:
+                self.energy_targ = torch.ones(len(energy), device=self.device, dtype=torch.long)
+            self.energy_pred = self.learn.model[1].log_reg(energy.view(-1, 1))
 
-            self.energy_loss = self.energy_loss_weight * self.energy_loss_func(self.energy_pred, self.energy_targ)
+            if self.mixed: self.energy_pred = self.energy_pred.float()
+            self.energy_loss = self.vos_loss_weight * self.vos_loss_func(self.energy_pred, self.energy_targ)
             self.learn.loss += self.energy_loss.detach()
         else:
             self.energy_loss = torch.tensor(0., device=self.device)
-            self.energy_pred = torch.tensor(0., device=self.device)
-            self.energy_targ = torch.tensor(1., device=self.device)
+            self.energy_pred = torch.tensor([[1., 0.],[0., 1.]], device=self.device)
+            self.energy_targ = torch.tensor([1, 0], device=self.device)
 
-    # def after_batch(self):
-    #     if self.learn.state==LearnerState.Eval or (self.learn.pct_train >= self.start_pct and self.sample_count >= self.total_samples):
-    #         self.learn.pred = self.learn.pred, self.energy_pred
+    def _vos_pred_step(self):
+        energy = self._log_sum_exp(self.learn.pred, 1)
+        self.energy_pred = self.learn.model[1].log_reg(energy.view(-1, 1))
+        if self.mixed: self.energy_pred = self.energy_pred.float()
+
 
     def _log_sum_exp(self, value, dim=None, keepdim=False):
         "Numerically stable implementation of the operation value.exp().sum(dim, keepdim).log()"
@@ -337,9 +428,26 @@ class VOSCallback(Callback):
             sum_exp = torch.sum(torch.exp(value - m))
             return m + torch.log(sum_exp)
 
+# Cell
+class VOSEvalCallback(Callback):
+    order = Recorder.order+1
+    def before_fit(self):
+        assert hasattr(self.learn, 'vos'), 'VOSEvalCallback requires `VOSCallback'
+        self.voscb = self.learn.vos
+        self.train_vos = self.voscb.train_vos
+        self.eval_vos  = self.voscb.eval_vos
+        self.targ_vos  = self.voscb.targ_vos
+
+    def after_batch(self):
+        if not self.training:
+            if self.voscb.eval_vos or (self.learn.pct_train > self.start_pct and self.voscb.sample_count >= self.voscb.total_samples):
+                self.learn.pred = (self.learn.pred, self.voscb.energy_pred)
+                self.learn.yb = tuple([torch.stack([self.y, self.voscb.energy_targ], dim=1)],)
+
 # Internal Cell
-from fastai.learner import Metric, AvgMetric, ActivationType, MetricType, LogMetric, find_bs, AvgLoss, AvgSmoothLoss, to_detach
-from fastai.metrics import accuracy
+from fastai.learner import Metric, AvgMetric, AccumMetric, AvgSmoothMetric, ActivationType, MetricType, LogMetric, find_bs, AvgLoss, AvgSmoothLoss, to_detach
+from fastai.metrics import accuracy, skm_to_fastai
+import sklearn.metrics as skm
 
 # Internal Cell
 class VOSMetric(Metric):
@@ -354,48 +462,160 @@ class VOSMetric(Metric):
         elif self.dim_argmax: self.pred = self.pred.argmax(dim=self.dim_argmax)
         if self.thresh: self.pred = (self.pred >= self.thresh)
 
-# Internal Cell
+# Cell
 @delegates(VOSMetric)
-class VOSAvgMetric(VOSMetric):
+class VOSAvgMetric(VOSMetric, AvgMetric):
     "Average the values of `func` taking into account potential different batch sizes"
-    def __init__(self, func, to_np=False, invert_arg=False, **kwargs):
-        super().__init__(**self._split_kwargs(VOSMetric.__init__, **kwargs))
-        self.func, self.fkwargs = func, self._split_kwargs(func, **kwargs)
-        self.to_np, self.invert_arg = to_np, invert_arg
-        self._name = ifnone(kwargs.get('name', None), self.func.func.__name__ if hasattr(self.func, 'func') else self.func.__name__)
-
-    def reset(self): self.total,self.count = 0.,0
 
     def accumulate(self, learn):
-        super().accumulate(learn)
+        VOSMetric.accumulate(self, learn)
         bs = find_bs(learn.yb)
         if self.to_np: self.pred,self.targ = learn.to_detach(self.pred).numpy(),learn.to_detach(self.targ).numpy()
         self.total += (self.func(self.targ, self.pred, **self.fkwargs) if self.invert_arg else self.func(self.pred, self.targ, **self.fkwargs))*bs
         self.count += bs
 
-    @property
-    def value(self): return self.total/self.count if self.count != 0 else None
-
-# Internal Cell
+# Cell
 @delegates(VOSMetric)
-def func_to_metric(func, metric_type, is_class, thresh=None, axis=-1, activation=None, log_metric=LogMetric.Valid, **kwargs):
-    "Convert `func` metric to a fastai metric"
+class VOSAccumMetric(VOSMetric, AccumMetric):
+    "Stores predictions and targets on CPU in accumulate to perform final calculations with `func`."
+
+    def accumulate(self, learn):
+        "Store targs and preds from `learn`, using activation function and argmax as appropriate"
+        VOSMetric.accumulate(self, learn)
+        self.pred,self.targ = learn.to_detach(self.pred),learn.to_detach(self.targ)
+        self.accum_values(self.pred, self.targ)
+
+# Cell
+@delegates(VOSMetric, but='log_metric')
+class VOSAvgSmoothMetric(VOSMetric, AvgSmoothMetric):
+    "Smooth average the values of `func` (exponentially weighted with `beta`). Only computed on training set."
+
+    def accumulate(self, learn):
+        VOSMetric.accumulate(self, learn)
+        if self.to_np: self.pred,self.targ = learn.to_detach(self.pred).numpy(),learn.to_detach(self.targ).numpy()
+        val = self.func(self.targ, self.pred, **self.fkwargs) if self.invert_arg else self.func(self.pred, self.targ, **self.fkwargs)
+        if self.to_np: self.val = self.val*self.beta + val*(1-self.beta)
+        else: self.val = torch.lerp(to_detach(val, gather=False), self.val, self.beta)
+        self.count += 1
+
+# Cell
+@delegates(VOSMetric)
+def func_to_vos_metric(func, metric_type, is_class, thresh=None, axis=-1, activation=None, log_metric=LogMetric.Valid, **kwargs):
+    "Convert `func` metric to a VOS Metric"
 
     dim_argmax = axis if is_class and thresh is None else None
     if activation is None:
         activation = ActivationType.Sigmoid if (is_class and thresh is not None) else ActivationType.No
 
-    if metric_type==MetricType.Avg:
+    if metric_type==MetricType.Accum:
+        return VOSAccumMetric(func, dim_argmax=dim_argmax, activation=activation,
+                              thresh=thresh, log_metric=log_metric, **kwargs)
+    elif metric_type==MetricType.Avg:
         return VOSAvgMetric(func, dim_argmax=dim_argmax, activation=activation,
-                         thresh=thresh, log_metric=log_metric, **kwargs)
+                            thresh=thresh, log_metric=log_metric, **kwargs)
+    elif metric_type==MetricType.Smooth:
+        if log_metric!=LogMetric.Train:
+            name = func.func.__name__ if hasattr(func, 'func') else  func.__name__
+            raise ValueError(f'Error with {name}: AvgSmoothMetric can only run on train. Set `log_metric` to LogMetric.Train.')
+        return VOSAvgSmoothMetric(func, dim_argmax=dim_argmax, activation=activation, thresh=thresh, **kwargs)
     else:
         name = func.func.__name__ if hasattr(func, 'func') else  func.__name__
         raise ValueError(f"Unsupported `metric_type` {metric_type} for metric {name}.")
 
 # Cell
+@delegates(Metric)
+def skm_to_vos_metric(func, is_class=True, thresh=None, axis=-1, activation=None, log_metric=LogMetric.Valid, **kwargs):
+    "Convert `func` from sklearn.metrics to a vos metric"
+    return func_to_vos_metric(func, MetricType.Accum, is_class, thresh, axis, activation,
+                              log_metric, to_np=True, invert_arg=True, **kwargs)
+
+# Cell
 def VOSAccuracy(axis=-1, metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
-    "Compute accuracy with `targ` when `pred` is bs * n_classes"
-    return func_to_metric(accuracy, metric_type, True, axis=axis, log_metric=log_metric, name='vos_accuracy', **kwargs)
+    "Compute VOS out of distribution detection accuracy"
+    return func_to_vos_metric(accuracy, metric_type, True, axis=axis, log_metric=log_metric, name='vos_accuracy', **kwargs)
+
+# Cell
+def VOSAUROC(axis=-1, average='macro', sample_weight=None, max_fpr=None, multi_class='raise', log_metric=LogMetric.Valid, **kwargs):
+    "Area Under the Receiver Operating Characteristic Curve for VOS out of distribution detection"
+    return skm_to_vos_metric(skm.roc_auc_score, axis=axis, activation=ActivationType.BinarySoftmax,
+                             average=average, sample_weight=sample_weight, max_fpr=max_fpr, multi_class=multi_class,
+                             log_metric=log_metric, name='vos_auroc', **kwargs)
+
+# Cell
+def VOSAPScore(axis=-1, average='macro', pos_label=1, sample_weight=None, log_metric=LogMetric.Valid, **kwargs):
+    "Average Precision for VOS out of distribution detection"
+    return skm_to_vos_metric(skm.average_precision_score, axis=axis, activation=ActivationType.BinarySoftmax,
+                             average=average, pos_label=pos_label, sample_weight=sample_weight, log_metric=log_metric,
+                             name='vos_ap_score', **kwargs)
+
+# Internal Cell
+def stable_cumsum(arr, rtol=1e-05, atol=1e-08):
+    """Use high precision for cumsum and check that final value matches sum
+    Parameters
+    ----------
+    arr : array-like
+        To be cumulatively summed as flat
+    rtol : float
+        Relative tolerance, see ``np.allclose``
+    atol : float
+        Absolute tolerance, see ``np.allclose``
+    """
+    out = np.cumsum(arr, dtype=np.float64)
+    expected = np.sum(arr, dtype=np.float64)
+    if not np.allclose(out[-1], expected, rtol=rtol, atol=atol):
+        raise RuntimeError('cumsum was found to be unstable: '
+                           'its last element does not correspond to sum')
+    return out
+
+
+def fpr_and_fdr_at_recall(y_true, y_score, recall_level=0.95, pos_label=None):
+    classes = np.unique(y_true)
+    if (pos_label is None and
+            not (np.array_equal(classes, [0, 1]) or
+                     np.array_equal(classes, [-1, 1]) or
+                     np.array_equal(classes, [0]) or
+                     np.array_equal(classes, [-1]) or
+                     np.array_equal(classes, [1]))):
+        raise ValueError("Data is not binary and pos_label is not specified")
+    elif pos_label is None:
+        pos_label = 1.
+
+    # make y_true a boolean vector
+    y_true = (y_true == pos_label)
+
+    # sort scores and corresponding truth values
+    desc_score_indices = np.argsort(y_score, kind="mergesort")[::-1]
+    y_score = y_score[desc_score_indices]
+    y_true = y_true[desc_score_indices]
+
+    # y_score typically has many tied values. Here we extract
+    # the indices associated with the distinct values. We also
+    # concatenate a value for the end of the curve.
+    distinct_value_indices = np.where(np.diff(y_score))[0]
+    threshold_idxs = np.r_[distinct_value_indices, y_true.size - 1]
+
+    # accumulate the true positives with decreasing threshold
+    tps = stable_cumsum(y_true)[threshold_idxs]
+    fps = 1 + threshold_idxs - tps      # add one because of zero-based indexing
+
+    thresholds = y_score[threshold_idxs]
+
+    recall = tps / tps[-1]
+
+    last_ind = tps.searchsorted(tps[-1])
+    sl = slice(last_ind, None, -1)      # [last_ind::-1]
+    recall, fps, tps, thresholds = np.r_[recall[sl], 1], np.r_[fps[sl], 0], np.r_[tps[sl], 0], thresholds[sl]
+
+    cutoff = np.argmin(np.abs(recall - recall_level))
+
+    return fps[cutoff] / (np.sum(np.logical_not(y_true)))   # , fps[cutoff]/(fps[cutoff] + tps[cutoff])
+
+# Cell
+def VOSFPR(axis=-1, recall_level=0.95, pos_label=None, log_metric=LogMetric.Valid, **kwargs):
+    "False Positive Rate at Recall Level for VOS out of distribution detection"
+    return skm_to_vos_metric(fpr_and_fdr_at_recall, axis=axis, activation=ActivationType.BinarySoftmax,
+                             recall_level=recall_level, pos_label=pos_label,  log_metric=log_metric,
+                             name=f'vos_fpr_{int(recall_level*100)}', **kwargs)
 
 # Internal Cell
 class VOSAvgLoss(AvgLoss):
@@ -443,11 +663,12 @@ class OrigAvgSmoothLoss(AvgSmoothLoss):
 
 # Cell
 @delegates(create_vos_model)
-def vos_learner(dls, arch, n_out=None, pretrained=True, fastai_head=False, vos_metrics=[VOSAccuracy()],
-                # vos args
-                start_epoch:int|None=None, start_pct:float=0.40, n_sample:int=1000, sample_from:int=10000,
-                energy_samples:int=1, energy_loss_weight:float=0.1, energy_loss_func:nn.Module|None=None,
-                dist_sample:VOSDistSample=VOSDistSample.Fork,
+def vos_learner(dls, arch, n_out=None, pretrained=True, fastai_head=False,
+                vos_metrics=[VOSAccuracy(), VOSAPScore(), VOSFPR()],
+                # vos callback args
+                start_epoch:int|None=None, start_pct:float=0.40, n_generate:int=10000, n_samples:int=1,
+                feature_cache:int=1000, vos_loss_weight:float=0.1, vos_loss_func:nn.Module|None=None,
+                sample_strategy:VOSSampleStrat=VOSSampleStrat.Paper,
                 # learner args
                 loss_func=None, opt_func=Adam, lr=defaults.lr, splitter=None, cbs=None, metrics=None, path=None,
                 model_dir='models', wd=None, wd_bn_bias=False, train_bn=True, moms=(0.95,0.85,0.95),
@@ -457,7 +678,7 @@ def vos_learner(dls, arch, n_out=None, pretrained=True, fastai_head=False, vos_m
     meta = model_meta.get(arch, _default_meta)
 
     if n_out is None: n_out = get_c(dls)
-    assert n_out, "`n_out` is not defined, and could not be inferred from data, set `dls.c` or pass `n_out`"
+    assert n_out, "`n_out` is not defined and could not be inferred from data, set `dls.c` or pass `n_out`"
     model = create_vos_model(arch, n_out, pretrained=pretrained, fastai_head=fastai_head, **kwargs)
 
     if metrics is None: metrics = L()
@@ -467,10 +688,13 @@ def vos_learner(dls, arch, n_out=None, pretrained=True, fastai_head=False, vos_m
         if m not in metrics:
             metrics.append(m)
 
-    vos_cb = [VOSCallback(n_out, start_epoch, start_pct, n_sample, sample_from,
-                          energy_samples, energy_loss_weight, energy_loss_func, dist_sample)]
+    vos_cb = VOSCallback(n_out, start_epoch, start_pct, n_generate, n_samples,
+                         feature_cache, vos_loss_weight, vos_loss_func, sample_strategy)
     if cbs is None: cbs = vos_cb
     else: cbs = L(cbs) + L(vos_cb)
+
+    if isinstance(dls.valid.one_batch()[1], TensorVOSCategory):
+        cbs += L(VOSEvalCallback())
 
     splitter=ifnone(splitter, meta['split'])
     learn = Learner(dls=dls, model=model, loss_func=loss_func, opt_func=opt_func, lr=lr, splitter=splitter, cbs=cbs,
