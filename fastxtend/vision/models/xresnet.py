@@ -38,7 +38,7 @@ class XResNet(nn.Sequential):
 
         super().__init__(
             *stem,
-            *stem_pool if is_listish(stem_pool) else stem_pool,
+            *stem_pool if is_listish(stem_pool) else [stem_pool],
             *blocks,
             *head
         )
