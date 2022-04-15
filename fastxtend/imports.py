@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Iterable, Union, TypeVar, Callable
+from typing import Iterable, Union, TypeVar, Callable, Any
 from warnings import warn
 
 import torch

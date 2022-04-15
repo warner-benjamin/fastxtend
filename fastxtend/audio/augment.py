@@ -55,7 +55,7 @@ class Roll(RandTransform):
         split_idx:int # Index of the train/valid dataset
     ):
         super().before_call(b, split_idx)
-        self.shift = int(random.uniform(-1,1) * self.max_roll * _get_audio_attr(b, 'samples'))
+        if split_idx==0: self.shift = int(random.uniform(-1,1) * self.max_roll * _get_audio_attr(b, 'samples'))
 
     def encodes(self, x:TensorAudio) -> Tensor:
         return x.roll(shifts=self.shift, dims=-1)
@@ -161,7 +161,7 @@ class Volume(RandTransform):
         split_idx:int # Index of the train/valid dataset
     ):
         super().before_call(b, split_idx)
-        if self.random_gain: self.gain = random.uniform(*self.gain_range)
+        if split_idx==0 and self.random_gain: self.gain = random.uniform(*self.gain_range)
 
     def encodes(self, x:TensorAudio) -> Tensor:
         if self.vol_mode == VolumeMode.DB:
@@ -196,10 +196,11 @@ class TimeStretch(BatchRandTransform):
         split_idx:int # Index of the train/valid dataset
     ):
         super().before_call(b, split_idx)
-        if self.phase_advance is None:
-            hop_length, n_freq, device =_get_audio_attr(b, 'hop_length'), _get_audio_attr(b, 'n_fft')//2+1, _get_audio_attr(b, 'device')
-            self.phase_advance = torch.linspace(0, math.pi * hop_length, n_freq, device=device)
-        self.rate = random.uniform(*self.rate_bounds) if self.fixed_rate is None else self.fixed_rate
+        if split_idx==0:
+            if self.phase_advance is None:
+                hop_length, n_freq, device =_get_audio_attr(b, 'hop_length'), _get_audio_attr(b, 'n_fft')//2+1, _get_audio_attr(b, 'device')
+                self.phase_advance = torch.linspace(0, math.pi * hop_length, n_freq, device=device)
+            self.rate = random.uniform(*self.rate_bounds) if self.fixed_rate is None else self.fixed_rate
 
     def encodes(self, x:TensorSpec) -> Tensor:
         return TAF.phase_vocoder(x, self.rate, self.phase_advance)
@@ -226,11 +227,12 @@ class TimeMasking(BatchRandTransform):
         split_idx:int # Index of the train/valid dataset
     ):
         super().before_call(b, split_idx)
-        self.mask_param = int(self.max_mask * _get_audio_attr(b, 'shape')[-1])
-        if self.mask_value is None:
-            self.mv = random.randint(int(_get_audio_attr(b, 'min')), int(_get_audio_attr(b, 'max')))
-        else:
-            self.mv = self.mask_value
+        if self.do:
+            self.mask_param = int(self.max_mask * _get_audio_attr(b, 'shape')[-1])
+            if split_idx==0 and self.mask_value is None:
+                self.mv = random.randint(int(_get_audio_attr(b, 'min')), int(_get_audio_attr(b, 'max')))
+            else:
+                self.mv = self.mask_value
 
     def encodes(self, x:TensorSpec|TensorMelSpec) -> Tensor:
         if self.iid_masks and x.dim() == 4:
@@ -256,7 +258,7 @@ class FrequencyMasking(BatchRandTransform):
     ):
         super().before_call(b, split_idx)
         self.mask_param = int(self.max_mask * _get_audio_attr(b, 'shape')[-2])
-        if self.mask_value is None:
+        if split_idx==0 and self.mask_value is None:
             self.mv = random.randint(int(_get_audio_attr(b, 'min')), int(_get_audio_attr(b, 'max')))
         else:
             self.mv = self.mask_value
@@ -275,7 +277,7 @@ class AmplitudeToDBMode(Enum):
 
 # Cell
 class AmplitudeToDB(DisplayedTransform):
-    order = 99
+    order = 98
     def __init__(self,
         top_db:float|None=None,
         mode:AmplitudeToDBMode=AmplitudeToDBMode.Power
@@ -288,3 +290,13 @@ class AmplitudeToDB(DisplayedTransform):
     def to(self, *args, **kwargs):
         device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
         self.amdb.to(device)
+
+# Cell
+@patch
+def encodes(self:Normalize, x:TensorSpec|TensorMelSpec):
+    return (x-self.mean) / self.std
+
+@patch
+def decodes(self:Normalize, x:TensorSpec|TensorMelSpec):
+    f = to_cpu if x.device.type=='cpu' else noop
+    return (x*f(self.std) + f(self.mean))
