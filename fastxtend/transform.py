@@ -9,8 +9,9 @@ __all__ = ['BatchRandTransform']
 # Cell
 #nbdev_comment from __future__ import annotations
 from torch.distributions import Bernoulli
+
 from fastcore.transform import DisplayedTransform, _is_tuple, retain_type
-from fastai.torch_core import find_bs
+
 from .imports import *
 
 # Cell
