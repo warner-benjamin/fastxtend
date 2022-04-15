@@ -9,6 +9,8 @@ __all__ = ['DetupleCallback', 'AudioLearner']
 # Cell
 #nbdev_comment from __future__ import annotations
 
+from fastcore.dispatch import retain_type
+
 from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
 from fastai.learner import Learner, defaults
@@ -19,11 +21,14 @@ from ..imports import *
 
 # Cell
 class DetupleCallback(Callback):
+    ""
     order = MixedPrecision.order-1
     def before_batch(self):
         xb = L(self.xb)
-        idx = xb.argwhere(isinstance, type=tuple)
-        xb[idx] = xb[idx].map(torch.cat, dim=1)
+        idx = xb.argwhere(lambda x: isinstance(x, tuple))
+        xb[i] = xb[i].map(lambda x: torch.cat(x, dim=1))
+        for i in idx:
+            xb[i] = retain_type(torch.cat(xb[i], dim=1), xb[i][0])
         self.learn.xb = tuple(xb)
 
 # Cell

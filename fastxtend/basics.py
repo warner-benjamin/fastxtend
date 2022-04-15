@@ -12,7 +12,8 @@ __all__ = ['is_listish', 'listify_store_attr']
 import sys
 import re
 
-from fastcore.basics import annotations, argnames, _store_attr, filter_dict
+from fastcore.basics import annotations, argnames, _store_attr, filter_dict, range_of, Inf
+from fastcore.dispatch import typedispatch, retain_meta
 
 from .imports import *
 
@@ -48,3 +49,20 @@ def listify_store_attr(names=None, self=None, but='', cast=False, store_args=Non
             # if-else needed for None input
             attrs[n] = L(attrs[n])*l if is_listy(attrs[n]) else L([attrs[n]])*l
     return _store_attr(self, anno, **attrs)
+
+# Cell
+@typedispatch
+def show_batch(x, y, samples, ctxs=None, max_n=9, **kwargs):
+    if ctxs is None: ctxs = Inf.nones
+    plots = []
+    if hasattr(samples[0], 'show'):
+        for s,c,_ in zip(samples,ctxs,range(max_n)):
+            s = retain_meta(x, s)
+            plots.append(s.show(ctx=c, **kwargs))
+    else:
+        for i in range_of(samples[0]):
+            for b,c,_ in zip(samples.itemgot(i),ctxs,range(max_n)):
+                b = retain_meta(x, b)
+                plots.append(b.show(ctx=c, **kwargs))
+    ctxs = plots
+    return ctxs

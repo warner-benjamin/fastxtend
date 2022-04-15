@@ -78,7 +78,7 @@ def crop_pad(x:TensorAudio,
     padmode:AudioPadMode=AudioPadMode.Constant,
     constant:float=0
 ):
-    if crop_start:
+    if crop_start is not None:
         x = x[:,crop_start:crop_start+end_len]
     elif pad_len:
         if padmode==AudioPadMode.ConstantPre:
@@ -91,14 +91,15 @@ def crop_pad(x:TensorAudio,
             else:
                 x = torch.cat([x, x[:,0:pad_len]], dim=1)
         else:
-            pad = pad_len//2
-            if pad==0: pad += 1
+            if pad_len % 2 == 0: pad = pad_len//2
+            else:                pad = pad_len//2 + 1
             if padmode==AudioPadMode.Constant:
                 x = _VF.constant_pad_nd(x, (pad, pad), constant)
             elif padmode==AudioPadMode.Reflect:
                 x = torch._C._nn.reflection_pad1d(x, (pad, pad))
 
-    if x.samples > end_len: x = x[:,0:end_len]
+    if x.samples > end_len:
+        x = x[:,0:end_len]
     return x
 
 # Cell
@@ -128,7 +129,7 @@ class RandomCropPad(RandTransform):
         else:
             self.crop_start = torch.randint(0,self.orig_samples-self.samples, (1,)) if self.samples < self.orig_samples else None
 
-        self.pad_len = (self.samples-self.orig_samples)//2 if self.samples > self.orig_samples else 0
+        self.pad_len = (self.samples-self.orig_samples) if self.samples > self.orig_samples else 0
 
     def encodes(self, x:TensorAudio) -> Tensor:
         return x.crop_pad(self.samples, self.crop_start, self.pad_len, self.padmode, self.constant)
@@ -215,9 +216,9 @@ class TimeMasking(BatchRandTransform):
         p:float=0.25, # Per-item probability
         max_mask:float=0.2, # Maximum possible length of the mask  [0, max_mask)
         iid_masks:bool=True, # Apply different masks to each example/channel in the batch
+        mask_value:int|None=0 # If None, random value between batch min and max
     ):
-        store_attr(but='p,iid_masks')
-        self.tm = tatfms.TimeMasking(1,iid_masks)
+        store_attr(but='p')
         super().__init__(p=p)
 
     def before_call(self,
@@ -225,10 +226,17 @@ class TimeMasking(BatchRandTransform):
         split_idx:int # Index of the train/valid dataset
     ):
         super().before_call(b, split_idx)
-        self.tm.time_mask_param = int(self.max_mask * _get_audio_attr(b, 'shape')[-1])
+        self.mask_param = int(self.max_mask * _get_audio_attr(b, 'shape')[-1])
+        if self.mask_value is None:
+            self.mv = random.randint(int(_get_audio_attr(b, 'min')), int(_get_audio_attr(b, 'max')))
+        else:
+            self.mv = self.mask_value
 
     def encodes(self, x:TensorSpec|TensorMelSpec) -> Tensor:
-        return self.tm(x)
+        if self.iid_masks and x.dim() == 4:
+            return TAF.mask_along_axis_iid(x, self.mask_param, self.mv, 3)
+        else:
+            return TAF.mask_along_axis(x, self.mask_param, self.mv, 2)
 
 # Cell
 class FrequencyMasking(BatchRandTransform):
@@ -237,9 +245,9 @@ class FrequencyMasking(BatchRandTransform):
         p:float=0.25, # Per-item probability
         max_mask:float=0.2, # Maximum possible length of the mask [0, max_mask)
         iid_masks:bool=True, # Apply different masks to each example/channel in the batch
+        mask_value:int|None=0 # If None, random value between batch min and max
     ):
-        store_attr(but='p,iid_masks')
-        self.fm = tatfms.FrequencyMasking(1,iid_masks)
+        store_attr(but='p')
         super().__init__(p=p)
 
     def before_call(self,
@@ -247,10 +255,17 @@ class FrequencyMasking(BatchRandTransform):
         split_idx:int # Index of the train/valid dataset
     ):
         super().before_call(b, split_idx)
-        self.fm.freq_mask_param = int(self.max_mask * _get_audio_attr(b, 'shape')[-2])
+        self.mask_param = int(self.max_mask * _get_audio_attr(b, 'shape')[-2])
+        if self.mask_value is None:
+            self.mv = random.randint(int(_get_audio_attr(b, 'min')), int(_get_audio_attr(b, 'max')))
+        else:
+            self.mv = self.mask_value
 
     def encodes(self, x:TensorSpec|TensorMelSpec) -> Tensor:
-        return self.fm(x)
+        if self.iid_masks and x.dim() == 4:
+            return TAF.mask_along_axis_iid(x, self.mask_param, self.mv, 2)
+        else:
+            return TAF.mask_along_axis(x, self.mask_param, self.mv, 1)
 
 # Cell
 class AmplitudeToDBMode(Enum):
@@ -262,8 +277,8 @@ class AmplitudeToDBMode(Enum):
 class AmplitudeToDB(DisplayedTransform):
     order = 99
     def __init__(self,
-        mode:AmplitudeToDBMode=AmplitudeToDBMode.Power,
-        top_db:float|None=None
+        top_db:float|None=None,
+        mode:AmplitudeToDBMode=AmplitudeToDBMode.Power
     ):
         self.amdb = tatfms.AmplitudeToDB(mode.value, top_db)
 
