@@ -4,21 +4,27 @@
 from __future__ import annotations
 
 
-__all__ = ['AudioMixUp']
+__all__ = ['AudioMixHandler', 'AudioMixUp', 'AudioCutMix', 'AudioCutMixUp', 'AudioCutMixUpAugment']
 
 # Cell
 #nbdev_comment from __future__ import annotations
 
+from torch.distributions.beta import Beta
+
 from fastcore.transform import Pipeline
 
-from fastai.callback.mixup import MixUp
+from fastai.callback.mixup import MixHandler, reduce_loss
+from fastai.layers import NoneReduce
 
 from .data import MelSpectrogram, Spectrogram
+from .augment import AmplitudeToDB, Normalize
 from ..imports import *
 
 # Cell
-class AudioMixUp(MixUp):
-    "Implementation of https://arxiv.org/abs/1710.09412 on audio waveforms"
+class AudioMixHandler(MixHandler):
+    def __init__(self, alpha=0.5, stack_y=True):
+        super().__init__(alpha)
+        self.stack_y = stack_y
 
     def before_fit(self):
         waveforms, wave, spec = True, [], []
@@ -41,10 +47,11 @@ class AudioMixUp(MixUp):
         # set existing transforms to an empty Pipeline
         self.dls.train.after_batch = Pipeline([])
 
-    def before_batch(self):
-        self.learn.xb = self._wave_pipe(self.xb)
-        super().before_batch()
-        self.learn.xb = self._spec_pipe(self.xb)
+    def before_train(self):
+        if self.stack_y: self.old_lf,self.learn.loss_func = self.learn.loss_func,self.lf
+
+    def after_train(self):
+        if self.stack_y: self.learn.loss_func = self.old_lf
 
     def after_fit(self):
         self.dls.train.after_batch = self._orig_pipe
@@ -52,3 +59,148 @@ class AudioMixUp(MixUp):
     def after_cancel_fit(self):
         self.after_fit()
         super().after_cancel_fit()
+
+# Cell
+class AudioMixUp(AudioMixHandler):
+    "Implementation of https://arxiv.org/abs/1710.09412 on audio waveforms"
+    def __init__(self, alpha=0.5, stack_y=True):
+        super().__init__(alpha, stack_y)
+
+    def before_batch(self, wave=True):
+        if wave: self.learn.xb = self._wave_pipe(self.xb)
+
+        lam = self.distrib.sample((self.y.size(0),)).squeeze().to(self.x.device)
+        lam = torch.stack([lam, 1-lam], 1)
+        self.lam = lam.max(1)[0]
+        shuffle = torch.randperm(self.y.size(0)).to(self.x.device)
+        xb1,self.yb1 = tuple(L(self.xb).itemgot(shuffle)),tuple(L(self.yb).itemgot(shuffle))
+        nx_dims = len(self.x.size())
+        self.learn.xb = tuple(L(xb1,self.xb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=nx_dims-1)))
+
+        if not self.stack_y:
+            ny_dims = len(self.y.size())
+            self.learn.yb = tuple(L(self.yb1,self.yb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=ny_dims-1)))
+
+        self.learn.xb = self._spec_pipe(self.xb)
+
+# Cell
+class AudioCutMix(AudioMixHandler):
+    "Implementation of https://arxiv.org/abs/1710.09412 on audio waveforms"
+    def __init__(self, alpha=1., stack_y=True):
+        super().__init__(alpha, stack_y)
+
+    def before_batch(self, wave=True):
+        if wave: self.learn.xb = self._wave_pipe(self.xb)
+
+        bs, _, X = self.x.size()
+        self.lam = self.distrib.sample((1,)).to(self.x.device)
+        shuffle = torch.randperm(bs).to(self.x.device)
+        xb1,self.yb1 = self.x[shuffle], tuple((self.y[shuffle],))
+        x1, x2 = self.rand_cut(X, self.lam)
+        self.learn.xb[0][..., x1:x2] = xb1[..., x1:x2]
+        self.lam = (1 - (x2-x1)/float(X))
+        if not self.stack_y:
+            ny_dims = len(self.y.size())
+            self.learn.yb = tuple(L(self.yb1,self.yb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=ny_dims-1)))
+
+        self.learn.xb = self._spec_pipe(self.xb)
+
+    def rand_cut(self, X, lam):
+        cut_rat = torch.sqrt(1. - lam).to(self.x.device)
+        cut_x = torch.round(X * cut_rat).type(torch.long).to(self.x.device)
+        cut_x = torch.div(cut_x, 2, rounding_mode='floor')
+        # uniform
+        cx = torch.randint(0, X, (1,)).to(self.x.device)
+        x1 = torch.clamp(cx - cut_x, 0, X)
+        x2 = torch.clamp(cx + cut_x, 0, X)
+        return x1, x2
+
+# Cell
+class AudioCutMixUp(AudioMixUp, AudioCutMix):
+    "Implementation of https://arxiv.org/abs/1710.09412 on audio waveforms"
+    def __init__(self, mix_alpha=.4, cut_alpha=1., stack_y=True, cut_ratio=1, mix_ratio=1):
+        AudioMixUp.__init__(self, mix_alpha, stack_y)
+        AudioCutMix.__init__(self, cut_alpha, stack_y)
+        self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
+        self.cut_distrib = Beta(tensor(cut_alpha), tensor(cut_alpha))
+        self.ratio = mix_ratio / (cut_ratio + mix_ratio)
+
+    def before_batch(self):
+        if torch.rand(1) <= self.ratio: #mixup
+            self.distrib = self.mix_distrib
+            AudioMixUp.before_batch(self)
+        else:
+            self.distrib = self.cut_distrib
+            AudioCutMix.before_batch(self)
+
+# Cell
+class AudioCutMixUpAugment(AudioMixUp, AudioCutMix):
+    "Implementation of https://arxiv.org/abs/1710.09412 on audio waveforms"
+    def __init__(self, mix_alpha=.4, cut_alpha=1., stack_y=True, aug_ratio=1, cut_ratio=1, mix_ratio=1, augs_only=None, wave_augs=False):
+        AudioMixUp.__init__(self, mix_alpha, stack_y)
+        AudioCutMix.__init__(self, cut_alpha, stack_y)
+        self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
+        self.cut_distrib = Beta(tensor(cut_alpha), tensor(cut_alpha))
+        self.aug_cutmix_ratio = aug_ratio / (aug_ratio + cut_ratio + mix_ratio)
+        if self.aug_cutmix_ratio == 1: self.cut_mix_ratio = 0
+        else: self.cut_mix_ratio = mix_ratio / (cut_ratio + mix_ratio)
+        self.augs_only = augs_only
+        self.wave_augs = wave_augs
+
+    def before_fit(self):
+        if self.augs_only is None: self.augs_only = (self.learn.n_epoch + 1)/self.learn.n_epoch
+        elif self.augs_only >=1: self.augs_only = self.augs_only/self.learn.n_epoch
+        else: self.augs_only = self.augs_only
+
+        waveforms, wave, spec, norm = True, [], [], []
+        self._wave_pipe = Pipeline([])
+        self._spec_pipe = Pipeline([])
+        self._norm_pipe = Pipeline([])
+
+        # first copy transforms
+        self._orig_pipe = self.dls.train.after_batch
+        self._orig_pipe.split_idx = 0 # need to manually set split_idx for training augmentations to run
+
+        # loop through existing transforms appending to pre_spec/post_spec until Spec/Mel is found
+        for i in range(len(self.dls.train.after_batch.fs)):
+            if isinstance(self.dls.train.after_batch[i], (Spectrogram, MelSpectrogram)):
+                waveforms = False
+
+            if waveforms:
+                wave.append(self.dls.train.after_batch[i])
+            else:
+                if isinstance(self.dls.train.after_batch[i], (AmplitudeToDB, Normalize)):
+                    norm.append(self.dls.train.after_batch[i])
+                elif isinstance(self.dls.train.after_batch[i], (Spectrogram, MelSpectrogram)):
+                    spec.append(self.dls.train.after_batch[i])
+
+        self._wave_pipe.add(wave)
+        self._spec_pipe.add(spec)
+        self._norm_pipe.add(norm)
+
+        # set existing transforms to an empty Pipeline
+        self.dls.train.after_batch = Pipeline([])
+
+    def before_batch(self):
+        if self.augs_only >= self.learn.pct_train and torch.rand(1) >= self.aug_cutmix_ratio: # augs or mixup/cutmix
+            self._aug = False
+            if self.cut_mix_ratio > 0 and torch.rand(1) <= self.cut_mix_ratio: # mixup or cutmix
+                self.distrib = self.mix_distrib
+                AudioMixUp.before_batch(self, self.wave_augs)
+            else:
+                self.distrib = self.cut_distrib
+                AudioCutMix.before_batch(self, self.wave_augs)
+            self.learn.xb = self._norm_pipe(self.xb) # now normalize
+        else:
+            self._aug = True
+            self.learn.xb = self._orig_pipe(self.xb) # original transforms
+
+    def after_cancel_fit(self):
+        self.after_fit()
+        AudioMixUp.after_cancel_fit(self)
+
+    def lf(self, pred, *yb):
+        if not self.training or self._aug: return self.old_lf(pred, *yb)
+        with NoneReduce(self.old_lf) as lf:
+            loss = torch.lerp(lf(pred,*self.yb1), lf(pred,*yb), self.lam)
+        return reduce_loss(loss, getattr(self.old_lf, 'reduction', 'mean'))

@@ -41,11 +41,8 @@ from IPython.display import Audio, display
 from librosa.display import waveshow, specshow
 from librosa import amplitude_to_db
 
-from fastcore.dispatch import typedispatch
-
 from fastai.imports import Path, mimetypes, plt
 from fastai.torch_core import TensorBase, TensorImageBase
-from fastai.vision.data import get_grid
 
 from ..imports import *
 
