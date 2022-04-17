@@ -33,7 +33,7 @@ class BatchRandTransform(DisplayedTransform):
         split_idx:int # Train (0) or valid (1) index
     ):
         "Randomly select `self.idxs` and set `self.do` based on `self.p` if not valid `split_idx`"
-        self.idxs = self.bernoulli.sample((find_bs(b),)).bool() if not split_idx else torch.ones(find_bs(b)).bool()
+        self.idxs = self.bernoulli.sample((find_bs(b),)).bool() if not split_idx and self.p<1. else torch.ones(find_bs(b)).bool()
         self.do = self.p==1. or self.idxs.shape[-1] > 0
 
     def __call__(self,

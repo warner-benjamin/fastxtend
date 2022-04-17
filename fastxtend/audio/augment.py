@@ -4,21 +4,28 @@
 from __future__ import annotations
 
 
-__all__ = ['Flip', 'Roll', 'AudioPadMode', 'RandomCropPad', 'VolumeMode', 'Volume', 'VolumeBatch', 'PitchShift',
-           'PitchShiftTA', 'TimeStretch', 'TimeMasking', 'FrequencyMasking', 'AmplitudeToDBMode', 'AmplitudeToDB']
+__all__ = ['Flip', 'Roll', 'AudioPadMode', 'RandomCropPad', 'VolumeMode', 'Volume', 'Noise', 'VolumeBatch',
+           'PitchShift', 'PitchShiftTA', 'TimeStretch', 'PitchShiftOrTimeStretch', 'TimeMasking', 'FrequencyMasking',
+           'AmplitudeToDBMode', 'AmplitudeToDB']
 
 # Cell
 #nbdev_comment from __future__ import annotations
 
 import random
 import math
+from collections import Counter
+from fractions import Fraction
+from functools import reduce
+from itertools import chain, count, islice, repeat
 
-from torch_pitch_shift import pitch_shift, get_fast_shifts, semitones_to_ratio
-from torch_time_stretch import time_stretch, get_fast_stretches
+import colorednoise
+from primePy import primes
 
+from torch import _VF
+from torch.distributions import Bernoulli
 import torchaudio.transforms as tatfms
 import torchaudio.functional as TAF
-from torch import _VF
+from torchaudio.functional.functional import _get_sinc_resample_kernel, _apply_sinc_resample_kernel
 
 from fastcore.transform import DisplayedTransform, retain_type
 
@@ -70,7 +77,6 @@ class AudioPadMode(Enum):
     ConstantPre = 2
     ConstantPost = 3
     Repeat = 4
-    Reflect = 5
 
 # Internal Cell
 @patch
@@ -89,17 +95,14 @@ def crop_pad(x:TensorAudio,
         elif padmode==AudioPadMode.ConstantPost:
             x = _VF.constant_pad_nd(x, (0, pad_len), constant)
         elif padmode==AudioPadMode.Repeat:
-            if pad_len >= end_len:
-                x = x.repeat(1, 1+max(pad_len//end_len, 1))
+            if pad_len >= x.samples:
+                x = x.repeat(1, 2+max(pad_len//x.samples, 2))
             else:
                 x = torch.cat([x, x[...,0:pad_len]], dim=-1)
-        else:
+        elif padmode==AudioPadMode.Constant:
             if pad_len % 2 == 0: pad = pad_len//2
             else:                pad = pad_len//2 + 1
-            if padmode==AudioPadMode.Constant:
-                x = _VF.constant_pad_nd(x, (pad, pad), constant)
-            elif padmode==AudioPadMode.Reflect:
-                x = torch._C._nn.reflection_pad1d(x, (pad, pad))
+            x = _VF.constant_pad_nd(x, (pad, pad), constant)
 
     if x.samples > end_len:
         x = x[...,0:end_len]
@@ -111,13 +114,15 @@ class RandomCropPad(RandTransform):
     def __init__(self,
         duration:Number|None=None, # Crop length in seconds
         samples:int|None=None, # Crop length in samples
-        padmode:AudioPadMode=AudioPadMode.Constant,
+        padmode:AudioPadMode=AudioPadMode.Repeat,
         constant:Number=0
     ):
         if duration is None and samples is None:
             raise ValueError('One of `duration` or `samples` must be set')
         if constant >= 1 or constant <= -1:
             raise ValueError('`constant` must be between [-1,1]')
+        if padmode not in [vol for vol in AudioPadMode]:
+            raise ValueError(f"`padmode` {padmode} is not valid")
         store_attr()
         super().__init__()
 
@@ -151,30 +156,102 @@ class Volume(RandTransform):
         p:float=0.5,
         gain:Number|None=None, # If none, randomly select from `gain_range`
         gain_range:tuple[Number,Number] = (-18, 6),
-        vol_mode:VolumeMode=VolumeMode.DB # One of "db", "amplitude", or "power"
+        volmode:VolumeMode=VolumeMode.DB # One of "db", "amplitude", or "power"
     ):
         super().__init__(p=p)
-        if vol_mode != VolumeMode.DB:
-            gain_range = (max(gain_range[0],0), gain_range[1])
-        self.random_gain = gain is None
         store_attr(but='p')
+        if volmode not in [vol for vol in VolumeMode]:
+            raise ValueError(f"`vol_mode` {volmode} is not valid")
+        if volmode != VolumeMode.DB:
+            self.gain_range = (max(gain_range[0],0), gain_range[1])
+        self._random_gain = gain is None
 
     def before_call(self,
         b:TensorAudio|tuple[TensorAudio,...],
         split_idx:int # Index of the train/valid dataset
     ):
         super().before_call(b, split_idx)
-        if split_idx==0 and self.random_gain: self.gain = random.uniform(*self.gain_range)
+        if split_idx==0 and self._random_gain: self.gain = random.uniform(*self.gain_range)
 
     def encodes(self, x:TensorAudio) -> Tensor:
-        if self.vol_mode == VolumeMode.DB:
+        if self.volmode == VolumeMode.DB:
             x = TAF.gain(x, self.gain)
-        elif self.vol_mode == VolumeMode.Amplitude:
+        elif self.volmode == VolumeMode.Amplitude:
             x = x * self.gain
-        elif self.vol_mode == VolumeMode.Power:
+        elif self.volmode == VolumeMode.Power:
             x = TAF.gain(x, 10 * math.log10(self.gain))
 
         return torch.clamp(x, -1, 1)
+
+# Internal Cell
+
+# Noise contains code from github.com/fastaudio/fastaudio
+
+# MIT License
+
+# Original FastAudio implementation, Copyright (c) 2020 scart97
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+class NoiseColor(Enum):
+    """Exponent beta values for named noise colors (see `colored_noise`)."""
+    Violet = -2
+    Blue = -1
+    White = 0
+    Pink = 1
+    Brown = 2
+
+# Cell
+class Noise(RandTransform):
+    "Adds noise of specified color and level relative to mean audio level"
+
+    def __init__(self,
+        p=0.25,
+        noise_level:float|None=None, # Loudness of noise, if None randomly selects from `noise_range`
+        noise_range:tuple[float,float]=(0.01,0.1), # Range of noise loudness values
+        color:NoiseColor|None=None, # Color of noise to add, if None randomly selects from `NoiseColor`
+    ):
+        super().__init__(p=p)
+        store_attr(but='p')
+        self._color_choice = [nc for nc in NoiseColor]
+        if color is not None and color not in self._color_choice:
+            raise ValueError(f"`color` {color} is not valid")
+        self._random_color = color is None
+        self._random_noise = noise_level is None
+
+    def before_call(self,
+        b:TensorAudio|tuple[TensorAudio,...],
+        split_idx:int # Index of the train/valid dataset
+    ):
+        super().before_call(b, split_idx)
+        if split_idx==0:
+            if self._random_color: self.color = random.choice(self._color_choice)
+            if self._random_noise: self.noise_level = random.uniform(*self.noise_range)
+
+    def encodes(self, x:TensorAudio) -> Tensor:
+        # if it's white noise, use torch.randn_like for speed
+        if self.color == NoiseColor.White:
+            noise = torch.randn_like(x)
+        else:
+            noise = torch.from_numpy(colorednoise.powerlaw_psd_gaussian(exponent=self.color.value, size=x.samples)).float()
+        x += noise * x.abs().mean() * self.noise_level
+        return x
 
 # Cell
 class VolumeBatch(BatchRandTransform):
@@ -183,43 +260,164 @@ class VolumeBatch(BatchRandTransform):
         p:float=0.5,
         gain:Number|None=None, # If none, randomly select from `gain_range`
         gain_range:tuple[Number,Number] = (-18, 6),
-        vol_mode:VolumeMode=VolumeMode.DB # One of "db", "amplitude", or "power"
+        volmode:VolumeMode=VolumeMode.DB # One of "db", "amplitude", or "power"
     ):
         super().__init__(p=p)
-        if vol_mode != VolumeMode.DB:
-            gain_range = (max(gain_range[0],0), gain_range[1])
-        self.random_gain = gain is None
         store_attr(but='p')
+        if volmode not in [vol for vol in VolumeMode]:
+            raise ValueError(f"`vol_mode` {volmode} is not valid")
+        if volmode != VolumeMode.DB:
+            self.gain_range = (max(gain_range[0],0), gain_range[1])
+        self._random_gain = gain is None
 
     def before_call(self,
         b:TensorAudio|tuple[TensorAudio,...],
         split_idx:int # Index of the train/valid dataset
     ):
         super().before_call(b, split_idx)
-        if split_idx==0 and self.random_gain: self.gain = random.uniform(*self.gain_range)
+        if split_idx==0 and self._random_gain: self.gain = random.uniform(*self.gain_range)
 
     def encodes(self, x:TensorAudio) -> Tensor:
-        if self.vol_mode == VolumeMode.DB:
+        if self.volmode == VolumeMode.DB:
             x = TAF.gain(x, self.gain)
-        elif self.vol_mode == VolumeMode.Amplitude:
+        elif self.volmode == VolumeMode.Amplitude:
             x = x * self.gain
-        elif self.vol_mode == VolumeMode.Power:
+        elif self.volmode == VolumeMode.Power:
             x = TAF.gain(x, 10 * math.log10(self.gain))
 
         return torch.clamp(x, -1, 1)
 
+# Internal Cell
+# PitchShift & TimeStretch contains code from https://github.com/KentoNishi/torch-pitch-shift and https://github.com/KentoNishi/torch-time-stretch, respectively
+
+# MIT License
+
+# Original implementation Copyright (c) 2021 Kento Nishi
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+# Internal Cell
+
+# https://stackoverflow.com/a/46623112/9325832
+def _combinations_without_repetition(r, iterable=None, values=None, counts=None):
+    if iterable:
+        values, counts = zip(*Counter(iterable).items())
+
+    f = lambda i, c: chain.from_iterable(map(repeat, i, c))
+    n = len(counts)
+    indices = list(islice(f(count(), counts), r))
+    if len(indices) < r:
+        return
+    while True:
+        yield tuple(values[i] for i in indices)
+        for i, j in zip(reversed(range(r)), f(reversed(range(n)), reversed(counts))):
+            if indices[i] != j:
+                break
+        else:
+            return
+        j = indices[i] + 1
+        for i, j in zip(range(i, r), f(count(j), counts[j:])):
+            indices[i] = j
+
+# Internal Cell
+def _get_fast_shifts(
+    sample_rate:int, # Audio sample rate
+    condition:Callable[...,bool]=lambda x: x >= 0.5 and x <= 2 and x != 1, # Function to validate fast shift ratios
+) -> list[Fraction]: # Fast pitch-shift target ratios
+    "Search for pitch-shift targets that can be computed quickly for a given sample rate"
+    fast_shifts = set()
+    factors = primes.factors(sample_rate)
+    products = []
+    for i in range(1, len(factors) + 1):
+        products.extend(
+            [
+                reduce(lambda x, y: x * y, x)
+                for x in _combinations_without_repetition(i, iterable=factors)
+            ]
+        )
+    for i in products:
+        for j in products:
+            f = Fraction(i, j)
+            if condition(f):
+                fast_shifts.add(f)
+    return list(fast_shifts)
+
+# Internal Cell
+def _semitones_to_ratio(semitones:float) -> Fraction:
+    "Convert semitonal shifts into a Fraction indicating a pitch shift ratio"
+    return Fraction(2.0 ** (semitones / 12.0))
+
+# Internal Cell
+def _get_fast_stretches(
+    sample_rate:int, # Audio sample rate
+    condition:Callable[...,bool]=lambda x: x >= 0.5 and x <= 2 and x != 1, # Function to validate fast stretch ratios.
+) -> list[Fraction]: # Fast time-stretch target ratios
+    "Search for time-stretch targets that can be computed quickly for a given sample rate"
+    fast_shifts = set()
+    factors = primes.factors(sample_rate)
+    products = []
+    for i in range(1, len(factors) + 1):
+        products.extend(
+            [
+                reduce(lambda x, y: x * y, x)
+                for x in _combinations_without_repetition(i, iterable=factors)
+            ]
+        )
+    for i in products:
+        for j in products:
+            f = Fraction(i, j)
+            if condition(f):
+                fast_shifts.add(f)
+    return list(fast_shifts)
+
+# Internal Cell
+@patch
+def pitch_shift(x:TensorAudio, n_fft, hop_length, shift, sr, new_sr, gcd, kernel, width, padmode, constant, device):
+    shape = x.shape
+    x = x.reshape(shape[0] * shape[1], shape[2])
+    x = torch.stft(x, n_fft, hop_length, return_complex=True)
+    phase_advance = torch.linspace(0, math.pi * hop_length, x.shape[1], device=device)[..., None]
+    x = TAF.phase_vocoder(x, float(1 / shift), phase_advance)
+    phase_advance = None
+    x = torch.istft(x, n_fft, hop_length)
+    x = retain_type(_apply_sinc_resample_kernel(x, sr, new_sr, gcd, kernel, width), typ=TensorAudio)
+    crop_start = torch.randint(0, x.shape[-1]-shape[-1], (1,)) if shape[-1] < x.shape[-1]  else None
+    pad_len = (shape[-1]-x.shape[-1]) if shape[-1] > x.shape[-1] else 0
+    return x.crop_pad(shape[-1], crop_start, pad_len, padmode, constant).reshape(*shape)
+
 # Cell
 class PitchShift(BatchRandTransform):
-    "Shift TensorAudio's pitch using `torch_pitch_shift`"
+    "Fast shift of `TensorAudio` pitch"
     order, split_idx = 20, 0
     def __init__(self,
         p:float=0.2,
-        semitones:tuple[float,float]=(-4.0,4.0), # Random pitch shift range in semitones to select computation efficient shifts
+        semitones:tuple[float,float]=(-4.0,4.0), # Random pitch shift range in semitones to compute efficient shifts
         bins_per_octave:int=12, # Number of steps per octave
+        padmode:AudioPadMode=AudioPadMode.Repeat,
+        constant:Number=0,
+        split:int|None=None # Apply transform to `split` items at a time. Use to prevent OOM.
     ):
         super().__init__(p=p)
         store_attr(but='p')
         self.sr = 0
+        if padmode not in [vol for vol in AudioPadMode]:
+            raise ValueError(f"`padmode` {padmode} is not valid")
 
     def before_call(self,
         b:TensorAudio|tuple[TensorAudio,...],
@@ -228,14 +426,34 @@ class PitchShift(BatchRandTransform):
         super().before_call(b, split_idx)
         if not self.sr:
             self.sr = _get_audio_attr(b, 'sr')
-            self._fast_shifts = get_fast_shifts(self.sr, self._validate_fast_shifts)
-        if split_idx==0: self.shift = random.choice(self._fast_shifts)
+            self.n_fft = self.sr // 64
+            self.hop_length = self.n_fft // 32
+            self._fast_shifts = _get_fast_shifts(self.sr, self._validate_fast_shifts)
+            self.type = _get_audio_attr(b, 'dtype')
+            self.device = _get_audio_attr(b, 'device')
+        if split_idx==0:
+            self.shift = random.choice(self._fast_shifts)
+            if not isinstance(self.shift, Fraction):
+                self.shift = 2.0 ** (float(self.shift) / self.bins_per_octave)
+            self.new_sr = int(self.sr/self.shift)
+            self.gcd = math.gcd(self.sr, self.new_sr)
+            self.kernel, self.width = _get_sinc_resample_kernel(self.sr, self.new_sr, self.gcd,
+                                                                6, 0.99, 'sinc_interpolation',
+                                                                None, self.device, self.type)
 
     def encodes(self, x:TensorAudio) -> Tensor:
-        return pitch_shift(x.clone(), self.shift, self.sr, self.bins_per_octave)
+        if self.split:
+            xs = []
+            for xi in retain_type(x.split(self.split), TensorAudio):
+                xs.append(xi.pitch_shift(self.n_fft, self.hop_length, self.shift, self.sr, self.new_sr,
+                                         self.gcd, self.kernel, self.width, self.padmode, self.constant, self.device))
+            return torch.cat(xs, dim=0)
+        else:
+            return x.pitch_shift(self.n_fft, self.hop_length, self.shift, self.sr, self.new_sr,
+                                 self.gcd, self.kernel, self.width, self.padmode, self.constant, self.device)
 
     def _validate_fast_shifts(self, x):
-        return x >= semitones_to_ratio(self.semitones[0]) and x <= semitones_to_ratio(self.semitones[1]) and x != 1
+        return x >= _semitones_to_ratio(self.semitones[0]) and x <= _semitones_to_ratio(self.semitones[1]) and x != 1
 
 # Cell
 class PitchShiftTA(BatchRandTransform):
@@ -272,18 +490,36 @@ class PitchShiftTA(BatchRandTransform):
         return TAF.pitch_shift(x, self.sr, self.steps, self.bins_per_octave, self.n_fft,
                                self.win_length, self.hop_length, self.window)
 
+# Internal Cell
+@patch
+def time_stretch(x:TensorAudio, n_fft, hop_length, stretch, padmode, constant, device):
+    shape = x.shape
+    x = x.reshape(shape[0] * shape[1], shape[2])
+    x = torch.stft(x, n_fft, hop_length, return_complex=True)
+    phase_advance = torch.linspace(0, math.pi * hop_length, x.shape[1], device=device)[..., None]
+    x = TAF.phase_vocoder(x, float(1/stretch), phase_advance)
+    phase_advance = None
+    x = torch.istft(x, n_fft, hop_length)
+    crop_start = torch.randint(0, x.shape[-1]-shape[-1], (1,)) if shape[-1] < x.shape[-1]  else None
+    pad_len = (shape[-1]-x.shape[-1]) if shape[-1] > x.shape[-1] else 0
+    return x.crop_pad(shape[-1], crop_start, pad_len, padmode, constant).reshape(*shape)
+
 # Cell
 class TimeStretch(BatchRandTransform):
+    "Fast time stretch of `TensorAudio`"
     order, split_idx = 25, 0
     def __init__(self,
         p:float=0.2,
-        stretch_rates:tuple[float,float]=(0.5,2.0), # Random time stretch range in semitones to select computation efficient stretches. Defaults to 50%-200% speed
+        stretch_rates:tuple[float,float]=(0.5,2.0), # Random time stretch range to compute efficient stretches. Defaults to 50%-200% speed
         padmode:AudioPadMode=AudioPadMode.Repeat,
         constant:Number=0,
+        split:int|None=None # Apply transform to `split` items at a time. Use to prevent OOM.
     ):
         super().__init__(p=p)
         store_attr(but='p')
         self.sr = 0
+        if padmode not in [vol for vol in AudioPadMode]:
+            raise ValueError(f"`padmode` {padmode} is not valid")
 
     def before_call(self,
         b:TensorAudio|tuple[TensorAudio,...],
@@ -292,19 +528,55 @@ class TimeStretch(BatchRandTransform):
         super().before_call(b, split_idx)
         if not self.sr:
             self.sr = _get_audio_attr(b, 'sr')
-            self._fast_stretchs = get_fast_stretches(self.sr, self._validate_fast_stretches)
-            self.shape = _get_audio_attr(b, 'shape')
-        if split_idx==0: self.stretch = float(1/random.choice(self._fast_stretchs))
+            self.n_fft = self.sr // 64
+            self.hop_length = self.n_fft // 32
+            self._fast_stretchs = _get_fast_stretches(self.sr, self._validate_fast_stretches)
+            self.device = _get_audio_attr(b, 'device')
+        if split_idx==0:
+            self.stretch = float(1/random.choice(self._fast_stretchs))
 
     def encodes(self, x:TensorAudio) -> Tensor:
-        x = retain_type(time_stretch(x.clone(), self.stretch, self.sr), typ=TensorAudio)
-        crop_start = torch.randint(0, x.shape[-1]-self.shape[-1], (1,)) if self.shape[-1] < x.shape[-1]  else None
-        pad_len = (self.shape[-1]-x.shape[-1]) if self.shape[-1] > x.shape[-1] else 0
-        return x.crop_pad(self.shape[-1], crop_start, pad_len, self.padmode, self.constant)
+        if self.split:
+            xs = []
+            for xi in retain_type(x.split(self.split), TensorAudio):
+                xs.append(xi.time_stretch(self.n_fft, self.hop_length, self.stretch, self.padmode, self.constant, self.device))
+            return torch.cat(xs, dim=0)
+        else:
+            return x.time_stretch(self.n_fft, self.hop_length, self.stretch, self.padmode, self.constant, self.device)
 
 
     def _validate_fast_stretches(self, x):
         return x >= self.stretch_rates[0] and x <= self.stretch_rates[1] and x != 1
+
+# Cell
+class PitchShiftOrTimeStretch(BatchRandTransform):
+    "Either `PitchShift` or `TimeStretch` `TensorAudio` to minimize distortion"
+    order, split_idx = 25, 0
+    def __init__(self,
+        p:float=0.4,
+        semitones:tuple[float,float]=(-4.0,4.0), # Random pitch shift range in semitones to compute efficient shifts
+        bins_per_octave:int=12, # Number of steps per octave
+        stretch_rates:tuple[float,float]=(0.5,2.0), # Random time stretch range to compute efficient stretches. Defaults to 50%-200% speed
+        padmode:AudioPadMode=AudioPadMode.Repeat, #
+        constant:Number=0, # Constant padding value
+        split:int|None=None # Apply transform to `split` items at a time. Use to prevent OOM.
+    ):
+        super().__init__(p=p)
+        if padmode not in [vol for vol in AudioPadMode]:
+            raise ValueError(f"`padmode` {padmode} is not valid")
+        self.bernoulli = Bernoulli(.5)
+        self.shift   = PitchShift(1., semitones, bins_per_octave, padmode, constant, split)
+        self.stretch = TimeStretch(1., stretch_rates, padmode, constant, split)
+
+    def encodes(self, x:TensorAudio) -> Tensor:
+        self.shift_smpl = self.bernoulli.sample((x.shape[0],))
+        self.stretchs_smpl = (self.shift_smpl - 1) *-1
+        self.shift_idxs, self.stretch_idxs = self.shift_smpl.bool(), self.stretchs_smpl.bool()
+        if self.shift_smpl.sum() > 0:
+            x[self.shift_idxs] = self.shift(x[self.shift_idxs], split_idx=0)
+        if self.stretchs_smpl.sum() > 0:
+            x[self.stretch_idxs] = self.stretch(x[self.stretch_idxs], split_idx=0)
+        return x
 
 # Cell
 class TimeMasking(BatchRandTransform):
@@ -386,7 +658,7 @@ class AmplitudeToDB(DisplayedTransform):
         device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
         self.amdb.to(device)
 
-# Cell
+# Internal Cell
 @patch
 def encodes(self:Normalize, x:TensorSpec|TensorMelSpec):
     return (x-self.mean) / self.std
