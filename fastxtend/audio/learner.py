@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 
-__all__ = ['DetupleCallback', 'AudioLearner']
+__all__ = ['DetupleSpecCallback', 'audio_learner']
 
 # Cell
 #nbdev_comment from __future__ import annotations
@@ -16,37 +16,48 @@ from fastai.callback.fp16 import MixedPrecision
 from fastai.learner import Learner, defaults
 from fastai.optimizer import Adam
 
+from .core import TensorSpec, TensorMelSpec
 from .data import MelSpectrogram, Spectrogram
 from ..imports import *
 
 # Cell
-class DetupleCallback(Callback):
-    ""
+class DetupleSpecCallback(Callback):
+    "Detuplify tuples of TensorSpec or TensorMelSpec. ToDo: add resizing"
     order = MixedPrecision.order-1
     def before_batch(self):
         xb = L(self.xb)
-        idx = xb.argwhere(lambda x: isinstance(x, tuple))
-        xb[i] = xb[i].map(lambda x: torch.cat(x, dim=1))
+        idx = xb.argwhere(lambda x: isinstance(x, tuple) and isinstance(x[0], (TensorSpec, TensorMelSpec)))
         for i in idx:
             xb[i] = retain_type(torch.cat(xb[i], dim=1), xb[i][0])
         self.learn.xb = tuple(xb)
 
 # Cell
-class AudioLearner(Learner):
-    "An Audio specific Learner that knows how to handel"
-    def __init__(self, dls, model, loss_func=None, opt_func=Adam, lr=defaults.lr, splitter=trainable_params, cbs=None,
-                metrics=None, path=None, model_dir='models', wd=None, wd_bn_bias=False, train_bn=True,
-                moms=(0.95,0.85,0.95)):
+def audio_learner(
+    dls,
+    model,
+    loss_func=None,
+    opt_func=Adam,
+    lr=defaults.lr,
+    splitter=trainable_params,
+    cbs=None,
+    metrics=None,
+    path=None,
+    model_dir='models',
+    wd=None,
+    wd_bn_bias=False,
+    train_bn=True,
+    moms=(0.95,0.85,0.95)
+) -> Learner:
+    "An Audio specific Learner that stacks tuples of TensorSpec or TensorMelSpec"
+    detuple = False
+    for i in range(len(dls.train.after_batch.fs)):
+        if not detuple and isinstance(dls.train.after_batch[i], (Spectrogram, MelSpectrogram)):
+            detuple = is_listy(dls.train.after_batch[i].n_fft)
 
-        detuple = False
-        for i in range(len(dls.train.after_batch.fs)):
-            if not detuple and isinstance(dls.train.after_batch[i], (Spectrogram, MelSpectrogram)):
-                detuple = is_listy(dls.train.after_batch[i].n_fft)
+    if detuple:
+        if cbs is None: cbs = DetupleSpecCallback()
+        else: cbs = L(cbs) + L(DetupleSpecCallback())
 
-        if detuple:
-            if cbs is None: cbs = DetupleCallback()
-            else: cbs = L(cbs) + L(DetupleCallback())
-
-        return Learner(dls=dls, model=model, loss_func=loss_func, opt_func=opt_func, lr=lr, splitter=splitter, cbs=cbs,
-                       metrics=metrics, path=path, model_dir=model_dir, wd=wd, wd_bn_bias=wd_bn_bias, train_bn=train_bn,
-                       moms=moms)
+    return Learner(dls=dls, model=model, loss_func=loss_func, opt_func=opt_func, lr=lr, splitter=splitter, cbs=cbs,
+                    metrics=metrics, path=path, model_dir=model_dir, wd=wd, wd_bn_bias=wd_bn_bias, train_bn=train_bn,
+                    moms=moms)

@@ -17,7 +17,7 @@ from fastai.callback.mixup import MixHandler, reduce_loss
 from fastai.layers import NoneReduce
 
 from .data import MelSpectrogram, Spectrogram
-from .augment import AmplitudeToDB, Normalize
+from .augment import AmplitudeToDB, AudioNormalize
 from ..imports import *
 
 # Cell
@@ -169,7 +169,7 @@ class AudioCutMixUpAugment(AudioMixUp, AudioCutMix):
             if waveforms:
                 wave.append(self.dls.train.after_batch[i])
             else:
-                if isinstance(self.dls.train.after_batch[i], (AmplitudeToDB, Normalize)):
+                if isinstance(self.dls.train.after_batch[i], (AmplitudeToDB, AudioNormalize)):
                     norm.append(self.dls.train.after_batch[i])
                 elif isinstance(self.dls.train.after_batch[i], (Spectrogram, MelSpectrogram)):
                     spec.append(self.dls.train.after_batch[i])

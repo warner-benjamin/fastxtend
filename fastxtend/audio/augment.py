@@ -6,7 +6,7 @@ from __future__ import annotations
 
 __all__ = ['Flip', 'Roll', 'AudioPadMode', 'RandomCropPad', 'VolumeMode', 'Volume', 'Noise', 'VolumeBatch',
            'PitchShift', 'PitchShiftTA', 'TimeStretch', 'PitchShiftOrTimeStretch', 'TimeMasking', 'FrequencyMasking',
-           'AmplitudeToDBMode', 'AmplitudeToDB']
+           'AmplitudeToDBMode', 'AmplitudeToDB', 'AudioNormalize']
 
 # Cell
 #nbdev_comment from __future__ import annotations
@@ -29,8 +29,8 @@ from torchaudio.functional.functional import _get_sinc_resample_kernel, _apply_s
 
 from fastcore.transform import DisplayedTransform, retain_type
 
-from fastai.data.transforms import Normalize
-from fastai.vision.augment import RandTransform
+from fastai.data.load import DataLoader
+from fastai.vision.augment import RandTransform, broadcast_vec
 
 from ..transform import BatchRandTransform
 from .core import TensorAudio, TensorSpec, TensorMelSpec
@@ -590,22 +590,13 @@ class TimeMasking(BatchRandTransform):
         store_attr(but='p')
         super().__init__(p=p)
 
-    def before_call(self,
-        b:TensorSpec|tuple[TensorSpec,...],
-        split_idx:int # Index of the train/valid dataset
-    ):
-        super().before_call(b, split_idx)
-        self.mask_param = int(self.max_mask * _get_audio_attr(b, 'shape')[-1])
-        if split_idx==0 and self.mask_value is None:
-            self.mv = random.randint(int(_get_audio_attr(b, 'min')), int(_get_audio_attr(b, 'max')))
-        else:
-            self.mv = self.mask_value
-
     def encodes(self, x:TensorSpec|TensorMelSpec) -> Tensor:
+        mask_param = int(self.max_mask * x.shape[-1])
+        mv = random.randint(int(x.min), int(x.max)) if self.mask_value is None else self.mask_value
         if self.iid_masks and x.dim() == 4:
-            return TAF.mask_along_axis_iid(x, self.mask_param, self.mv, 3)
+            return TAF.mask_along_axis_iid(x, mask_param, mv, 3)
         else:
-            return TAF.mask_along_axis(x, self.mask_param, self.mv, 2)
+            return TAF.mask_along_axis(x, mask_param, mv, 2)
 
 # Cell
 class FrequencyMasking(BatchRandTransform):
@@ -619,22 +610,13 @@ class FrequencyMasking(BatchRandTransform):
         store_attr(but='p')
         super().__init__(p=p)
 
-    def before_call(self,
-        b:TensorSpec|tuple[TensorSpec,...],
-        split_idx:int # Index of the train/valid dataset
-    ):
-        super().before_call(b, split_idx)
-        self.mask_param = int(self.max_mask * _get_audio_attr(b, 'shape')[-2])
-        if split_idx==0 and self.mask_value is None:
-            self.mv = random.randint(int(_get_audio_attr(b, 'min')), int(_get_audio_attr(b, 'max')))
-        else:
-            self.mv = self.mask_value
-
     def encodes(self, x:TensorSpec|TensorMelSpec) -> Tensor:
+        mask_param = int(self.max_mask * x.shape[-2])
+        mv = random.randint(int(x.min), int(x.max)) if self.mask_value is None else self.mask_value
         if self.iid_masks and x.dim() == 4:
-            return TAF.mask_along_axis_iid(x, self.mask_param, self.mv, 2)
+            return TAF.mask_along_axis_iid(x, mask_param, mv, 2)
         else:
-            return TAF.mask_along_axis(x, self.mask_param, self.mv, 1)
+            return TAF.mask_along_axis(x, mask_param, mv, 1)
 
 # Cell
 class AmplitudeToDBMode(Enum):
@@ -658,12 +640,33 @@ class AmplitudeToDB(DisplayedTransform):
         device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
         self.amdb.to(device)
 
-# Internal Cell
-@patch
-def encodes(self:Normalize, x:TensorSpec|TensorMelSpec):
-    return (x-self.mean) / self.std
+# Cell
+class AudioNormalize(DisplayedTransform):
+    "Normalize/denorm batch of `TensorSpec` or `TensorMelSpec`."
+    parameters,order = L('mean', 'std'),99
+    def __init__(self, mean=None, std=None, n_spec=1, axes=(0,2,3)):
+        store_attr()
+        self.c = 0
 
-@patch
-def decodes(self:Normalize, x:TensorSpec|TensorMelSpec):
-    f = to_cpu if x.device.type=='cpu' else noop
-    return (x*f(self.std) + f(self.mean))
+    @classmethod
+    def from_stats(cls, mean, std, n_spec=1, dim=1, ndim=4, cuda=True):
+        return cls(*broadcast_vec(dim, ndim, mean, std, cuda=cuda), n_spec=n_spec)
+
+    def setups(self, dl:DataLoader):
+        if self.mean is None or self.std is None:
+            x,*_ = dl.one_batch()
+            self.mean,self.std = x.mean(self.axes, keepdim=True),x.std(self.axes, keepdim=True)+1e-7
+
+    def encodes(self, x:TensorSpec|TensorMelSpec):
+        if self.n_spec > 1:
+            i = self.c*x.channels
+            j = (self.c+1)*x.channels
+            self.c = self.c + 1 if self.c < self.n_spec-1 else 0
+            return (x-self.mean[:,i:j,...]) / self.std[:,i:j,...]
+        else:
+            return (x-self.mean) / self.std
+
+    # ToDo: figure out how to handle decodes
+    # def decodes(self, x:TensorSpec|TensorMelSpec):
+    #     f = to_cpu if x.device.type=='cpu' else noop
+    #     return (x*f(self.std) + f(self.mean))

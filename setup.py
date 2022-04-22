@@ -36,6 +36,7 @@ if cfg.get('pip_requirements'): requirements += cfg.get('pip_requirements','').s
 dev_requirements = (cfg.get('dev_requirements') or '').split()
 vision_requirements = (cfg.get('vision_requirements') or '').split()
 audio_requirements = (cfg.get('audio_requirements') or '').split()
+all_requirements = vision_requirements + audio_requirements
 
 long_description = open('README.md').read()
 # ![png](docs/images/output_13_0.png)
@@ -56,7 +57,7 @@ setuptools.setup(
     packages = setuptools.find_packages(),
     include_package_data = True,
     install_requires = requirements,
-    extras_require={ 'dev': dev_requirements, 'vision': vision_requirements, 'audio': audio_requirements },
+    extras_require={'all': all_requirements, 'dev': dev_requirements, 'vision': vision_requirements, 'audio': audio_requirements },
     python_requires  = '>=' + cfg['min_python'],
     long_description = long_description,
     long_description_content_type = 'text/markdown',

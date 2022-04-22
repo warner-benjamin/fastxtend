@@ -53,16 +53,21 @@ class ClassBalancedCrossEntropyLoss(ClassBalanced):
         ignore_index:int=-100,
         reduce=None,
         reduction:str='mean',
-        label_smoothing:float=0.0
+        label_smoothing:float=0.0,
+        axis:int=-1
     ):
         super().__init__(samples_per_class, beta, size_average, reduce, reduction)
         self.ignore_index = ignore_index
         self.label_smoothing = label_smoothing
+        self.axis=axis
 
     def forward(self, input:Tensor, target:Tensor) -> Tensor:
         return F.cross_entropy(input, target, weight=self.weight,
                                ignore_index=self.ignore_index, reduction=self.reduction,
                                label_smoothing=self.label_smoothing)
+
+    def decodes(self, x:Tensor):    return x.argmax(dim=self.axis)
+    def activation(self, x:Tensor): return F.softmax(x, dim=self.axis)
 
 # Cell
 class ClassBalancedBCEWithLogitsLoss(ClassBalanced):
