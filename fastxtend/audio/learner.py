@@ -27,8 +27,13 @@ class DetupleSpecCallback(Callback):
     def before_batch(self):
         xb = L(self.xb)
         idx = xb.argwhere(lambda x: isinstance(x, tuple) and isinstance(x[0], (TensorSpec, TensorMelSpec)))
-        for i in idx:
-            xb[i] = retain_type(torch.cat(xb[i], dim=1), xb[i][0])
+        if xb[0][0].shape[1]==1:
+            for i in idx:
+                xb[i] = retain_type(torch.cat(xb[i], dim=1), xb[i][0])
+        else:
+            for i in idx:
+                stacked = torch.stack(xb[i], dim=2)
+                xb[i] = retain_type(torch.flatten(stacked, start_dim=1, end_dim=2), xb[i][0])
         self.learn.xb = tuple(xb)
 
 # Cell

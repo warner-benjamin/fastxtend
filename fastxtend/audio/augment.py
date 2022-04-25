@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 
-__all__ = ['Flip', 'Roll', 'AudioPadMode', 'RandomCropPad', 'VolumeMode', 'Volume', 'Noise', 'VolumeBatch',
-           'PitchShift', 'PitchShiftTA', 'TimeStretch', 'PitchShiftOrTimeStretch', 'TimeMasking', 'FrequencyMasking',
-           'AmplitudeToDBMode', 'AmplitudeToDB', 'AudioNormalize']
+__all__ = ['Flip', 'Roll', 'AudioPadMode', 'RandomCropPad', 'VolumeMode', 'Volume', 'PeakNorm', 'VolumeOrPeakNorm',
+           'Noise', 'VolumeBatch', 'PitchShift', 'PitchShiftTA', 'TimeStretch', 'PitchShiftOrTimeStretch',
+           'TimeMasking', 'FrequencyMasking', 'AmplitudeToDBMode', 'AmplitudeToDB', 'AudioNormalize']
 
 # Cell
 #nbdev_comment from __future__ import annotations
@@ -153,7 +153,7 @@ class VolumeMode(Enum):
 class Volume(RandTransform):
     order, split_idx = 30, 0
     def __init__(self,
-        p:float=0.5,
+        p:float=0.75,
         gain:Number|None=None, # If none, randomly select from `gain_range`
         gain_range:tuple[Number,Number] = (-18, 6),
         volmode:VolumeMode=VolumeMode.DB # One of "db", "amplitude", or "power"
@@ -180,6 +180,57 @@ class Volume(RandTransform):
             x = x * self.gain
         elif self.volmode == VolumeMode.Power:
             x = TAF.gain(x, 10 * math.log10(self.gain))
+
+        return torch.clamp(x, -1, 1)
+
+# Cell
+class PeakNorm(RandTransform):
+    order, split_idx = 31, 0
+    def __init__(self, p:float=0.1):
+        super().__init__(p=p)
+        store_attr(but='p')
+
+    def encodes(self, x:TensorAudio) -> Tensor:
+            return x / torch.max(torch.abs(x))
+
+# Cell
+class VolumeOrPeakNorm(RandTransform):
+    order, split_idx = 30, 0
+    def __init__(self,
+        p:float=0.75,
+        peak_p:float=0.1,
+        gain:Number|None=None, # If none, randomly select from `gain_range`
+        gain_range:tuple[Number,Number] = (-18, 6),
+        volmode:VolumeMode=VolumeMode.DB # One of "db", "amplitude", or "power"
+    ):
+        super().__init__(p=p)
+        store_attr(but='p')
+        if volmode not in [vol for vol in VolumeMode]:
+            raise ValueError(f"`vol_mode` {volmode} is not valid")
+        if volmode != VolumeMode.DB:
+            self.gain_range = (max(gain_range[0],0), gain_range[1])
+        self._random_gain = gain is None
+
+    def before_call(self,
+        b:TensorAudio|tuple[TensorAudio,...],
+        split_idx:int # Index of the train/valid dataset
+    ):
+        super().before_call(b, split_idx)
+        if split_idx==0:
+            self.peak = torch.randn(1) < self.peak_p
+            if not self.peak and self._random_gain:
+                self.gain = random.uniform(*self.gain_range)
+
+    def encodes(self, x:TensorAudio) -> Tensor:
+        if self.peak:
+            x = x / torch.max(torch.abs(x))
+        else:
+            if self.volmode == VolumeMode.DB:
+                x = TAF.gain(x, self.gain)
+            elif self.volmode == VolumeMode.Amplitude:
+                x = x * self.gain
+            elif self.volmode == VolumeMode.Power:
+                x = TAF.gain(x, 10 * math.log10(self.gain))
 
         return torch.clamp(x, -1, 1)
 
@@ -219,6 +270,7 @@ class NoiseColor(Enum):
 
 # Cell
 class Noise(RandTransform):
+    order, split_idx = 60, 0
     "Adds noise of specified color and level relative to mean audio level"
 
     def __init__(self,
