@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 
-__all__ = ['DetupleSpecCallback', 'audio_learner']
+__all__ = ['StackSpecCallback', 'audio_learner']
 
 # Cell
 #nbdev_comment from __future__ import annotations
@@ -21,19 +21,17 @@ from .data import MelSpectrogram, Spectrogram
 from ..imports import *
 
 # Cell
-class DetupleSpecCallback(Callback):
-    "Detuplify tuples of TensorSpec or TensorMelSpec. ToDo: add resizing"
+class StackSpecCallback(Callback):
+    "Stacks tuples of TensorSpec or TensorMelSpec. ToDo: add resizing"
     order = MixedPrecision.order-1
     def before_batch(self):
         xb = L(self.xb)
-        idx = xb.argwhere(lambda x: isinstance(x, tuple) and isinstance(x[0], (TensorSpec, TensorMelSpec)))
-        if xb[0][0].shape[1]==1:
-            for i in idx:
-                xb[i] = retain_type(torch.cat(xb[i], dim=1), xb[i][0])
-        else:
-            for i in idx:
-                stacked = torch.stack(xb[i], dim=2)
-                xb[i] = retain_type(torch.flatten(stacked, start_dim=1, end_dim=2), xb[i][0])
+        idx = xb.argwhere(lambda x: isinstance(x, (TensorSpec, TensorMelSpec)))
+        ts = []
+        for i in idx:
+            ts.append(xb[i])
+        stacked = torch.stack(ts, dim=2)
+        xb = retain_type(torch.flatten(stacked, 1, 2), xb[i])
         self.learn.xb = tuple(xb)
 
 # Cell
