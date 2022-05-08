@@ -53,15 +53,13 @@ def ResNeXtBlock(expansion, ni, nf, groups=32, stride=1, base_width=4, **kwargs)
     return ResBlock(expansion, ni, nf, stride=stride, groups=groups, nh2=w, **kwargs)
 
 # Cell
-def SEBlock(expansion, ni, nf, groups=1, se_reduction=16, stride=1, se_act_cls=None, **kwargs):
-    if se_act_cls is None: se_act_cls = defaults.activation
+def SEBlock(expansion, ni, nf, groups=1, se_reduction=16, stride=1, se_act_cls=defaults.activation, **kwargs):
     attn_mod = partial(SEModule, reduction=se_reduction, act_cls=se_act_cls)
     return ResBlock(expansion, ni, nf, stride=stride, groups=groups, attn_mod=attn_mod, nh1=nf*2, nh2=nf*expansion, **kwargs)
 
 # Cell
-def SEResNeXtBlock(expansion, ni, nf, groups=32, se_reduction=16, stride=1, base_width=4, se_act_cls=None, **kwargs):
+def SEResNeXtBlock(expansion, ni, nf, groups=32, se_reduction=16, stride=1, base_width=4, se_act_cls=defaults.activation, **kwargs):
     w = math.floor(nf * (base_width / 64)) * groups
-    if se_act_cls is None: se_act_cls = defaults.activation
     attn_mod = partial(SEModule, reduction=se_reduction, act_cls=se_act_cls)
     return ResBlock(expansion, ni, nf, stride=stride, groups=groups, attn_mod=attn_mod, nh2=w, **kwargs)
 

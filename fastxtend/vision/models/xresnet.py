@@ -15,14 +15,15 @@ from fastcore.meta import delegates
 from fastai.layers import ConvLayer, MaxPool, AdaptiveAvgPool, Flatten, defaults
 from fastai.vision.models.xresnet import init_cnn
 from .resnet_blocks import *
-from ...basics import is_listish
+from ...imports import *
 
 # Cell
 class XResNet(nn.Sequential):
     @delegates(ResBlock)
     def __init__(self, block, expansion, layers, p=0.0, c_in=3, n_out=1000, stem_szs=(32,32,64),
-                 widen=1.0, sa=False, act_cls=defaults.activation, ndim=2, ks=3, stride=2,
-                 stem_layer=ConvLayer, stem_pool=MaxPool, head_pool=AdaptiveAvgPool, custom_head=None, **kwargs):
+                 block_szs=[64,128,256,512], widen=1.0, sa=False, act_cls=defaults.activation, ndim=2,
+                 ks=3, stride=2, stem_layer=ConvLayer, stem_pool=MaxPool, head_pool=AdaptiveAvgPool,
+                 custom_head=None, **kwargs):
         store_attr('block,expansion,act_cls,ndim,ks')
         if ks % 2 == 0: raise Exception('kernel size has to be odd!')
         stem_szs = [c_in, *stem_szs]
@@ -30,19 +31,23 @@ class XResNet(nn.Sequential):
                            act_cls=act_cls, ndim=ndim)
                 for i in range(3)]
 
-        block_szs = [int(o*widen) for o in [64,128,256,512] +[256]*(len(layers)-4)]
-        block_szs = [64//expansion] + block_szs
+        assert len(layers) == len(block_szs), 'Length of `layers` must match `block_szs`'
+        block_szs = [int(o*widen) for o in block_szs]
+        block_szs = [stem_szs[-1]//expansion] + block_szs
         stem_pool = stem_pool(ks=ks, stride=stride, padding=ks//2, ndim=ndim)
+        if not is_listy(stem_pool): stem_pool = [stem_pool]
         blocks    = self._make_blocks(layers, block_szs, sa, stride, **kwargs)
-        head      = custom_head() if custom_head else self._make_head(block_szs[-1]*expansion, head_pool, ndim, p, n_out)
 
-        super().__init__(
-            *stem,
-            *stem_pool if is_listish(stem_pool) else [stem_pool],
-            *blocks,
-            *head
-        )
-        init_cnn(self)
+        if custom_head:
+            head = custom_head(block_szs[-1]*expansion, n_out)
+            if not is_listy(head): head = [head]
+            body = nn.Sequential(*stem, *stem_pool, *blocks)
+            init_cnn(body)
+            super().__init__(*list(body), *head)
+        else:
+            head = self._make_head(block_szs[-1]*expansion, head_pool, ndim, p, n_out)
+            super().__init__(*stem, *stem_pool, *blocks, *head)
+            init_cnn(self)
 
     def _make_blocks(self, layers, block_szs, sa, stride, **kwargs):
         return [self._make_layer(ni=block_szs[i], nf=block_szs[i+1], blocks=l,

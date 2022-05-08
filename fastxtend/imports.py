@@ -1,4 +1,5 @@
 from enum import Enum
+from functools import partial
 from typing import Iterable, Union, TypeVar, Callable, Any
 from warnings import warn
 
