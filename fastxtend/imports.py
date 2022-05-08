@@ -1,13 +1,19 @@
+from enum import Enum
+from typing import Iterable, Union, TypeVar, Callable, Any
+from warnings import warn
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
-from typing import Iterable, Union, TypeVar, Callable
-from warnings import warn
+
 from fastcore.basics import store_attr, noop
 from fastcore.foundation import L, fastuple, patch
 from fastcore.meta import delegates
 from fastcore.utils import ifnone
+from fastcore.xtras import is_listy
+
+from fastai.torch_core import *
 
 T = TypeVar('T')
 

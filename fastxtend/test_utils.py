@@ -3,7 +3,7 @@
 __all__ = ['test_fail', 'test', 'nequals', 'test_eq', 'test_eq_type', 'test_ne', 'is_close', 'test_close', 'test_is',
            'test_shuffled', 'test_stdout', 'test_warns', 'TEST_IMAGE', 'test_fig_exists', 'ExceptionExpected',
            'exception', 'synth_dbunch', 'RegModel', 'synth_learner', 'VerboseCallback', 'get_env', 'try_import',
-           'nvidia_smi', 'nvidia_mem', 'test_show_install', 'TEST_AUDIO']
+           'nvidia_smi', 'nvidia_mem', 'test_show_install', 'less_random', 'TEST_AUDIO']
 
 # Cell
 from fastcore.test import (test_fail, test, nequals, test_eq, test_eq_type, test_ne,
@@ -12,9 +12,10 @@ from fastcore.test import (test_fail, test, nequals, test_eq, test_eq_type, test
 
 from fastai.test_utils import synth_dbunch, synth_learner, RegModel, VerboseCallback, get_env, try_import, nvidia_smi, nvidia_mem
 from fastai.test_utils import show_install as test_show_install
+from .utils import less_random
 
 # Cell
-#nbdev_comment _all_ = ['test_fail', 'test', 'nequals', 'test_eq', 'test_eq_type', 'test_ne', 'is_close', 'test_close', 'test_is', 'test_shuffled', 'test_stdout', 'test_warns', 'TEST_IMAGE', 'test_fig_exists', 'ExceptionExpected', 'exception',  'synth_dbunch', 'RegModel', 'synth_learner', 'VerboseCallback', 'get_env', 'try_import', 'nvidia_smi', 'nvidia_mem', 'test_show_install']
+#nbdev_comment _all_ = ['test_fail', 'test', 'nequals', 'test_eq', 'test_eq_type', 'test_ne', 'is_close', 'test_close', 'test_is', 'test_shuffled', 'test_stdout', 'test_warns', 'TEST_IMAGE', 'test_fig_exists', 'ExceptionExpected', 'exception',  'synth_dbunch', 'RegModel', 'synth_learner', 'VerboseCallback', 'get_env', 'try_import', 'nvidia_smi', 'nvidia_mem', 'test_show_install', 'less_random']
 
 # Cell
 TEST_AUDIO = 'audio/whistle.mp3'
