@@ -246,3 +246,36 @@ def profile(self:Learner, show_report=True, plain=False, markdown=False,
     self.add_cbs([SimpleProfilerCallback(show_report, plain, markdown, save_csv, csv_name),
                   SimpleProfilerPostCallback()])
     return self
+
+# Internal Cell
+try:
+    import wandb
+    from fastai.callback.wandb import WandbCallback
+
+    if not hasattr(WandbCallback,'_orig_before_fit'): WandbCallback._orig_before_fit = WandbCallback.before_fit
+    if not hasattr(WandbCallback,'_orig_after_fit'): WandbCallback._orig_after_fit = WandbCallback.after_fit
+
+    @patch
+    def before_fit(self:WandbCallback):
+        if not hasattr(self.learn, 'lr_finder') and hasattr(self.learn, 'simple_profiler'):
+            self.log_simple_profiler = True
+        else:
+            self.log_simple_profiler = False
+
+        self._orig_before_fit()
+
+    @patch
+    def after_fit(self:WandbCallback):
+        self._orig_after_fit()
+
+        if self.log_simple_profiler:
+            report = wandb.Table(dataframe=self.learn.simple_profile_report)
+            results = wandb.Table(dataframe=self.learn.simple_profile_results)
+
+            wandb.log({"simple_profile_report": report})
+            wandb.log({"simple_profile_results": results})
+            wandb.log({}) # ensure sync
+
+            self.log_simple_profiler = False
+except:
+    pass
