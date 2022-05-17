@@ -1,3 +1,4 @@
+from collections import OrderedDict, defaultdict, Counter, namedtuple
 from enum import Enum
 from functools import partial
 from typing import Iterable, Union, TypeVar, Callable, Any
@@ -8,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from fastcore.basics import store_attr, noop
+from fastcore.basics import store_attr, noop, Self, hasattrs
 from fastcore.foundation import L, fastuple, patch
 from fastcore.meta import delegates
 from fastcore.utils import ifnone
