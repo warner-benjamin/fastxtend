@@ -1,3 +1,4 @@
+import math
 from collections import OrderedDict, defaultdict, Counter, namedtuple
 from enum import Enum
 from functools import partial
@@ -9,7 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from fastcore.basics import store_attr, noop, Self, hasattrs
+from fastcore.basics import store_attr, noop, Self, hasattrs, partialler
 from fastcore.foundation import L, fastuple, patch
 from fastcore.meta import delegates
 from fastcore.utils import ifnone

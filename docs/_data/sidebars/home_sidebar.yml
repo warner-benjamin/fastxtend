@@ -13,6 +13,24 @@ entries:
     title: fastxtend
   - folderitems:
     - output: web,pdf
+      title: Core
+      url: audio.01_core.html
+    - output: web,pdf
+      title: Data
+      url: audio.02_data.html
+    - output: web,pdf
+      title: Augment
+      url: audio.03_augment.html
+    - output: web,pdf
+      title: Learner
+      url: audio.04_learner.html
+    - output: web,pdf
+      title: Mixup
+      url: audio.05_mixup.html
+    output: web
+    title: Audio
+  - folderitems:
+    - output: web,pdf
       title: Channels Last
       url: callback.channelslast.html
     - output: web,pdf
@@ -28,6 +46,21 @@ entries:
     title: Callbacks
   - folderitems:
     - output: web,pdf
+      title: Losses
+      url: losses.html
+    - output: web,pdf
+      title: Multiloss
+      url: multiloss.html
+    output: web
+    title: Losses
+  - folderitems:
+    - output: web,pdf
+      title: Metrics Extended
+      url: metrics.html
+    output: web
+    title: Metrics
+  - folderitems:
+    - output: web,pdf
       title: Fit Flat Varied
       url: schedulers.fit_flat_varied.html
     output: web
@@ -36,15 +69,25 @@ entries:
     - output: web,pdf
       title: TensorImage & TensorMask item_tfms
       url: vision.augment.itemtensor.html
+      subfolders:
+      - output: web
+        subfolderitems:
+        - output: web,pdf
+          title: Attention Modules
+          url: vision.models.attention_modules.html
+        - output: web,pdf
+          title: Pooling
+          url: vision.models.pooling.html
+        - output: web,pdf
+          title: XResNet
+          url: vision.models.xresnet.html
+        title: Models
     output: web
     title: Vision
   - folderitems:
     - output: web,pdf
       title: Basic
       url: utils.html
-    - output: web,pdf
-      title: Simple Profiler WandB
-      url: utils.simpleprofiler_wandb.html
     output: web
     title: Utils
   output: web

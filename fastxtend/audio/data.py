@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 
-__all__ = ['Spectrogram', 'MelSpectrogram', 'AudioBlock', 'MelSpecBlock']
+__all__ = ['Spectrogram', 'MelSpectrogram', 'AudioBlock', 'SpecBlock', 'MelSpecBlock']
 
 # Cell
 #nbdev_comment from __future__ import annotations
@@ -24,7 +24,7 @@ from .core import TensorAudio, TensorSpec, TensorMelSpec
 from ..imports import *
 from ..basics import *
 
-# Cell
+# Internal Cell
 @patch
 def to(self:TfmdDL, device):
     self.device = device
@@ -33,7 +33,7 @@ def to(self:TfmdDL, device):
         if hasattr(tfm, 'to'): tfm.to(device)
     return self
 
-# Cell
+# Internal Cell
 @patch
 def _one_pass(self:TfmdDL):
     b = self.do_batch([self.do_item(None)])
@@ -44,7 +44,7 @@ def _one_pass(self:TfmdDL):
     self._n_inp = 1 if not isinstance(its, (list,tuple)) or len(its)==1 else len(its)-1
     self._types = explode_types(its)
 
-# Cell
+# Internal Cell
 @typedispatch
 def show_batch(x:TensorAudio, y, samples, ctxs=None, max_n=9, nrows=None, ncols=None, figsize=None, **kwargs):
     if ctxs is None: ctxs = get_grid(min(len(samples), max_n), nrows=nrows, ncols=ncols, figsize=figsize)
@@ -52,7 +52,7 @@ def show_batch(x:TensorAudio, y, samples, ctxs=None, max_n=9, nrows=None, ncols=
     plt.tight_layout()
     return ctxs
 
-# Cell
+# Internal Cell
 @typedispatch
 def show_batch(x:TensorSpec|TensorMelSpec, y, samples, ctxs=None, max_n=9, nrows=None, ncols=None, figsize=None, **kwargs):
     if ctxs is None: ctxs = get_grid(min(len(samples), max_n), nrows=nrows, ncols=ncols, figsize=figsize)
@@ -62,7 +62,7 @@ def show_batch(x:TensorSpec|TensorMelSpec, y, samples, ctxs=None, max_n=9, nrows
 
 # Cell
 class Spectrogram(DisplayedTransform):
-    "Convert a `TensorAudio` into `TensorMelSpec`"
+    "Convert a `TensorAudio` into one or more `TensorMelSpec`"
     order = 75
     def __init__(self,
         n_fft:listified[int]=1024,
@@ -103,7 +103,7 @@ class Spectrogram(DisplayedTransform):
 
             self._attrs = {k:v for k,v in self._get_attrs().items()}
 
-    def encodes(self, x:TensorAudio):
+    def encodes(self, x:TensorAudio) -> TensorSpec|tuple[TensorSpec,...]:
         if self.multiple:
             specs = []
             for i in range(self.len):
@@ -122,7 +122,7 @@ class Spectrogram(DisplayedTransform):
 
 # Cell
 class MelSpectrogram(DisplayedTransform):
-    "Convert a `TensorAudio` into `TensorSpec`"
+    "Convert a `TensorAudio` into one or more `TensorMelSpec`"
     order = 75
     def __init__(self,
         sample_rate:listified[int]=16000,
@@ -176,7 +176,7 @@ class MelSpectrogram(DisplayedTransform):
 
             self._attrs = {**{k:v for k,v in self._get_attrs().items()},**{'sr':self.sample_rate}}
 
-    def encodes(self, x:TensorAudio):
+    def encodes(self, x:TensorAudio) -> TensorMelSpec|tuple[TensorMelSpec,...]:
         if self.multiple:
             mels = []
             for i in range(self.len):
@@ -199,6 +199,29 @@ def AudioBlock(cls=TensorAudio):
     return TransformBlock(type_tfms=cls.create)
 
 # Cell
+def SpecBlock(cls=TensorAudio,
+    # Spectrogram args
+    n_fft:listified[int]=1024,
+    win_length:listified[int]|None=None,
+    hop_length:listified[int]|None=None,
+    pad:listified[int]=0,
+    window_fn:listified[Callable[..., Tensor]]=torch.hann_window,
+    power:listified[float]=2.,
+    normalized:listified[bool]=False,
+    wkwargs:listified[dict]|None=None,
+    center:listified[bool]=True,
+    pad_mode:listified[str]="reflect",
+    onesided:listified[bool]=True,
+    norm:listified[str]|None=None
+):
+    "A `TransformBlock` to read `TensorAudio` and then use the GPU to turn audio into one or more `Spectrogram`s"
+    return TransformBlock(type_tfms=cls.create,
+                          batch_tfms=[Spectrogram(n_fft=n_fft, win_length=win_length, hop_length=hop_length,
+                                                  pad=pad, window_fn=window_fn, power=power, normalized=normalized,
+                                                  wkwargs=wkwargs, center=center, pad_mode=pad_mode,
+                                                  onesided=onesided, norm=norm)])
+
+# Cell
 def MelSpecBlock(cls=TensorAudio,
     # MelSpectrogram args
     sr:listified[int]=16000,
@@ -219,7 +242,7 @@ def MelSpecBlock(cls=TensorAudio,
     norm:listified[str]|None=None,
     mel_scale:listified[str]="htk"
 ):
-    "A `TransformBlock` to turn Audio into MelSpectrogram"
+    "A `TransformBlock` to read `TensorAudio` and then use the GPU to turn audio into one or more `MelSpectrogram`s"
     return TransformBlock(type_tfms=cls.create,
                           batch_tfms=[MelSpectrogram(sample_rate=sr, n_fft=n_fft, win_length=win_length,
                                                      hop_length=hop_length, f_min=f_min, f_max=f_max, pad=pad,

@@ -1,13 +1,13 @@
 ---
 
-title: Title
+title: Additional Attention Modules
 
 
 keywords: fastai
 sidebar: home_sidebar
 
-
-
+summary: "Three attention modules in addition to Squeeze and Excitation"
+description: "Three attention modules in addition to Squeeze and Excitation"
 nb_path: "nbs/vision.models.attention_modules.ipynb"
 ---
 <!--
@@ -57,6 +57,41 @@ nb_path: "nbs/vision.models.attention_modules.ipynb"
 <h2 id="ECA" class="doc_header"><code>class</code> <code>ECA</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/models/attention_modules.py#L13" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ECA</code>(<strong><code>nf</code></strong>, <strong><code>ks</code></strong>:<code>int</code>=<em><code>None</code></em>, <strong><code>gamma</code></strong>:<code>int</code>=<em><code>2</code></em>, <strong><code>beta</code></strong>:<code>int</code>=<em><code>1</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Efficient Channel Attention, from <a href="https://arxiv.org/abs/1910.03151">https://arxiv.org/abs/1910.03151</a>.</p>
+<table>
+<thead><tr>
+<th></th>
+<th>Type</th>
+<th>Default</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>nf</code></strong></td>
+<td></td>
+<td></td>
+<td>number of input features</td>
+</tr>
+<tr>
+<td><strong><code>ks</code></strong></td>
+<td><code>int</code></td>
+<td><code>None</code></td>
+<td>if set, Cov1D uses a fixed kernel size instead of adaptive kernel size</td>
+</tr>
+<tr>
+<td><strong><code>gamma</code></strong></td>
+<td><code>int</code></td>
+<td><code>2</code></td>
+<td>used for adaptive kernel size, see paper for more details</td>
+</tr>
+<tr>
+<td><strong><code>beta</code></strong></td>
+<td><code>int</code></td>
+<td><code>1</code></td>
+<td>used for adaptive kernel size, see paper for more details</td>
+</tr>
+</tbody>
+</table>
 
 </div>
 
@@ -89,6 +124,29 @@ nb_path: "nbs/vision.models.attention_modules.ipynb"
 <h2 id="ShuffleAttention" class="doc_header"><code>class</code> <code>ShuffleAttention</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/models/attention_modules.py#L57" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>ShuffleAttention</code>(<strong><code>nf</code></strong>, <strong><code>groups</code></strong>=<em><code>64</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Implementation of Shuffle Attention, from <a href="https://arxiv.org/abs/2102.00240">https://arxiv.org/abs/2102.00240</a></p>
+<table>
+<thead><tr>
+<th></th>
+<th>Type</th>
+<th>Default</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>nf</code></strong></td>
+<td></td>
+<td></td>
+<td>number of input features</td>
+</tr>
+<tr>
+<td><strong><code>groups</code></strong></td>
+<td><code>int</code></td>
+<td><code>64</code></td>
+<td>number of subfeature groups, usually 32 or 64</td>
+</tr>
+</tbody>
+</table>
 
 </div>
 
@@ -125,9 +183,38 @@ nb_path: "nbs/vision.models.attention_modules.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="TripletAttention" class="doc_header"><code>class</code> <code>TripletAttention</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/models/attention_modules.py#L113" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TripletAttention</code>(<strong><code>ks</code></strong>:<code>int</code>=<em><code>7</code></em>, <strong><code>no_spatial</code></strong>=<em><code>False</code></em>) :: <code>Module</code></p>
+<h2 id="TripletAttention" class="doc_header"><code>class</code> <code>TripletAttention</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/models/attention_modules.py#L113" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>TripletAttention</code>(<strong><code>nf</code></strong>, <strong><code>ks</code></strong>:<code>int</code>=<em><code>7</code></em>, <strong><code>no_spatial</code></strong>=<em><code>False</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Lightly modified implementation of Triplet Attention, from <a href="http://arxiv.org/abs/2010.03045">http://arxiv.org/abs/2010.03045</a></p>
+<table>
+<thead><tr>
+<th></th>
+<th>Type</th>
+<th>Default</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>nf</code></strong></td>
+<td></td>
+<td></td>
+<td>unused input features, for compatibility</td>
+</tr>
+<tr>
+<td><strong><code>ks</code></strong></td>
+<td><code>int</code></td>
+<td><code>7</code></td>
+<td>kernel size for AttentionGate</td>
+</tr>
+<tr>
+<td><strong><code>no_spatial</code></strong></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>exclude Spatial attention as third attention</td>
+</tr>
+</tbody>
+</table>
 
 </div>
 
@@ -147,5 +234,5 @@ nb_path: "nbs/vision.models.attention_modules.ipynb"
     {% endraw %}
 
 </div>
- 
+
 

@@ -5,4 +5,5 @@ from ..losses import *
 from ..metrics import *
 from . import models
 from .models.all import *
+from ..multiloss import *
 from ..utils import *

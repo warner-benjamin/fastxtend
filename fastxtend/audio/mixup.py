@@ -22,6 +22,7 @@ from ..imports import *
 
 # Cell
 class AudioMixHandler(MixHandler):
+    "Mixup base for `TensorAudio`"
     def __init__(self, alpha=0.5, stack_y=True):
         super().__init__(alpha)
         self.stack_y = stack_y
@@ -62,7 +63,7 @@ class AudioMixHandler(MixHandler):
 
 # Cell
 class AudioMixUp(AudioMixHandler):
-    "Implementation of https://arxiv.org/abs/1710.09412 on audio waveforms"
+    "Implementation of https://arxiv.org/abs/1710.09412 for `TensorAudio`"
     def __init__(self, alpha=0.5, stack_y=True):
         super().__init__(alpha, stack_y)
 
@@ -85,7 +86,7 @@ class AudioMixUp(AudioMixHandler):
 
 # Cell
 class AudioCutMix(AudioMixHandler):
-    "Implementation of https://arxiv.org/abs/1710.09412 on audio waveforms"
+    "Implementation of https://arxiv.org/abs/1710.09412 for `TensorAudio`"
     def __init__(self, alpha=1., stack_y=True):
         super().__init__(alpha, stack_y)
 
@@ -117,7 +118,7 @@ class AudioCutMix(AudioMixHandler):
 
 # Cell
 class AudioCutMixUp(AudioMixUp, AudioCutMix):
-    "Implementation of https://arxiv.org/abs/1710.09412 on audio waveforms"
+    "Implementation of Mixup or CutMix for `TensorAudio`"
     def __init__(self, mix_alpha=.4, cut_alpha=1., stack_y=True, cut_ratio=1, mix_ratio=1):
         AudioMixUp.__init__(self, mix_alpha, stack_y)
         AudioCutMix.__init__(self, cut_alpha, stack_y)
@@ -135,7 +136,7 @@ class AudioCutMixUp(AudioMixUp, AudioCutMix):
 
 # Cell
 class AudioCutMixUpAugment(AudioMixUp, AudioCutMix):
-    "Implementation of https://arxiv.org/abs/1710.09412 on audio waveforms"
+    "Implementation of Mixup, CutMix, or Augment for `TensorAudio`"
     def __init__(self, mix_alpha=.4, cut_alpha=1., stack_y=True, aug_ratio=1, cut_ratio=1, mix_ratio=1, augs_only=None, wave_augs=False):
         AudioMixUp.__init__(self, mix_alpha, stack_y)
         AudioCutMix.__init__(self, cut_alpha, stack_y)

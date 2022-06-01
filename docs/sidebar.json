@@ -2,20 +2,40 @@
   "fastxtend": {
     "Overview": "/"
   },
+  "Audio": {
+    "Core": "audio.01_core.html",
+    "Data": "audio.02_data.html",
+    "Augment": "audio.03_augment.html",
+    "Learner": "audio.04_learner.html",
+    "Mixup": "audio.05_mixup.html"
+  },
   "Callbacks": {
     "Channels Last": "callback.channelslast.html",
     "CutMixUp": "callback.cutmixup.html",
     "LR Finder": "callback.lr_finder.html",
     "Simple Profiler": "callback.simpleprofiler.html"
   },
+  "Losses": {
+    "Losses": "losses.html",
+    "Multiloss": "multiloss.html"
+  },
+  "Metrics": {
+    "Metrics Extended": "metrics.html"
+  },
   "Schedulers": {
     "Fit Flat Varied": "schedulers.fit_flat_varied.html"
   },
   "Vision": {
-    "TensorImage & TensorMask item_tfms": "vision.augment.itemtensor.html"
+    "TensorImage & TensorMask item_tfms": "vision.augment.itemtensor.html",
+    "": {
+      "Models":{
+        "Attention Modules": "vision.models.attention_modules.html",
+        "Pooling": "vision.models.pooling.html",
+        "XResNet": "vision.models.xresnet.html"
+      }
+    }
   },
   "Utils": {
-    "Basic": "utils.html",
-    "Simple Profiler WandB": "utils.simpleprofiler_wandb.html"
+    "Basic": "utils.html"
   }
 }

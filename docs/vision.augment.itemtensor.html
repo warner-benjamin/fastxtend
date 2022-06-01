@@ -38,16 +38,6 @@ nb_path: "nbs/vision.augment.itemtensor.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Usage">Usage<a class="anchor-link" href="#Usage"> </a></h2><p>To use, after importing fastai import:</p>
-<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fastxtend.vision.augment</span> <span class="kn">import</span> <span class="n">itemtensor</span>
-</pre></div>
-<p>then use fastai augmentation as normal.</p>
-
-</div>
-</div>
-</div>
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Implementation-Patches-and-Methods">Implementation Patches and Methods<a class="anchor-link" href="#Implementation-Patches-and-Methods"> </a></h2><p>Augmentations patched: <code>RandomCrop</code>, <code>CropPad</code>, <code>Resize</code>, <code>RandomResizedCrop</code>, &amp; <code>RatioResize</code>.
 {% include note.html content='These are all patched extensions of the fastai.vision.augment <a href="https://docs.fast.ai/vision.augment.html#Item-transforms">item transforms</a>.' %}For details on how they work, see the fast.ai documentation.</p>
 
@@ -65,7 +55,7 @@ nb_path: "nbs/vision.augment.itemtensor.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="RandomCrop.encodes" class="doc_header"><code>RandomCrop.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L73" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>RandomCrop.encodes</code>(<strong><code>x</code></strong>:<code>TensorMask'&gt;)</code>)</p>
+<h4 id="RandomCrop.encodes" class="doc_header"><code>RandomCrop.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L73" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>RandomCrop.encodes</code>(<strong><code>x</code></strong>:<code>(TensorImage, TensorMask)</code>)</p>
 </blockquote>
 <p>Extends RandomCrop to <code>TensorImage</code> &amp; <code>TensorMask</code></p>
 
@@ -175,7 +165,7 @@ nb_path: "nbs/vision.augment.itemtensor.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="CropPad.encodes" class="doc_header"><code>CropPad.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L79" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>CropPad.encodes</code>(<strong><code>x</code></strong>:<code>TensorMask'&gt;)</code>)</p>
+<h4 id="CropPad.encodes" class="doc_header"><code>CropPad.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L79" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>CropPad.encodes</code>(<strong><code>x</code></strong>:<code>(TensorImage, TensorMask)</code>)</p>
 </blockquote>
 <p>Extends CropPad to <code>TensorImage</code> &amp; <code>TensorMask</code></p>
 
@@ -243,7 +233,7 @@ nb_path: "nbs/vision.augment.itemtensor.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Resize.encodes" class="doc_header"><code>Resize.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L87" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Resize.encodes</code>(<strong><code>x</code></strong>:<code>TensorMask'&gt;)</code>)</p>
+<h4 id="Resize.encodes" class="doc_header"><code>Resize.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L87" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Resize.encodes</code>(<strong><code>x</code></strong>:<code>(TensorImage, TensorMask)</code>)</p>
 </blockquote>
 <p>Extends Resize to <code>TensorImage</code> &amp; <code>TensorMask</code></p>
 
@@ -355,7 +345,7 @@ nb_path: "nbs/vision.augment.itemtensor.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="RandomResizedCrop.encodes" class="doc_header"><code>RandomResizedCrop.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L104" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>RandomResizedCrop.encodes</code>(<strong><code>x</code></strong>:<code>TensorMask'&gt;)</code>)</p>
+<h4 id="RandomResizedCrop.encodes" class="doc_header"><code>RandomResizedCrop.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L104" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>RandomResizedCrop.encodes</code>(<strong><code>x</code></strong>:<code>(TensorImage, TensorMask)</code>)</p>
 </blockquote>
 <p>Extends RandomResizedCrop to <code>TensorImage</code> &amp; <code>TensorMask</code></p>
 
@@ -415,7 +405,7 @@ nb_path: "nbs/vision.augment.itemtensor.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>On the validation set, center crop the image if it's ratio isn't in the range (to the minmum or maximum value) then resize.</p>
+<p>Squish is used on the validation set, removing <code>val_xtra</code> proportion of each side first.</p>
 
 </div>
 </div>
@@ -467,7 +457,7 @@ nb_path: "nbs/vision.augment.itemtensor.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="RatioResize.encodes" class="doc_header"><code>RatioResize.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L113" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>RatioResize.encodes</code>(<strong><code>x</code></strong>:<code>TensorMask'&gt;)</code>)</p>
+<h4 id="RatioResize.encodes" class="doc_header"><code>RatioResize.encodes</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/vision/augment/itemtensor.py#L113" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>RatioResize.encodes</code>(<strong><code>x</code></strong>:<code>(TensorImage, TensorMask)</code>)</p>
 </blockquote>
 <p>Extends RatioResize to <code>TensorImage</code> &amp; <code>TensorMask</code></p>
 
@@ -533,5 +523,5 @@ nb_path: "nbs/vision.augment.itemtensor.ipynb"
     {% endraw %}
 
 </div>
- 
+
 

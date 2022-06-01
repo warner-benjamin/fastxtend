@@ -43,6 +43,7 @@ def _get_audio_attr(x:TensorAudio|TensorSpec|TensorMelSpec|tuple[TensorAudio|Ten
 
 # Cell
 class Flip(RandTransform):
+    "Randomly flip `TensorAudio` with probability `p`"
     order, split_idx = 5, 0
     def __init__(self, p:float=0.5):
         super().__init__(p=p)
@@ -52,10 +53,11 @@ class Flip(RandTransform):
 
 # Cell
 class Roll(RandTransform):
+    "Randomly shift `TensorAudio` with rollover"
     order, split_idx = 6, 0
     def __init__(self,
-        p:float=0.5,
-        max_roll:float=0.5,
+        p:float=0.5, # Per-item probability
+        max_roll:float=0.5, # Maximum shift
     ):
         store_attr('max_roll')
         super().__init__(p=p)
@@ -110,12 +112,13 @@ def crop_pad(x:TensorAudio,
 
 # Cell
 class RandomCropPad(RandTransform):
+    "Randomly resize `TensorAudio` to specified length. Center crop during valid."
     split_idx, order = None, 25
     def __init__(self,
         duration:Number|None=None, # Crop length in seconds
         samples:int|None=None, # Crop length in samples
-        padmode:AudioPadMode=AudioPadMode.Repeat,
-        constant:Number=0
+        padmode:AudioPadMode=AudioPadMode.Repeat, # How to pad if necessary
+        constant:Number=0, # Value for `AudioPadMode.Constant`
     ):
         if duration is None and samples is None:
             raise ValueError('One of `duration` or `samples` must be set')
@@ -144,19 +147,20 @@ class RandomCropPad(RandTransform):
 
 # Cell
 class VolumeMode(Enum):
-    "All AmplitudeToDB mode's as attributes to get tab-completion and typo-proofing",
+    "All Volume modes as attributes to get tab-completion and typo-proofing",
     DB = 1
     Power = 2
     Amplitude = 3
 
 # Cell
 class Volume(RandTransform):
+    "Randomly change `TensorAudio`'s volume"
     order, split_idx = 30, 0
     def __init__(self,
-        p:float=0.75,
-        gain:Number|None=None, # If none, randomly select from `gain_range`
-        gain_range:tuple[Number,Number] = (-18, 6),
-        volmode:VolumeMode=VolumeMode.DB # One of "db", "amplitude", or "power"
+        p:float=0.75, # Per-item probability
+        gain:Number|None=None, # Gain is a positive amplitude ratio, a power (voltage squared), or in decibels. If none, randomly select from `gain_range`.
+        gain_range:tuple[Number,Number]=(-18, 6), # Random range for gain
+        volmode:VolumeMode=VolumeMode.DB # One of `VolumeMode.DB`, `VolumeMode.Amplitude`, or `VolumeMode.Power`
     ):
         super().__init__(p=p)
         store_attr(but='p')
@@ -185,6 +189,7 @@ class Volume(RandTransform):
 
 # Cell
 class PeakNorm(RandTransform):
+    "Randomly apply constant gain so `TensorAudio`'s loudest level is between -1 and 1 with probability `p`"
     order, split_idx = 31, 0
     def __init__(self, p:float=0.1):
         super().__init__(p=p)
@@ -195,13 +200,14 @@ class PeakNorm(RandTransform):
 
 # Cell
 class VolumeOrPeakNorm(RandTransform):
+    "Randomly apply `Volume` or `Peak` to `TensorAudio` in one transform"
     order, split_idx = 30, 0
     def __init__(self,
-        p:float=0.75,
-        peak_p:float=0.1,
-        gain:Number|None=None, # If none, randomly select from `gain_range`
-        gain_range:tuple[Number,Number] = (-18, 6),
-        volmode:VolumeMode=VolumeMode.DB # One of "db", "amplitude", or "power"
+        p:float=0.75, # Per-item probability
+        peak_p:float=0.1, # Probability of applying `Peak`
+        gain:Number|None=None, # Gain is a positive amplitude ratio, a power (voltage squared), or in decibels. If none, randomly select from `gain_range`.
+        gain_range:tuple[Number,Number]=(-18, 6), # Random range for gain
+        volmode:VolumeMode=VolumeMode.DB # One of `VolumeMode.DB`, `VolumeMode.Amplitude`, or `VolumeMode.Power`
     ):
         super().__init__(p=p)
         store_attr(but='p')
@@ -270,11 +276,10 @@ class NoiseColor(Enum):
 
 # Cell
 class Noise(RandTransform):
+    "Adds noise of specified color and level to `TensorAudio` relative to mean audio level"
     order, split_idx = 60, 0
-    "Adds noise of specified color and level relative to mean audio level"
-
     def __init__(self,
-        p=0.25,
+        p=0.25, # Per-item probability
         noise_level:float|None=None, # Loudness of noise, if None randomly selects from `noise_range`
         noise_range:tuple[float,float]=(0.01,0.1), # Range of noise loudness values
         color:NoiseColor|None=None, # Color of noise to add, if None randomly selects from `NoiseColor`
@@ -307,12 +312,13 @@ class Noise(RandTransform):
 
 # Cell
 class VolumeBatch(BatchRandTransform):
+    "Randomly change `TensorAudio`'s volume on the GPU"
     order, split_idx = 10, 0
     def __init__(self,
-        p:float=0.5,
-        gain:Number|None=None, # If none, randomly select from `gain_range`
-        gain_range:tuple[Number,Number] = (-18, 6),
-        volmode:VolumeMode=VolumeMode.DB # One of "db", "amplitude", or "power"
+        p:float=0.5, # Per-item probability
+        gain:Number|None=None, # Gain is a positive amplitude ratio, a power (voltage squared), or in decibels. If none, randomly select from `gain_range`.
+        gain_range:tuple[Number,Number]=(-18, 6), # Random range for gain
+        volmode:VolumeMode=VolumeMode.DB # One of `VolumeMode.DB`, `VolumeMode.Amplitude`, or `VolumeMode.Power`
     ):
         super().__init__(p=p)
         store_attr(but='p')
@@ -455,15 +461,15 @@ def pitch_shift(x:TensorAudio, n_fft, hop_length, shift, sr, new_sr, gcd, kernel
 
 # Cell
 class PitchShift(BatchRandTransform):
-    "Fast shift of `TensorAudio` pitch"
+    "Fast shift of `TensorAudio`'s pitch."
     order, split_idx = 20, 0
     def __init__(self,
-        p:float=0.2,
+        p:float=0.2, # Per-item probability
         semitones:tuple[float,float]=(-4.0,4.0), # Random pitch shift range in semitones to compute efficient shifts
         bins_per_octave:int=12, # Number of steps per octave
-        padmode:AudioPadMode=AudioPadMode.Repeat,
-        constant:Number=0,
-        split:int|None=None # Apply transform to `split` items at a time. Use to prevent OOM.
+        padmode:AudioPadMode=AudioPadMode.Repeat, # How to pad if necessary
+        constant:Number=0, # Value for `AudioPadMode.Constant`
+        split:int|None=None # Apply transform to `split` items at a time. Use to prevent GPU OOM.
     ):
         super().__init__(p=p)
         store_attr(but='p')
@@ -509,10 +515,10 @@ class PitchShift(BatchRandTransform):
 
 # Cell
 class PitchShiftTA(BatchRandTransform):
-    "Shift the TensorAudio's pitch using TorchAudio. Can be slower than `PitchShift`"
+    "Shift the `TensorAudio`'s pitch using TorchAudio. Can be slower than `PitchShift`"
     order, split_idx = 20, 0
     def __init__(self,
-        p:float=0.2,
+        p:float=0.2, # Per-item probability
         n_steps:int|None=None, # The (fractional) steps to shift waveform
         n_step_range:tuple[int,int] = (2,6), # Random `n_steps` range if `n_steps` is None
         bins_per_octave:int=12, # Number of steps per octave
@@ -561,11 +567,11 @@ class TimeStretch(BatchRandTransform):
     "Fast time stretch of `TensorAudio`"
     order, split_idx = 25, 0
     def __init__(self,
-        p:float=0.2,
+        p:float=0.2, # Per-item probability
         stretch_rates:tuple[float,float]=(0.5,2.0), # Random time stretch range to compute efficient stretches. Defaults to 50%-200% speed
-        padmode:AudioPadMode=AudioPadMode.Repeat,
-        constant:Number=0,
-        split:int|None=None # Apply transform to `split` items at a time. Use to prevent OOM.
+        padmode:AudioPadMode=AudioPadMode.Repeat, # How to pad if necessary
+        constant:Number=0, # Value for `AudioPadMode.Constant`
+        split:int|None=None # Apply transform to `split` items at a time. Use to prevent GPU OOM.
     ):
         super().__init__(p=p)
         store_attr(but='p')
@@ -602,15 +608,15 @@ class TimeStretch(BatchRandTransform):
 
 # Cell
 class PitchShiftOrTimeStretch(BatchRandTransform):
-    "Either `PitchShift` or `TimeStretch` `TensorAudio` to minimize distortion"
+    "Randomly apply either `PitchShift` or `TimeStretch` `TensorAudio` to minimize distortion"
     order, split_idx = 25, 0
     def __init__(self,
-        p:float=0.4,
+        p:float=0.4, # Per-item probability
         semitones:tuple[float,float]=(-4.0,4.0), # Random pitch shift range in semitones to compute efficient shifts
         bins_per_octave:int=12, # Number of steps per octave
         stretch_rates:tuple[float,float]=(0.5,2.0), # Random time stretch range to compute efficient stretches. Defaults to 50%-200% speed
-        padmode:AudioPadMode=AudioPadMode.Repeat, #
-        constant:Number=0, # Constant padding value
+        padmode:AudioPadMode=AudioPadMode.Repeat, # How to pad if necessary
+        constant:Number=0, # Value for `AudioPadMode.Constant`
         split:int|None=None # Apply transform to `split` items at a time. Use to prevent OOM.
     ):
         super().__init__(p=p)
@@ -632,6 +638,7 @@ class PitchShiftOrTimeStretch(BatchRandTransform):
 
 # Cell
 class TimeMasking(BatchRandTransform):
+    "Randomly apply masking to a `TensorSpec` or `TensorMelSpec` in the time domain"
     split_idx, order = 0, 81
     def __init__(self,
         p:float=0.25, # Per-item probability
@@ -652,6 +659,7 @@ class TimeMasking(BatchRandTransform):
 
 # Cell
 class FrequencyMasking(BatchRandTransform):
+    "Randpmly apply masking to a `TensorSpec` or `TensorMelSpec` in the frequency domain"
     split_idx, order = 0, 82
     def __init__(self,
         p:float=0.25, # Per-item probability
@@ -672,16 +680,17 @@ class FrequencyMasking(BatchRandTransform):
 
 # Cell
 class AmplitudeToDBMode(Enum):
-    "All AmplitudeToDB mode's as attributes to get tab-completion and typo-proofing",
+    "All AmplitudeToDB modes as attributes to get tab-completion and typo-proofing",
     Power = 'power'
     Magnitude = 'magnitude'
 
 # Cell
 class AmplitudeToDB(DisplayedTransform):
+    "Turn a `TensorSpec` or `TensorMelSpec` from the power/amplitude scale to the decibel scale"
     order = 98
     def __init__(self,
-        top_db:float|None=None,
-        mode:AmplitudeToDBMode=AmplitudeToDBMode.Power
+        top_db:float|None=None, # Minimum negative cut-off in decibels. A reasonable number is 80.
+        mode:AmplitudeToDBMode=AmplitudeToDBMode.Power # Power is elementwise square of magnitude
     ):
         self.amdb = tatfms.AmplitudeToDB(mode.value, top_db)
 

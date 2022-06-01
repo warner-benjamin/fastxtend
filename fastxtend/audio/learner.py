@@ -51,7 +51,7 @@ def audio_learner(
     train_bn=True,
     moms=(0.95,0.85,0.95)
 ) -> Learner:
-    "An Audio specific Learner that stacks tuples of TensorSpec or TensorMelSpec"
+    "An Audio specific Learner that stacks tuples of `TensorSpec` or `TensorMelSpec`"
     detuple = False
     for i in range(len(dls.train.after_batch.fs)):
         if not detuple and isinstance(dls.train.after_batch[i], (Spectrogram, MelSpectrogram)):

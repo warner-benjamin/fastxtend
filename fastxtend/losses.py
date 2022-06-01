@@ -3,12 +3,9 @@
 __all__ = ['ClassBalancedCrossEntropyLoss', 'ClassBalancedBCEWithLogitsLoss']
 
 # Cell
-import torch
-from torch import Tensor
-import torch.nn as nn
-import torch.nn.functional as F
 import torch.nn.modules.loss as TL
-from fastcore.meta import delegates
+
+from .imports import *
 
 # Internal Cell
 class ClassBalanced(TL._WeightedLoss):

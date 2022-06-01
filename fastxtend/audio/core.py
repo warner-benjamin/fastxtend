@@ -70,12 +70,12 @@ def show_audio_signal(at, ctx, ax=None, title="", sep=0.03, **kwargs):
 
 # Cell
 class TensorAudio(TensorBase):
-    "Semantic torch tensor that represents an audio. Can be created from files and has extra properties. Also knows how to show itself."
+    "Tensor for audio. Can be created from files and has extra properties. Also knows how to show itself."
 
     @classmethod
     @delegates(torchaudio.load, keep=True)
     def create(cls, fn, **kwargs):
-        "Creates audio tensor from file"
+        "Creates `TensorAudio` from file `fn`"
         sig, sr = torchaudio.load(fn, **kwargs)
         return cls(sig, sr=sr)
 
@@ -145,17 +145,14 @@ def get_usable_kwargs(func, kwargs, exclude=None):
 
 # Cell
 class TensorSpec(TensorImageBase):
-    """
-    Semantic torch tensor that represents an Audio Spectrogram.
-    Contains all of the functionality of a normal tensor,
-    but has extra properties and knows how to show itself.
-    """
+    "Tensor for Audio Spectrograms. Has extra properties and knows how to show itself."
+
     @classmethod
     def create(cls,
         ta:Tensor,
         settings:dict|None=None
     ):
-        """Create an TensorSpec from a torch tensor"""
+        "Create an TensorSpec from a torch tensor"
         spec = cls(ta)
         spec._settings = settings
         return spec
@@ -204,13 +201,14 @@ class TensorSpec(TensorImageBase):
 
 # Cell
 class TensorMelSpec(TensorSpec):
+    "Tensor for Audio MelSpectrograms. Has extra properties and knows how to show itself."
 
     @classmethod
     def create(cls,
         ta:Tensor,
         settings:dict|None=None
     ):
-        """Create an TensorMelSpec from a torch tensor"""
+        "Create an TensorMelSpec from a torch tensor"
         mel = cls(ta)
         mel._settings = settings
         return mel
