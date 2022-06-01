@@ -103,7 +103,7 @@ class Spectrogram(DisplayedTransform):
 
             self._attrs = {k:v for k,v in self._get_attrs().items()}
 
-    def encodes(self, x:TensorAudio)
+    def encodes(self, x:TensorAudio):
         if self.multiple:
             specs = []
             for i in range(self.len):
@@ -176,7 +176,7 @@ class MelSpectrogram(DisplayedTransform):
 
             self._attrs = {**{k:v for k,v in self._get_attrs().items()},**{'sr':self.sample_rate}}
 
-    def encodes(self, x:TensorAudio)
+    def encodes(self, x:TensorAudio):
         if self.multiple:
             mels = []
             for i in range(self.len):
