@@ -1,12 +1,12 @@
 # fastxtend
-> fastxtend (fastai extended) is a collection of useful tools and extensions I have created or adapted for version 2 of the fastai framework.
+> fastxtend (fastai extended) is a collection of tools, extensions, and addons for fastai
 
 
 ## Install
 
 To install, run:
 ```
-pip install git+https://github.com/warner-benjamin/fastxtend.git
+pip install fastxtend
 ```
 
 Or to create an editable install:
@@ -19,6 +19,23 @@ pip install -e ".[dev]"
 ## Requirements
 
 fastxtend requires fastai to be installed. See http://docs.fast.ai/ for installation instructions.
+
+To install with dependencies for vision, audio, or all tasks run one of:
+```
+pip install fastxtend[vision]
+
+pip install fastxtend[audio]
+
+pip install fastxtend[all]
+```
+
+## Usage
+Like fastai, fastxtend provides safe wildcard imports using python’s `__all__`. 
+```python
+from fastai.vision.all import *
+from fastxtend.vision.all import *
+```
+In general, import fastxtend after all fastai imports, as fastxtend modifies or replaces fastai code.
 
 ## Documentation
 https://warner-benjamin.github.io/fastxtend/

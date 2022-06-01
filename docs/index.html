@@ -6,8 +6,8 @@ title: fastxtend
 keywords: fastai
 sidebar: home_sidebar
 
-summary: "fastxtend (fastai extended) is a collection of useful tools and extensions I have created or adapted for version 2 of the fastai framework."
-description: "fastxtend (fastai extended) is a collection of useful tools and extensions I have created or adapted for version 2 of the fastai framework."
+summary: "fastxtend (fastai extended) is a collection of tools, extensions, and addons for fastai"
+description: "fastxtend (fastai extended) is a collection of tools, extensions, and addons for fastai"
 nb_path: "nbs/index.ipynb"
 ---
 <!--
@@ -33,7 +33,7 @@ nb_path: "nbs/index.ipynb"
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Install">Install<a class="anchor-link" href="#Install"> </a></h2><p>To install, run:</p>
 
-<pre><code>pip install git+https://github.com/warner-benjamin/fastxtend.git</code></pre>
+<pre><code>pip install fastxtend</code></pre>
 <p>Or to create an editable install:</p>
 
 <pre><code>git clone https://github.com/warner-benjamin/fastxtend.git
@@ -46,6 +46,24 @@ pip install -e ".[dev]"</code></pre>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Requirements">Requirements<a class="anchor-link" href="#Requirements"> </a></h2><p>fastxtend requires fastai to be installed. See <a href="http://docs.fast.ai/">http://docs.fast.ai/</a> for installation instructions.</p>
+<p>To install with dependencies for vision, audio, or all tasks run one of:</p>
+
+<pre><code>pip install fastxtend[vision]
+
+pip install fastxtend[audio]
+
+pip install fastxtend[all]</code></pre>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Usage">Usage<a class="anchor-link" href="#Usage"> </a></h2><p>Like fastai, fastxtend provides safe wildcard imports using python’s <code>__all__</code>.</p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fastai.vision.all</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">fastxtend.vision.all</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+<p>In general, import fastxtend after all fastai imports, as fastxtend modifies or replaces fastai code.</p>
 
 </div>
 </div>
