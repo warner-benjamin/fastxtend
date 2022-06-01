@@ -62,7 +62,7 @@ def show_batch(x:TensorSpec|TensorMelSpec, y, samples, ctxs=None, max_n=9, nrows
 
 # Cell
 class Spectrogram(DisplayedTransform):
-    "Convert a `TensorAudio` into one or more `TensorMelSpec`"
+    "Convert a `TensorAudio` into one or more `TensorSpec`"
     order = 75
     def __init__(self,
         n_fft:listified[int]=1024,
@@ -103,7 +103,7 @@ class Spectrogram(DisplayedTransform):
 
             self._attrs = {k:v for k,v in self._get_attrs().items()}
 
-    def encodes(self, x:TensorAudio) -> TensorSpec|tuple[TensorSpec,...]:
+    def encodes(self, x:TensorAudio)
         if self.multiple:
             specs = []
             for i in range(self.len):
@@ -176,7 +176,7 @@ class MelSpectrogram(DisplayedTransform):
 
             self._attrs = {**{k:v for k,v in self._get_attrs().items()},**{'sr':self.sample_rate}}
 
-    def encodes(self, x:TensorAudio) -> TensorMelSpec|tuple[TensorMelSpec,...]:
+    def encodes(self, x:TensorAudio)
         if self.multiple:
             mels = []
             for i in range(self.len):
