@@ -40,31 +40,37 @@ nb_path: "nbs/metrics.ipynb"
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>All fastxtend metrics are classes which inherit from fastai's <code>Metric</code> and run on <code>Learner</code> via a modified <code>Recorder</code> callback.</p>
 <p>There are three main metric types: <a href="/fastxtend/metrics.html#AvgMetricX"><code>AvgMetricX</code></a>, <a href="/fastxtend/metrics.html#AccumMetricX"><code>AccumMetricX</code></a>, and <a href="/fastxtend/metrics.html#AvgSmoothMetricX"><code>AvgSmoothMetricX</code></a>. These correspond one-to-one with fastai's <code>AvgMetric</code>, <code>AccumMetric</code>, and <code>AvgSmoothMetric</code>.</p>
-<p>To jump to the fastxtend metrics reference, click <a href="#metrics">here</a>.</p>
+<p>To jump to the fastxtend metrics reference, click <a href="#Metrics">here</a>.</p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Using-a-Metric">Using a Metric<a class="anchor-link" href="#Using-a-Metric"> </a></h2><p>To use the example accuracy metric (defined in <a href="#creating-a-metric">Creating a Metric</a>) while training, or any fastxtend metrics detailed below, create a <code>Learner</code> like normal (or task specific learner such as <code>vision_learner</code>, <code>text_classifier_learner</code>, etc.) and add the metric(s) to the <a href="/fastxtend/metrics.html"><code>metrics</code></a> argument:</p>
+<h2 id="Using-a-Metric">Using a Metric<a class="anchor-link" href="#Using-a-Metric"> </a></h2><p>To use the accuracy metric, or any fastxtend metrics detailed below, create a <code>Learner</code> like normal (or task specific learner such as <code>vision_learner</code>, <code>text_classifier_learner</code>, etc) and add the metric(s) to the <a href="/fastxtend/metrics.html"><code>metrics</code></a> argument:</p>
 <div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fastai.vision.all</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">fastxtend.vision.all</span> <span class="kn">import</span> <span class="o">*</span>
 
-<span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">ExampleAccuracy</span><span class="p">())</span>
+<span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">Accuracy</span><span class="p">())</span>
 </pre></div>
 <p>Fastxtend metrics can be mixed with fastai metrics:</p>
-<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">ExampleAccuracy</span><span class="p">()])</span>
+<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">Accuracy</span><span class="p">()])</span>
 </pre></div>
 <p>Fastxtend metrics can be logged during training, validation, or both by setting the <code>log_metric</code> argument to <a href="/fastxtend/metrics.html#LogMetric.Train"><code>LogMetric.Train</code></a>, <a href="/fastxtend/metrics.html#LogMetric.Valid"><code>LogMetric.Valid</code></a>, or <a href="/fastxtend/metrics.html#LogMetric.Both"><code>LogMetric.Both</code></a>. The sole exception is <a href="/fastxtend/metrics.html#AvgSmoothMetricX"><code>AvgSmoothMetricX</code></a> which only logs during training.
 {% include note.html content='By default, a fastxtend metric will log during validation. Fastai metrics can only log during validation. ' %}
 To log a fastxtend metric during training pass <a href="/fastxtend/metrics.html#LogMetric.Train"><code>LogMetric.Train</code></a> to <code>log_metric</code>:</p>
-<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">ExampleAccuracy</span><span class="p">(</span><span class="n">log_metric</span><span class="o">=</span><span class="n">LogMetric</span><span class="o">.</span><span class="n">Train</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">Accuracy</span><span class="p">(</span><span class="n">log_metric</span><span class="o">=</span><span class="n">LogMetric</span><span class="o">.</span><span class="n">Train</span><span class="p">))</span>
+</pre></div>
+<p>Non-scikit-learn metrics can have the log type set via the <code>metric_type</code> argument to one of <a href="/fastxtend/metrics.html#MetricType.Avg"><code>MetricType.Avg</code></a>, <a href="/fastxtend/metrics.html#MetricType.Accum"><code>MetricType.Accum</code></a>, <a href="/fastxtend/metrics.html#MetricType.Smooth"><code>MetricType.Smooth</code></a>, corresponding to <a href="/fastxtend/metrics.html#AvgMetricX"><code>AvgMetricX</code></a>, <a href="/fastxtend/metrics.html#AccumMetricX"><code>AccumMetricX</code></a>, and <a href="/fastxtend/metrics.html#AvgSmoothMetricX"><code>AvgSmoothMetricX</code></a>, respectively.</p>
+<p>To log a smooth metric on the training set and normal metric on the valid set:</p>
+<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> 
+        <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">Accuracy</span><span class="p">(</span><span class="n">log_metric</span><span class="o">=</span><span class="n">LogMetric</span><span class="o">.</span><span class="n">Train</span><span class="p">,</span> <span class="n">metric_type</span><span class="o">=</span><span class="n">MetricType</span><span class="o">.</span><span class="n">Smooth</span><span class="p">),</span> 
+                 <span class="n">Accuracy</span><span class="p">()])</span>
 </pre></div>
 <p>Fastxtend metrics also support custom names via the <code>name</code> argument:</p>
-<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">ExampleAccuracy</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;real_metric&#39;</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">Accuracy</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;metric_name&#39;</span><span class="p">))</span>
 </pre></div>
-<p>which will result in ExampleAccuracy logging under "real_metric" instead of the default "example_accuracy".</p>
+<p>which will result in Accuracy logging under "metric_name" instead of the default "accuracy".</p>
 <p>If a fastxtend metric is logged with multiple <a href="/fastxtend/metrics.html#MetricType"><code>MetricType</code></a>s, the fastxtend <code>Recorder</code> will automatically deduplication the metric names. Unless the metric's <code>name</code> argument is set. Then fastxtend will not deduplicate any metric names.</p>
 
 </div>

@@ -8,28 +8,29 @@ __all__ = ['ChannelsLastTfm', 'ChannelsLastCallback']
 
 # Cell
 #nbdev_comment from __future__ import annotations
-import torch
+
+from torch.cuda.amp import GradScaler
+
 from fastai.torch_core import TensorImageBase, TensorMask
 from fastai.learner import Learner
 from fastai.vision.augment import DisplayedTransform
 from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
-from fastai.callback.mixup import MixHandler
 from fastai.basics import Pipeline
-from torch.cuda.amp import GradScaler
 
 from ..imports import *
 
 # Cell
 class ChannelsLastTfm(DisplayedTransform):
-    "Sets image inputs to `channels_last` format. For use in ChannelsLastCallback"
+    "Sets image-like inputs to `channels_last` format. For use in ChannelsLastCallback"
+    order = 110 # run after all other transforms if added to batch_tfms
     def encodes(self, x:TensorImageBase|TensorMask):
         return x.to(memory_format=torch.channels_last)
 
 # Cell
 class ChannelsLastCallback(Callback):
     "Channels last training using PyTorch's Channels Last Memory Format (beta)"
-    order = MixHandler.order+1
+    order = MixedPrecision.order+1
     def __init__(self):
         self._channels_last = Pipeline([ChannelsLastTfm()])
 
@@ -44,9 +45,9 @@ class ChannelsLastCallback(Callback):
 @delegates(GradScaler)
 def to_channelslast(self:Learner, to_fp16=True, **kwargs):
     "Set `Learner` and inputs to `channels_last` format and Mixed Precision by default"
-    if to_fp16 and not hasattr(self, 'mixed_precision'):
+    if to_fp16 and not hasattr(self, 'mixed_precision') and not hasattr(self, 'channels_last'):
         return self.add_cbs([ChannelsLastCallback(), MixedPrecision(**kwargs)])
-    else:
+    elif not hasattr(self, 'channels_last'):
         return self.add_cb(ChannelsLastCallback())
 
 # Cell
@@ -55,4 +56,4 @@ def to_contiguous(self:Learner, to_fp32=False):
     "Set `Learner` and inputs to `contiguous_format` (default format), optionally to single precision"
     self.model.to(memory_format=torch.contiguous_format)
     if to_fp32: return self.remove_cbs([ChannelsLastCallback, MixedPrecision])
-    else:       return self.remove_cb(ChannelsLastCallback())
+    else:       return self.remove_cb(ChannelsLastCallback)

@@ -42,6 +42,9 @@ entries:
     - output: web,pdf
       title: Simple Profiler
       url: callback.simpleprofiler.html
+    - output: web,pdf
+      title: Tracker
+      url: callback.tracker.html
     output: web
     title: Callbacks
   - folderitems:

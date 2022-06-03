@@ -13,7 +13,8 @@
     "Channels Last": "callback.channelslast.html",
     "CutMixUp": "callback.cutmixup.html",
     "LR Finder": "callback.lr_finder.html",
-    "Simple Profiler": "callback.simpleprofiler.html"
+    "Simple Profiler": "callback.simpleprofiler.html",
+    "Tracker": "callback.tracker.html"
   },
   "Losses": {
     "Losses": "losses.html",
