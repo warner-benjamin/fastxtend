@@ -49,6 +49,12 @@ entries:
     title: Callbacks
   - folderitems:
     - output: web,pdf
+      title: Splitters
+      url: data.transforms.html
+    output: web
+    title: Data
+  - folderitems:
+    - output: web,pdf
       title: Losses
       url: losses.html
     - output: web,pdf
@@ -69,6 +75,9 @@ entries:
     output: web
     title: Schedulers
   - folderitems:
+    - output: web,pdf
+      title: Data
+      url: vision.data.html
     - output: web,pdf
       title: TensorImage & TensorMask item_tfms
       url: vision.augment.itemtensor.html

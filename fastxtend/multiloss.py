@@ -30,10 +30,10 @@ class MultiLoss(Module):
     Log `loss_funcs` as metrics via `MultiLossCallback`, optionally using `loss_names`.
     """
     def __init__(self,
-        loss_funcs:listy[nn.Module|FunctionType], # Uninitilized loss functions or classes. Must support PyTorch `reduction` string.
+        loss_funcs:listy[nn.Module|FunctionType], # Uninitialized loss functions or classes. Must support PyTorch `reduction` string.
         weights:listified[Number]|None=None, # Weight per loss. Defaults to uniform weighting.
         loss_kwargs:listy[dict[str,Any]]|None=None, # kwargs to pass to each loss function. Defaults to None.
-        loss_names:listy[str]|None=None, # Loss names to log using `MultiLossCallback`. Defaults to loss __name__.
+        loss_names:listy[str]|None=None, # Loss names to log using `MultiLossCallback`. Defaults to loss `__name__`.
         reduction:str|None='mean' # PyTorch loss reduction
     ):
         store_attr(but='loss_names')
@@ -96,10 +96,10 @@ class MultiTargetLoss(MultiLoss):
     Log `loss_funcs` as metrics via `MultiLossCallback`, optionally using `loss_names`.
     """
     def __init__(self,
-        loss_funcs:listy[nn.Module|FunctionType], # Uninitilized loss functions or classes. One per prediction and target. Must support PyTorch `reduction` string.
+        loss_funcs:listy[nn.Module|FunctionType], # Uninitialized loss functions or classes. One per prediction and target. Must support PyTorch `reduction` string.
         weights:listified[Number]|None=None, # Weight per loss. Defaults to uniform weighting.
         loss_kwargs:listy[dict[str,Any]]|None=None, # kwargs to pass to each loss function. Defaults to None.
-        loss_names:listy[str]|None=None, # Loss names to log using `MultiLossCallback`. Defaults to loss __name__.
+        loss_names:listy[str]|None=None, # Loss names to log using `MultiLossCallback`. Defaults to loss `__name__`.
         reduction:str|None='mean' # PyTorch loss reduction
     ):
         super().__init__(loss_funcs, weights, loss_kwargs, loss_names, reduction)
@@ -114,9 +114,11 @@ class MultiTargetLoss(MultiLoss):
         return loss.mean() if self._reduction=='mean' else loss.sum() if self._reduction=='sum' else loss
 
     def activation(self, preds):
+        "Returns list of `activation`"
         return [getattr(self.loss_funcs[i], 'activation', noop)(pred) for i, pred in enumerate(preds)]
 
     def decodes(self, preds):
+        "Returns list of `decodes`"
         return [getattr(self.loss_funcs[i], 'decodes', noop)(pred) for i, pred in enumerate(preds)]
 
 # Internal Cell

@@ -19,7 +19,10 @@ from fastai.data.transforms import IndexSplitter
 from ..imports import *
 
 # Cell
-def KFoldColSplitter(fold:listified[int]=0, col:int|str='folds'):
+def KFoldColSplitter(
+    fold:listified[int]=0, # Valid set fold(s)
+    col:int|str='folds' # Column with folds
+):
     "Split `items` (supposed to be a dataframe) by `fold` in `col`"
     def _inner(o):
         assert isinstance(o, pd.DataFrame), "KFoldColSplitter only works when your items are a pandas DataFrame"
@@ -34,7 +37,10 @@ def _parent_idxs(items, name):
     return [i for n in L(name) for i in _inner(items,n)]
 
 # Cell
-def ParentSplitter(train_name:str='train', valid_name:str='valid'):
+def ParentSplitter(
+    train_name:str='train', # Train set folder name
+    valid_name:str='valid' # Valid set folder name
+):
     "Split `items` from the parent folder names (`train_name` and `valid_name`)."
     def _inner(o):
         return _parent_idxs(o, train_name),_parent_idxs(o, valid_name)
@@ -46,7 +52,10 @@ def _greatgrandparent_idxs(items, name):
     return [i for n in L(name) for i in _inner(items,n)]
 
 # Cell
-def GreatGrandparentSplitter(train_name:str='train', valid_name:str='valid'):
+def GreatGrandparentSplitter(
+    train_name:str='train', # Train set folder name
+    valid_name:str='valid' # Valid set folder name
+):
     "Split `items` from the great grand parent folder names (`train_name` and `valid_name`)."
     def _inner(o):
         return _greatgrandparent_idxs(o, train_name),_greatgrandparent_idxs(o, valid_name)

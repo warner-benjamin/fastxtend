@@ -64,7 +64,7 @@ nb_path: "nbs/multiloss.ipynb"
 <td><strong><code>loss_funcs</code></strong></td>
 <td><code>listy[nn.Module or FunctionType]</code></td>
 <td></td>
-<td>Uninitilized loss functions or classes. Must support PyTorch <code>reduction</code> string.</td>
+<td>Uninitialized loss functions or classes. Must support PyTorch <code>reduction</code> string.</td>
 </tr>
 <tr>
 <td><strong><code>weights</code></strong></td>
@@ -82,7 +82,7 @@ nb_path: "nbs/multiloss.ipynb"
 <td><strong><code>loss_names</code></strong></td>
 <td><code>listy[str] or None</code></td>
 <td><code>None</code></td>
-<td>Loss names to log using <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>. Defaults to loss <strong>name</strong>.</td>
+<td>Loss names to log using <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>. Defaults to loss <code>__name__</code>.</td>
 </tr>
 <tr>
 <td><strong><code>reduction</code></strong></td>
@@ -148,7 +148,7 @@ nb_path: "nbs/multiloss.ipynb"
 <td><strong><code>loss_funcs</code></strong></td>
 <td><code>listy[nn.Module or FunctionType]</code></td>
 <td></td>
-<td>Uninitilized loss functions or classes. One per prediction and target. Must support PyTorch <code>reduction</code> string.</td>
+<td>Uninitialized loss functions or classes. One per prediction and target. Must support PyTorch <code>reduction</code> string.</td>
 </tr>
 <tr>
 <td><strong><code>weights</code></strong></td>
@@ -166,7 +166,7 @@ nb_path: "nbs/multiloss.ipynb"
 <td><strong><code>loss_names</code></strong></td>
 <td><code>listy[str] or None</code></td>
 <td><code>None</code></td>
-<td>Loss names to log using <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>. Defaults to loss <strong>name</strong>.</td>
+<td>Loss names to log using <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>. Defaults to loss <code>__name__</code>.</td>
 </tr>
 <tr>
 <td><strong><code>reduction</code></strong></td>
@@ -215,7 +215,7 @@ nb_path: "nbs/multiloss.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="MultiLossCallback" class="doc_header"><code>class</code> <code>MultiLossCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L160" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiLossCallback</code>(<strong><code>beta</code></strong>:<code>float</code>=<em><code>0.98</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <code>Callback</code></p>
+<h2 id="MultiLossCallback" class="doc_header"><code>class</code> <code>MultiLossCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L162" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiLossCallback</code>(<strong><code>beta</code></strong>:<code>float</code>=<em><code>0.98</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <code>Callback</code></p>
 </blockquote>
 <p>Callback to automatically log and name <a href="/fastxtend/multiloss.html#MultiLoss"><code>MultiLoss</code></a> losses as fastxtend metrics</p>
 <table>

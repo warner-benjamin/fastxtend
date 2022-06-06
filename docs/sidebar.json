@@ -16,6 +16,9 @@
     "Simple Profiler": "callback.simpleprofiler.html",
     "Tracker": "callback.tracker.html"
   },
+  "Data": {
+    "Splitters": "data.transforms.html"
+  },
   "Losses": {
     "Losses": "losses.html",
     "Multiloss": "multiloss.html"
@@ -27,6 +30,7 @@
     "Fit Flat Varied": "schedulers.fit_flat_varied.html"
   },
   "Vision": {
+    "Data": "vision.data.html",
     "TensorImage & TensorMask item_tfms": "vision.augment.itemtensor.html",
     "": {
       "Models":{
