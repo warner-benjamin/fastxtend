@@ -7,24 +7,37 @@ import time
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from fastcore.foundation import L, patch, docs
-from fastcore.basics import mk_class, noop, store_attr, in_notebook
+from packaging.version import parse
+
+from fastcore.foundation import docs
+from fastcore.basics import mk_class, noop, in_notebook
+
+import fastai
 from fastai.learner import Learner, Recorder
-from fastai.test_utils import synth_learner
 from fastai.callback.core import *
 
+from ..imports import *
 
 if in_notebook():
     from IPython.display import display
 
 # Cell
-_inner_loop = "before_draw before_batch after_pred after_loss before_backward before_step after_step after_cancel_batch after_batch".split()
+if parse(fastai.__version__) >= parse('2.7.0'):
+    _inner_loop = "before_draw before_batch after_pred after_loss before_backward after_cancel_backward after_backward before_step after_step after_cancel_batch after_batch".split()
+else:
+    _inner_loop = "before_draw before_batch after_pred after_loss before_backward before_step after_step after_cancel_batch after_batch".split()
 
 # Cell
-_events = L.split('after_create before_fit before_epoch before_train before_draw before_batch after_pred after_loss \
-    before_backward before_step after_cancel_step after_step after_cancel_batch after_batch after_cancel_train \
-    after_train before_validate after_cancel_validate after_validate after_cancel_epoch \
-    after_epoch after_cancel_fit after_fit')
+if parse(fastai.__version__) >= parse('2.7.0'):
+    _events = L.split('after_create before_fit before_epoch before_train before_draw before_batch after_pred after_loss \
+        before_backward after_cancel_backward after_backward before_step after_cancel_step after_step \
+        after_cancel_batch after_batch after_cancel_train after_train before_validate after_cancel_validate \
+        after_validate after_cancel_epoch after_epoch after_cancel_fit after_fit')
+else:
+    _events = L.split('after_create before_fit before_epoch before_train before_draw before_batch after_pred after_loss \
+        before_backward before_step after_cancel_step after_step after_cancel_batch after_batch after_cancel_train \
+        after_train before_validate after_cancel_validate after_validate after_cancel_epoch \
+        after_epoch after_cancel_fit after_fit')
 
 mk_class('event', **_events.map_dict(),
          doc="All possible events as attributes to get tab-completion and typo-proofing")

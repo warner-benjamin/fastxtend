@@ -30,7 +30,7 @@ class MultiLoss(Module):
     Log `loss_funcs` as metrics via `MultiLossCallback`, optionally using `loss_names`.
     """
     def __init__(self,
-        loss_funcs:listy[nn.Module|FunctionType], # Uninitialized loss functions or classes. Must support PyTorch `reduction` string.
+        loss_funcs:listy[Callable[...,nn.Module]|FunctionType], # Uninitialized loss functions or classes. Must support PyTorch `reduction` string.
         weights:listified[Number]|None=None, # Weight per loss. Defaults to uniform weighting.
         loss_kwargs:listy[dict[str,Any]]|None=None, # kwargs to pass to each loss function. Defaults to None.
         loss_names:listy[str]|None=None, # Loss names to log using `MultiLossCallback`. Defaults to loss `__name__`.
@@ -96,7 +96,7 @@ class MultiTargetLoss(MultiLoss):
     Log `loss_funcs` as metrics via `MultiLossCallback`, optionally using `loss_names`.
     """
     def __init__(self,
-        loss_funcs:listy[nn.Module|FunctionType], # Uninitialized loss functions or classes. One per prediction and target. Must support PyTorch `reduction` string.
+        loss_funcs:listy[Callable[...,nn.Module]|FunctionType], # Uninitialized loss functions or classes. One per prediction and target. Must support PyTorch `reduction` string.
         weights:listified[Number]|None=None, # Weight per loss. Defaults to uniform weighting.
         loss_kwargs:listy[dict[str,Any]]|None=None, # kwargs to pass to each loss function. Defaults to None.
         loss_names:listy[str]|None=None, # Loss names to log using `MultiLossCallback`. Defaults to loss `__name__`.

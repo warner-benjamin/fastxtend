@@ -24,7 +24,7 @@ from ..imports import *
 class ChannelsLastTfm(DisplayedTransform):
     "Sets image-like inputs to `channels_last` format. For use in ChannelsLastCallback"
     order = 110 # run after all other transforms if added to batch_tfms
-    def encodes(self, x:TensorImageBase|TensorMask):
+    def encodes(self, x:TensorImageBase):
         return x.to(memory_format=torch.channels_last)
 
 # Cell
