@@ -39,7 +39,7 @@ class MESALoss(MultiLoss):
         self.mesa_loss = False
         self.loss_names = L('orig_loss', 'mesa_loss')
         self.loss_funcs = self.loss_names # compatibility with MultiLossCallback
-        self._device, self._loss = None, {}
+        self._zero, self._loss = torch.tensor(0., requires_grad=False), {}
 
     def forward(self, pred, *targs):
         targ, mesa_targ = targs
@@ -47,7 +47,7 @@ class MESALoss(MultiLoss):
         if self.mesa_loss:
             self._loss[1] = self.weight*self._mesa_loss(F.log_softmax(self.temp*pred, dim=1), F.log_softmax(self.temp*mesa_targ, dim=1))
         else:
-            self._loss[1] = torch.tensor(0., device=self._device)
+            self._loss[1] = self._zero
         return self._loss[0] + self._loss[1]
 
     @property
@@ -62,8 +62,9 @@ class MESALoss(MultiLoss):
 
     @delegates(Module.to)
     def to(self, *args, **kwargs):
-        self._device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
-        super().to(*args, **kwargs)
+        device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
+        self._zero.to(device)
+        super(Module, self).to(*args, **kwargs)
 
     def activation(self, pred):
         "Returns `orig_loss` `activation`"
@@ -95,6 +96,7 @@ class MESACallback(Callback):
         self.orig_loss = self.learn.loss_func
         self.orig_loss_reduction = self.orig_loss.reduction if hasattr(self.orig_loss, 'reduction') else None
         self.learn.loss_func = MESALoss(self.orig_loss, self.temp, self.weight, self.reduction)
+        self.learn.loss_func.to(getattr(self.dls, 'device', default_device()))
         self.ema_model = ModelEmaV2(self.learn.model, self.decay)
 
     def before_train(self):
