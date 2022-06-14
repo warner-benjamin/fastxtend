@@ -10,11 +10,11 @@
     "Mixup": "audio.05_mixup.html"
   },
   "Callbacks": {
+    "Cast to Tensor Backport": "callback.casttotensor.html",
     "Channels Last": "callback.channelslast.html",
     "CutMixUp": "callback.cutmixup.html",
     "LR Finder": "callback.lr_finder.html",
     "Simple Profiler": "callback.simpleprofiler.html",
-    "Tensor Cast Backport": "callback.tensorcast.html",
     "Tracker": "callback.tracker.html"
   },
   "Data": {

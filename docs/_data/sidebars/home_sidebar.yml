@@ -31,6 +31,9 @@ entries:
     title: Audio
   - folderitems:
     - output: web,pdf
+      title: Cast to Tensor Backport
+      url: callback.casttotensor.html
+    - output: web,pdf
       title: Channels Last
       url: callback.channelslast.html
     - output: web,pdf
@@ -42,9 +45,6 @@ entries:
     - output: web,pdf
       title: Simple Profiler
       url: callback.simpleprofiler.html
-    - output: web,pdf
-      title: Tensor Cast Backport
-      url: callback.tensorcast.html
     - output: web,pdf
       title: Tracker
       url: callback.tracker.html

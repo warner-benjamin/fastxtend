@@ -35,7 +35,7 @@ Like fastai, fastxtend provides safe wildcard imports using python’s `__all__`
 from fastai.vision.all import *
 from fastxtend.vision.all import *
 ```
-In general, import fastxtend after all fastai imports, as fastxtend modifies or replaces fastai code.
+In general, import fastxtend after all fastai imports, as fastxtend modifies fastai. Any method modified by fastxtend is backwards compatible with the original fastai code.
 
 ## Documentation
-https://warner-benjamin.github.io/fastxtend/
+https://fastxtend.benjaminwarner.dev
