@@ -11,9 +11,10 @@ __all__ = ['ChannelsLastTfm', 'ChannelsLastCallback']
 
 from torch.cuda.amp import GradScaler
 
+from fastcore.transform import DisplayedTransform, _is_tuple
+
 from fastai.torch_core import TensorImageBase, TensorMask
 from fastai.learner import Learner
-from fastai.vision.augment import DisplayedTransform
 from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
 from fastai.basics import Pipeline
@@ -30,7 +31,7 @@ class ChannelsLastTfm(DisplayedTransform):
 # Cell
 class ChannelsLastCallback(Callback):
     "Channels last training using PyTorch's Channels Last Memory Format (beta)"
-    order = MixedPrecision.order+1
+    order = 8 # Before CastToTensor
     def __init__(self):
         self._channels_last = Pipeline([ChannelsLastTfm()])
 

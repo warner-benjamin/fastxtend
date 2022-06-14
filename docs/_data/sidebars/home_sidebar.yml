@@ -43,6 +43,9 @@ entries:
       title: Simple Profiler
       url: callback.simpleprofiler.html
     - output: web,pdf
+      title: Tensor Cast Backport
+      url: callback.tensorcast.html
+    - output: web,pdf
       title: Tracker
       url: callback.tracker.html
     output: web

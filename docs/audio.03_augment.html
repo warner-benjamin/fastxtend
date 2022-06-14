@@ -55,7 +55,7 @@ nb_path: "nbs/audio.03_augment.ipynb"
 <div class="output_markdown rendered_html output_subarea ">
 <h3 id="Flip" class="doc_header"><code>class</code> <code>Flip</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L45" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>Flip</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.5</code></em>) :: <code>RandTransform</code></p>
 </blockquote>
-<p>Randomly flip <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> with probability <code>p</code></p>
+<p>Randomly flip <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> with probability <code>p</code></p>
 
 </div>
 
@@ -124,7 +124,7 @@ nb_path: "nbs/audio.03_augment.ipynb"
 <div class="output_markdown rendered_html output_subarea ">
 <h3 id="Roll" class="doc_header"><code>class</code> <code>Roll</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L55" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>Roll</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>max_roll</code></strong>:<code>float</code>=<em><code>0.5</code></em>) :: <code>RandTransform</code></p>
 </blockquote>
-<p>Randomly shift <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> with rollover</p>
+<p>Randomly shift <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> with rollover</p>
 <table>
 <thead><tr>
 <th></th>
@@ -246,9 +246,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="RandomCropPad" class="doc_header"><code>class</code> <code>RandomCropPad</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L114" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>RandomCropPad</code>(<strong><code>duration</code></strong>:<code>Number | None</code>=<em><code>None</code></em>, <strong><code>samples</code></strong>:<code>int | None</code>=<em><code>None</code></em>, <strong><code>padmode</code></strong>:<a href="/fastxtend/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a>=<em><code>&lt;AudioPadMode.Repeat: 4&gt;</code></em>, <strong><code>constant</code></strong>:<code>Number</code>=<em><code>0</code></em>) :: <code>RandTransform</code></p>
+<h3 id="RandomCropPad" class="doc_header"><code>class</code> <code>RandomCropPad</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L114" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>RandomCropPad</code>(<strong><code>duration</code></strong>:<code>Number | None</code>=<em><code>None</code></em>, <strong><code>samples</code></strong>:<code>int | None</code>=<em><code>None</code></em>, <strong><code>padmode</code></strong>:<a href="/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a>=<em><code>&lt;AudioPadMode.Repeat: 4&gt;</code></em>, <strong><code>constant</code></strong>:<code>Number</code>=<em><code>0</code></em>) :: <code>RandTransform</code></p>
 </blockquote>
-<p>Randomly resize <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> to specified length. Center crop during valid.</p>
+<p>Randomly resize <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> to specified length. Center crop during valid.</p>
 <table>
 <thead><tr>
 <th></th>
@@ -272,15 +272,15 @@ nb_path: "nbs/audio.03_augment.ipynb"
 </tr>
 <tr>
 <td><strong><code>padmode</code></strong></td>
-<td><a href="/fastxtend/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a></td>
-<td><a href="/fastxtend/audio.03_augment.html#AudioPadMode.Repeat"><code>AudioPadMode.Repeat</code></a></td>
+<td><a href="/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a></td>
+<td><a href="/audio.03_augment.html#AudioPadMode.Repeat"><code>AudioPadMode.Repeat</code></a></td>
 <td>How to pad if necessary</td>
 </tr>
 <tr>
 <td><strong><code>constant</code></strong></td>
 <td><code>Number</code></td>
 <td><code>0</code></td>
-<td>Value for <a href="/fastxtend/audio.03_augment.html#AudioPadMode.Constant"><code>AudioPadMode.Constant</code></a></td>
+<td>Value for <a href="/audio.03_augment.html#AudioPadMode.Constant"><code>AudioPadMode.Constant</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -304,7 +304,7 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><a href="/fastxtend/audio.03_augment.html#RandomCropPad"><code>RandomCropPad</code></a> will pad using one of the following five modes if the input length is less than <code>duration</code> or <code>samples</code>.</p>
+<p><a href="/audio.03_augment.html#RandomCropPad"><code>RandomCropPad</code></a> will pad using one of the following five modes if the input length is less than <code>duration</code> or <code>samples</code>.</p>
 
 </div>
 </div>
@@ -352,7 +352,7 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>During training, <a href="/fastxtend/audio.03_augment.html#RandomCropPad"><code>RandomCropPad</code></a> will randomly crop if the input length is greater than <code>duration</code> or <code>samples</code>.</p>
+<p>During training, <a href="/audio.03_augment.html#RandomCropPad"><code>RandomCropPad</code></a> will randomly crop if the input length is greater than <code>duration</code> or <code>samples</code>.</p>
 
 </div>
 </div>
@@ -396,7 +396,7 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>During validation or prediction, <a href="/fastxtend/audio.03_augment.html#RandomCropPad"><code>RandomCropPad</code></a> will center crop if the input length is greater than <code>duration</code> or <code>samples</code>.</p>
+<p>During validation or prediction, <a href="/audio.03_augment.html#RandomCropPad"><code>RandomCropPad</code></a> will center crop if the input length is greater than <code>duration</code> or <code>samples</code>.</p>
 
 </div>
 </div>
@@ -481,9 +481,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="Volume" class="doc_header"><code>class</code> <code>Volume</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L156" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>Volume</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.75</code></em>, <strong><code>gain</code></strong>:<code>Number | None</code>=<em><code>None</code></em>, <strong><code>gain_range</code></strong>:<code>tuple[Number, Number]</code>=<em><code>(-18, 6)</code></em>, <strong><code>volmode</code></strong>:<a href="/fastxtend/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a>=<em><code>&lt;VolumeMode.DB: 1&gt;</code></em>) :: <code>RandTransform</code></p>
+<h3 id="Volume" class="doc_header"><code>class</code> <code>Volume</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L156" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>Volume</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.75</code></em>, <strong><code>gain</code></strong>:<code>Number | None</code>=<em><code>None</code></em>, <strong><code>gain_range</code></strong>:<code>tuple[Number, Number]</code>=<em><code>(-18, 6)</code></em>, <strong><code>volmode</code></strong>:<a href="/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a>=<em><code>&lt;VolumeMode.DB: 1&gt;</code></em>) :: <code>RandTransform</code></p>
 </blockquote>
-<p>Randomly change <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s volume</p>
+<p>Randomly change <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s volume</p>
 <table>
 <thead><tr>
 <th></th>
@@ -513,9 +513,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 </tr>
 <tr>
 <td><strong><code>volmode</code></strong></td>
-<td><a href="/fastxtend/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a></td>
-<td><a href="/fastxtend/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a></td>
-<td>One of <a href="/fastxtend/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a>, <a href="/fastxtend/audio.03_augment.html#VolumeMode.Amplitude"><code>VolumeMode.Amplitude</code></a>, or <a href="/fastxtend/audio.03_augment.html#VolumeMode.Power"><code>VolumeMode.Power</code></a></td>
+<td><a href="/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a></td>
+<td><a href="/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a></td>
+<td>One of <a href="/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a>, <a href="/audio.03_augment.html#VolumeMode.Amplitude"><code>VolumeMode.Amplitude</code></a>, or <a href="/audio.03_augment.html#VolumeMode.Power"><code>VolumeMode.Power</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -587,7 +587,7 @@ nb_path: "nbs/audio.03_augment.ipynb"
 <div class="output_markdown rendered_html output_subarea ">
 <h3 id="PeakNorm" class="doc_header"><code>class</code> <code>PeakNorm</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L191" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>PeakNorm</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.1</code></em>) :: <code>RandTransform</code></p>
 </blockquote>
-<p>Randomly apply constant gain so <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s loudest level is between -1 and 1 with probability <code>p</code></p>
+<p>Randomly apply constant gain so <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s loudest level is between -1 and 1 with probability <code>p</code></p>
 
 </div>
 
@@ -662,9 +662,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="VolumeOrPeakNorm" class="doc_header"><code>class</code> <code>VolumeOrPeakNorm</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L202" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>VolumeOrPeakNorm</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.75</code></em>, <strong><code>peak_p</code></strong>:<code>float</code>=<em><code>0.1</code></em>, <strong><code>gain</code></strong>:<code>Number | None</code>=<em><code>None</code></em>, <strong><code>gain_range</code></strong>:<code>tuple[Number, Number]</code>=<em><code>(-18, 6)</code></em>, <strong><code>volmode</code></strong>:<a href="/fastxtend/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a>=<em><code>&lt;VolumeMode.DB: 1&gt;</code></em>) :: <code>RandTransform</code></p>
+<h3 id="VolumeOrPeakNorm" class="doc_header"><code>class</code> <code>VolumeOrPeakNorm</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L202" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>VolumeOrPeakNorm</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.75</code></em>, <strong><code>peak_p</code></strong>:<code>float</code>=<em><code>0.1</code></em>, <strong><code>gain</code></strong>:<code>Number | None</code>=<em><code>None</code></em>, <strong><code>gain_range</code></strong>:<code>tuple[Number, Number]</code>=<em><code>(-18, 6)</code></em>, <strong><code>volmode</code></strong>:<a href="/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a>=<em><code>&lt;VolumeMode.DB: 1&gt;</code></em>) :: <code>RandTransform</code></p>
 </blockquote>
-<p>Randomly apply <a href="/fastxtend/audio.03_augment.html#Volume"><code>Volume</code></a> or <code>Peak</code> to <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> in one transform</p>
+<p>Randomly apply <a href="/audio.03_augment.html#Volume"><code>Volume</code></a> or <code>Peak</code> to <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> in one transform</p>
 <table>
 <thead><tr>
 <th></th>
@@ -700,9 +700,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 </tr>
 <tr>
 <td><strong><code>volmode</code></strong></td>
-<td><a href="/fastxtend/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a></td>
-<td><a href="/fastxtend/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a></td>
-<td>One of <a href="/fastxtend/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a>, <a href="/fastxtend/audio.03_augment.html#VolumeMode.Amplitude"><code>VolumeMode.Amplitude</code></a>, or <a href="/fastxtend/audio.03_augment.html#VolumeMode.Power"><code>VolumeMode.Power</code></a></td>
+<td><a href="/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a></td>
+<td><a href="/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a></td>
+<td>One of <a href="/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a>, <a href="/audio.03_augment.html#VolumeMode.Amplitude"><code>VolumeMode.Amplitude</code></a>, or <a href="/audio.03_augment.html#VolumeMode.Power"><code>VolumeMode.Power</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -737,7 +737,7 @@ nb_path: "nbs/audio.03_augment.ipynb"
 <div class="output_markdown rendered_html output_subarea ">
 <h3 id="Noise" class="doc_header"><code>class</code> <code>Noise</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L278" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>Noise</code>(<strong><code>p</code></strong>=<em><code>0.25</code></em>, <strong><code>noise_level</code></strong>:<code>float | None</code>=<em><code>None</code></em>, <strong><code>noise_range</code></strong>:<code>tuple[float, float]</code>=<em><code>(0.01, 0.1)</code></em>, <strong><code>color</code></strong>:<code>NoiseColor | None</code>=<em><code>None</code></em>) :: <code>RandTransform</code></p>
 </blockquote>
-<p>Adds noise of specified color and level to <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> relative to mean audio level</p>
+<p>Adds noise of specified color and level to <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> relative to mean audio level</p>
 <table>
 <thead><tr>
 <th></th>
@@ -769,7 +769,7 @@ nb_path: "nbs/audio.03_augment.ipynb"
 <td><strong><code>color</code></strong></td>
 <td><code>NoiseColor or None</code></td>
 <td><code>None</code></td>
-<td>Color of noise to add, if None randomly selects from <a href="/fastxtend/audio.03_augment.html#NoiseColor"><code>NoiseColor</code></a></td>
+<td>Color of noise to add, if None randomly selects from <a href="/audio.03_augment.html#NoiseColor"><code>NoiseColor</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -849,9 +849,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="VolumeBatch" class="doc_header"><code>class</code> <code>VolumeBatch</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L314" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>VolumeBatch</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>gain</code></strong>:<code>Number | None</code>=<em><code>None</code></em>, <strong><code>gain_range</code></strong>:<code>tuple[Number, Number]</code>=<em><code>(-18, 6)</code></em>, <strong><code>volmode</code></strong>:<a href="/fastxtend/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a>=<em><code>&lt;VolumeMode.DB: 1&gt;</code></em>) :: <a href="/fastxtend/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
+<h3 id="VolumeBatch" class="doc_header"><code>class</code> <code>VolumeBatch</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L314" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>VolumeBatch</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.5</code></em>, <strong><code>gain</code></strong>:<code>Number | None</code>=<em><code>None</code></em>, <strong><code>gain_range</code></strong>:<code>tuple[Number, Number]</code>=<em><code>(-18, 6)</code></em>, <strong><code>volmode</code></strong>:<a href="/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a>=<em><code>&lt;VolumeMode.DB: 1&gt;</code></em>) :: <a href="/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
 </blockquote>
-<p>Randomly change <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s volume on the GPU</p>
+<p>Randomly change <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s volume on the GPU</p>
 <table>
 <thead><tr>
 <th></th>
@@ -881,9 +881,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 </tr>
 <tr>
 <td><strong><code>volmode</code></strong></td>
-<td><a href="/fastxtend/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a></td>
-<td><a href="/fastxtend/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a></td>
-<td>One of <a href="/fastxtend/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a>, <a href="/fastxtend/audio.03_augment.html#VolumeMode.Amplitude"><code>VolumeMode.Amplitude</code></a>, or <a href="/fastxtend/audio.03_augment.html#VolumeMode.Power"><code>VolumeMode.Power</code></a></td>
+<td><a href="/audio.03_augment.html#VolumeMode"><code>VolumeMode</code></a></td>
+<td><a href="/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a></td>
+<td>One of <a href="/audio.03_augment.html#VolumeMode.DB"><code>VolumeMode.DB</code></a>, <a href="/audio.03_augment.html#VolumeMode.Amplitude"><code>VolumeMode.Amplitude</code></a>, or <a href="/audio.03_augment.html#VolumeMode.Power"><code>VolumeMode.Power</code></a></td>
 </tr>
 </tbody>
 </table>
@@ -916,9 +916,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="PitchShift" class="doc_header"><code>class</code> <code>PitchShift</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L463" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>PitchShift</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>semitones</code></strong>:<code>tuple[float, float]</code>=<em><code>(-4.0, 4.0)</code></em>, <strong><code>bins_per_octave</code></strong>:<code>int</code>=<em><code>12</code></em>, <strong><code>padmode</code></strong>:<a href="/fastxtend/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a>=<em><code>&lt;AudioPadMode.Repeat: 4&gt;</code></em>, <strong><code>constant</code></strong>:<code>Number</code>=<em><code>0</code></em>, <strong><code>split</code></strong>:<code>int | None</code>=<em><code>None</code></em>) :: <a href="/fastxtend/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
+<h3 id="PitchShift" class="doc_header"><code>class</code> <code>PitchShift</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L463" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>PitchShift</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>semitones</code></strong>:<code>tuple[float, float]</code>=<em><code>(-4.0, 4.0)</code></em>, <strong><code>bins_per_octave</code></strong>:<code>int</code>=<em><code>12</code></em>, <strong><code>padmode</code></strong>:<a href="/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a>=<em><code>&lt;AudioPadMode.Repeat: 4&gt;</code></em>, <strong><code>constant</code></strong>:<code>Number</code>=<em><code>0</code></em>, <strong><code>split</code></strong>:<code>int | None</code>=<em><code>None</code></em>) :: <a href="/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
 </blockquote>
-<p>Fast shift of <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s pitch.</p>
+<p>Fast shift of <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s pitch.</p>
 <table>
 <thead><tr>
 <th></th>
@@ -948,15 +948,15 @@ nb_path: "nbs/audio.03_augment.ipynb"
 </tr>
 <tr>
 <td><strong><code>padmode</code></strong></td>
-<td><a href="/fastxtend/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a></td>
-<td><a href="/fastxtend/audio.03_augment.html#AudioPadMode.Repeat"><code>AudioPadMode.Repeat</code></a></td>
+<td><a href="/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a></td>
+<td><a href="/audio.03_augment.html#AudioPadMode.Repeat"><code>AudioPadMode.Repeat</code></a></td>
 <td>How to pad if necessary</td>
 </tr>
 <tr>
 <td><strong><code>constant</code></strong></td>
 <td><code>Number</code></td>
 <td><code>0</code></td>
-<td>Value for <a href="/fastxtend/audio.03_augment.html#AudioPadMode.Constant"><code>AudioPadMode.Constant</code></a></td>
+<td>Value for <a href="/audio.03_augment.html#AudioPadMode.Constant"><code>AudioPadMode.Constant</code></a></td>
 </tr>
 <tr>
 <td><strong><code>split</code></strong></td>
@@ -1034,9 +1034,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="PitchShiftTA" class="doc_header"><code>class</code> <code>PitchShiftTA</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L517" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>PitchShiftTA</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>n_steps</code></strong>:<code>int | None</code>=<em><code>None</code></em>, <strong><code>n_step_range</code></strong>:<code>tuple[int, int]</code>=<em><code>(2, 6)</code></em>, <strong><code>bins_per_octave</code></strong>:<code>int</code>=<em><code>12</code></em>, <strong><code>n_fft</code></strong>:<code>int</code>=<em><code>512</code></em>, <strong><code>win_length</code></strong>:<code>int | None</code>=<em><code>None</code></em>, <strong><code>hop_length</code></strong>:<code>int | None</code>=<em><code>None</code></em>, <strong><code>window_fn</code></strong>:<code>Callable[..., Tensor]</code>=<em><code>hann_window</code></em>, <strong><code>wkwargs</code></strong>:<code>dict | None</code>=<em><code>None</code></em>) :: <a href="/fastxtend/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
+<h3 id="PitchShiftTA" class="doc_header"><code>class</code> <code>PitchShiftTA</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L517" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>PitchShiftTA</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>n_steps</code></strong>:<code>int | None</code>=<em><code>None</code></em>, <strong><code>n_step_range</code></strong>:<code>tuple[int, int]</code>=<em><code>(2, 6)</code></em>, <strong><code>bins_per_octave</code></strong>:<code>int</code>=<em><code>12</code></em>, <strong><code>n_fft</code></strong>:<code>int</code>=<em><code>512</code></em>, <strong><code>win_length</code></strong>:<code>int | None</code>=<em><code>None</code></em>, <strong><code>hop_length</code></strong>:<code>int | None</code>=<em><code>None</code></em>, <strong><code>window_fn</code></strong>:<code>Callable[..., Tensor]</code>=<em><code>hann_window</code></em>, <strong><code>wkwargs</code></strong>:<code>dict | None</code>=<em><code>None</code></em>) :: <a href="/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
 </blockquote>
-<p>Shift the <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s pitch using TorchAudio. Can be slower than <a href="/fastxtend/audio.03_augment.html#PitchShift"><code>PitchShift</code></a></p>
+<p>Shift the <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>'s pitch using TorchAudio. Can be slower than <a href="/audio.03_augment.html#PitchShift"><code>PitchShift</code></a></p>
 <table>
 <thead><tr>
 <th></th>
@@ -1169,9 +1169,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="TimeStretch" class="doc_header"><code>class</code> <code>TimeStretch</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L566" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>TimeStretch</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>stretch_rates</code></strong>:<code>tuple[float, float]</code>=<em><code>(0.5, 2.0)</code></em>, <strong><code>padmode</code></strong>:<a href="/fastxtend/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a>=<em><code>&lt;AudioPadMode.Repeat: 4&gt;</code></em>, <strong><code>constant</code></strong>:<code>Number</code>=<em><code>0</code></em>, <strong><code>split</code></strong>:<code>int | None</code>=<em><code>None</code></em>) :: <a href="/fastxtend/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
+<h3 id="TimeStretch" class="doc_header"><code>class</code> <code>TimeStretch</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L566" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>TimeStretch</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>stretch_rates</code></strong>:<code>tuple[float, float]</code>=<em><code>(0.5, 2.0)</code></em>, <strong><code>padmode</code></strong>:<a href="/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a>=<em><code>&lt;AudioPadMode.Repeat: 4&gt;</code></em>, <strong><code>constant</code></strong>:<code>Number</code>=<em><code>0</code></em>, <strong><code>split</code></strong>:<code>int | None</code>=<em><code>None</code></em>) :: <a href="/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
 </blockquote>
-<p>Fast time stretch of <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a></p>
+<p>Fast time stretch of <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a></p>
 <table>
 <thead><tr>
 <th></th>
@@ -1195,15 +1195,15 @@ nb_path: "nbs/audio.03_augment.ipynb"
 </tr>
 <tr>
 <td><strong><code>padmode</code></strong></td>
-<td><a href="/fastxtend/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a></td>
-<td><a href="/fastxtend/audio.03_augment.html#AudioPadMode.Repeat"><code>AudioPadMode.Repeat</code></a></td>
+<td><a href="/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a></td>
+<td><a href="/audio.03_augment.html#AudioPadMode.Repeat"><code>AudioPadMode.Repeat</code></a></td>
 <td>How to pad if necessary</td>
 </tr>
 <tr>
 <td><strong><code>constant</code></strong></td>
 <td><code>Number</code></td>
 <td><code>0</code></td>
-<td>Value for <a href="/fastxtend/audio.03_augment.html#AudioPadMode.Constant"><code>AudioPadMode.Constant</code></a></td>
+<td>Value for <a href="/audio.03_augment.html#AudioPadMode.Constant"><code>AudioPadMode.Constant</code></a></td>
 </tr>
 <tr>
 <td><strong><code>split</code></strong></td>
@@ -1281,9 +1281,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="PitchShiftOrTimeStretch" class="doc_header"><code>class</code> <code>PitchShiftOrTimeStretch</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L610" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>PitchShiftOrTimeStretch</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.4</code></em>, <strong><code>semitones</code></strong>:<code>tuple[float, float]</code>=<em><code>(-4.0, 4.0)</code></em>, <strong><code>bins_per_octave</code></strong>:<code>int</code>=<em><code>12</code></em>, <strong><code>stretch_rates</code></strong>:<code>tuple[float, float]</code>=<em><code>(0.5, 2.0)</code></em>, <strong><code>padmode</code></strong>:<a href="/fastxtend/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a>=<em><code>&lt;AudioPadMode.Repeat: 4&gt;</code></em>, <strong><code>constant</code></strong>:<code>Number</code>=<em><code>0</code></em>, <strong><code>split</code></strong>:<code>int | None</code>=<em><code>None</code></em>) :: <a href="/fastxtend/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
+<h3 id="PitchShiftOrTimeStretch" class="doc_header"><code>class</code> <code>PitchShiftOrTimeStretch</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L610" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>PitchShiftOrTimeStretch</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.4</code></em>, <strong><code>semitones</code></strong>:<code>tuple[float, float]</code>=<em><code>(-4.0, 4.0)</code></em>, <strong><code>bins_per_octave</code></strong>:<code>int</code>=<em><code>12</code></em>, <strong><code>stretch_rates</code></strong>:<code>tuple[float, float]</code>=<em><code>(0.5, 2.0)</code></em>, <strong><code>padmode</code></strong>:<a href="/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a>=<em><code>&lt;AudioPadMode.Repeat: 4&gt;</code></em>, <strong><code>constant</code></strong>:<code>Number</code>=<em><code>0</code></em>, <strong><code>split</code></strong>:<code>int | None</code>=<em><code>None</code></em>) :: <a href="/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
 </blockquote>
-<p>Randomly apply either <a href="/fastxtend/audio.03_augment.html#PitchShift"><code>PitchShift</code></a> or <a href="/fastxtend/audio.03_augment.html#TimeStretch"><code>TimeStretch</code></a> <a href="/fastxtend/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> to minimize distortion</p>
+<p>Randomly apply either <a href="/audio.03_augment.html#PitchShift"><code>PitchShift</code></a> or <a href="/audio.03_augment.html#TimeStretch"><code>TimeStretch</code></a> <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> to minimize distortion</p>
 <table>
 <thead><tr>
 <th></th>
@@ -1319,15 +1319,15 @@ nb_path: "nbs/audio.03_augment.ipynb"
 </tr>
 <tr>
 <td><strong><code>padmode</code></strong></td>
-<td><a href="/fastxtend/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a></td>
-<td><a href="/fastxtend/audio.03_augment.html#AudioPadMode.Repeat"><code>AudioPadMode.Repeat</code></a></td>
+<td><a href="/audio.03_augment.html#AudioPadMode"><code>AudioPadMode</code></a></td>
+<td><a href="/audio.03_augment.html#AudioPadMode.Repeat"><code>AudioPadMode.Repeat</code></a></td>
 <td>How to pad if necessary</td>
 </tr>
 <tr>
 <td><strong><code>constant</code></strong></td>
 <td><code>Number</code></td>
 <td><code>0</code></td>
-<td>Value for <a href="/fastxtend/audio.03_augment.html#AudioPadMode.Constant"><code>AudioPadMode.Constant</code></a></td>
+<td>Value for <a href="/audio.03_augment.html#AudioPadMode.Constant"><code>AudioPadMode.Constant</code></a></td>
 </tr>
 <tr>
 <td><strong><code>split</code></strong></td>
@@ -1457,9 +1457,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="TimeMasking" class="doc_header"><code>class</code> <code>TimeMasking</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L640" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>TimeMasking</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.25</code></em>, <strong><code>max_mask</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>iid_masks</code></strong>:<code>bool</code>=<em><code>True</code></em>, <strong><code>mask_value</code></strong>:<code>int | None</code>=<em><code>0</code></em>) :: <a href="/fastxtend/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
+<h3 id="TimeMasking" class="doc_header"><code>class</code> <code>TimeMasking</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L640" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>TimeMasking</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.25</code></em>, <strong><code>max_mask</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>iid_masks</code></strong>:<code>bool</code>=<em><code>True</code></em>, <strong><code>mask_value</code></strong>:<code>int | None</code>=<em><code>0</code></em>) :: <a href="/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
 </blockquote>
-<p>Randomly apply masking to a <a href="/fastxtend/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <a href="/fastxtend/audio.01_core.html#TensorMelSpec"><code>TensorMelSpec</code></a> in the time domain</p>
+<p>Randomly apply masking to a <a href="/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <a href="/audio.01_core.html#TensorMelSpec"><code>TensorMelSpec</code></a> in the time domain</p>
 <table>
 <thead><tr>
 <th></th>
@@ -1563,9 +1563,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="FrequencyMasking" class="doc_header"><code>class</code> <code>FrequencyMasking</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L661" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>FrequencyMasking</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.25</code></em>, <strong><code>max_mask</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>iid_masks</code></strong>:<code>bool</code>=<em><code>True</code></em>, <strong><code>mask_value</code></strong>:<code>int | None</code>=<em><code>0</code></em>) :: <a href="/fastxtend/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
+<h3 id="FrequencyMasking" class="doc_header"><code>class</code> <code>FrequencyMasking</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L661" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>FrequencyMasking</code>(<strong><code>p</code></strong>:<code>float</code>=<em><code>0.25</code></em>, <strong><code>max_mask</code></strong>:<code>float</code>=<em><code>0.2</code></em>, <strong><code>iid_masks</code></strong>:<code>bool</code>=<em><code>True</code></em>, <strong><code>mask_value</code></strong>:<code>int | None</code>=<em><code>0</code></em>) :: <a href="/transform.html#BatchRandTransform"><code>BatchRandTransform</code></a></p>
 </blockquote>
-<p>Randpmly apply masking to a <a href="/fastxtend/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <a href="/fastxtend/audio.01_core.html#TensorMelSpec"><code>TensorMelSpec</code></a> in the frequency domain</p>
+<p>Randpmly apply masking to a <a href="/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <a href="/audio.01_core.html#TensorMelSpec"><code>TensorMelSpec</code></a> in the frequency domain</p>
 <table>
 <thead><tr>
 <th></th>
@@ -1701,9 +1701,9 @@ nb_path: "nbs/audio.03_augment.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h3 id="AmplitudeToDB" class="doc_header"><code>class</code> <code>AmplitudeToDB</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L688" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>AmplitudeToDB</code>(<strong><code>top_db</code></strong>:<code>float | None</code>=<em><code>None</code></em>, <strong><code>mode</code></strong>:<a href="/fastxtend/audio.03_augment.html#AmplitudeToDBMode"><code>AmplitudeToDBMode</code></a>=<em><code>&lt;AmplitudeToDBMode.Power: 'power'&gt;</code></em>) :: <code>DisplayedTransform</code></p>
+<h3 id="AmplitudeToDB" class="doc_header"><code>class</code> <code>AmplitudeToDB</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L688" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>AmplitudeToDB</code>(<strong><code>top_db</code></strong>:<code>float | None</code>=<em><code>None</code></em>, <strong><code>mode</code></strong>:<a href="/audio.03_augment.html#AmplitudeToDBMode"><code>AmplitudeToDBMode</code></a>=<em><code>&lt;AmplitudeToDBMode.Power: 'power'&gt;</code></em>) :: <code>DisplayedTransform</code></p>
 </blockquote>
-<p>Turn a <a href="/fastxtend/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <a href="/fastxtend/audio.01_core.html#TensorMelSpec"><code>TensorMelSpec</code></a> from the power/amplitude scale to the decibel scale</p>
+<p>Turn a <a href="/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <a href="/audio.01_core.html#TensorMelSpec"><code>TensorMelSpec</code></a> from the power/amplitude scale to the decibel scale</p>
 <table>
 <thead><tr>
 <th></th>
@@ -1721,8 +1721,8 @@ nb_path: "nbs/audio.03_augment.ipynb"
 </tr>
 <tr>
 <td><strong><code>mode</code></strong></td>
-<td><a href="/fastxtend/audio.03_augment.html#AmplitudeToDBMode"><code>AmplitudeToDBMode</code></a></td>
-<td><a href="/fastxtend/audio.03_augment.html#AmplitudeToDBMode.Power"><code>AmplitudeToDBMode.Power</code></a></td>
+<td><a href="/audio.03_augment.html#AmplitudeToDBMode"><code>AmplitudeToDBMode</code></a></td>
+<td><a href="/audio.03_augment.html#AmplitudeToDBMode.Power"><code>AmplitudeToDBMode.Power</code></a></td>
 <td>Power is elementwise square of magnitude</td>
 </tr>
 </tbody>
@@ -1808,7 +1808,7 @@ nb_path: "nbs/audio.03_augment.ipynb"
 <div class="output_markdown rendered_html output_subarea ">
 <h3 id="AudioNormalize" class="doc_header"><code>class</code> <code>AudioNormalize</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/audio/augment.py#L705" class="source_link" style="float:right">[source]</a></h3><blockquote><p><code>AudioNormalize</code>(<strong><code>mean</code></strong>=<em><code>None</code></em>, <strong><code>std</code></strong>=<em><code>None</code></em>, <strong><code>n_spec</code></strong>=<em><code>1</code></em>, <strong><code>axes</code></strong>=<em><code>(0, 2, 3)</code></em>) :: <code>DisplayedTransform</code></p>
 </blockquote>
-<p>Normalize/denorm batch of <a href="/fastxtend/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <a href="/fastxtend/audio.01_core.html#TensorMelSpec"><code>TensorMelSpec</code></a>.</p>
+<p>Normalize/denorm batch of <a href="/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <a href="/audio.01_core.html#TensorMelSpec"><code>TensorMelSpec</code></a>.</p>
 
 </div>
 

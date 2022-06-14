@@ -65,6 +65,7 @@ index = {"is_listish": "0_basics.ipynb",
          "SimpleProfilerPostCallback": "callback.simpleprofiler.ipynb",
          "SimpleProfilerCallback": "callback.simpleprofiler.ipynb",
          "Learner.profile": "callback.simpleprofiler.ipynb",
+         "TensorCastBackport": "callback.tensorcast.ipynb",
          "TerminateOnTrainNaN": "callback.tracker.ipynb",
          "SaveModelAtEnd": "callback.tracker.ipynb",
          "KFoldColSplitter": "data.transforms.ipynb",
@@ -244,6 +245,7 @@ modules = ["basics.py",
            "callback/lr_finder.py",
            "callback/mesa.py",
            "callback/simpleprofiler.py",
+           "callback/tensorcast.py",
            "callback/tracker.py",
            "data/transforms.py",
            "losses.py",
@@ -259,7 +261,7 @@ modules = ["basics.py",
            "vision/models/pooling.py",
            "vision/models/xresnet.py"]
 
-doc_url = "https://warner-benjamin.github.io/fastxtend/"
+doc_url = "https://fastxtend.benjaminwarner.dev/"
 
 git_url = "https://github.com/warner-benjamin/fastxtend/tree/main/"
 

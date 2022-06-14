@@ -45,7 +45,7 @@ nb_path: "nbs/vision.data.ipynb"
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>With enough DataLoader workers and fast CPU cores, using fastai's GPU augmentations can lead to slower training then using CPU augmentations.</p>
-<p><a href="/fastxtend/vision.data.html#ImageCPUBlock"><code>ImageCPUBlock</code></a> and <a href="/fastxtend/vision.data.html#MaskCPUBlock"><code>MaskCPUBlock</code></a> are convenience methods for executing fastai batch transforms on CPU.</p>
+<p><a href="/vision.data.html#ImageCPUBlock"><code>ImageCPUBlock</code></a> and <a href="/vision.data.html#MaskCPUBlock"><code>MaskCPUBlock</code></a> are convenience methods for executing fastai batch transforms on CPU.</p>
 
 </div>
 </div>
@@ -116,7 +116,7 @@ nb_path: "nbs/vision.data.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>PyTorch 2D image transforms expect tensors to be in BCHW format. <a href="/fastxtend/vision.data.html#PreBatchAsItem"><code>PreBatchAsItem</code></a> and <a href="/fastxtend/vision.data.html#PostBatchAsItem"><code>PostBatchAsItem</code></a> add and remove a B dim to a single Tensor Image so fastai batch transforms will work on individual items.</p>
+<p>PyTorch 2D image transforms expect tensors to be in BCHW format. <a href="/vision.data.html#PreBatchAsItem"><code>PreBatchAsItem</code></a> and <a href="/vision.data.html#PostBatchAsItem"><code>PostBatchAsItem</code></a> add and remove a B dim to a single Tensor Image so fastai batch transforms will work on individual items.</p>
 
 </div>
 </div>
