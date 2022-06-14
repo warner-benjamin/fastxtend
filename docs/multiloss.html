@@ -47,7 +47,7 @@ nb_path: "nbs/multiloss.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="MultiLoss" class="doc_header"><code>class</code> <code>MultiLoss</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L26" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiLoss</code>(<strong><code>loss_funcs</code></strong>:<code>listy[nn.Module | FunctionType]</code>, <strong><code>weights</code></strong>:<code>listified[Number] | None</code>=<em><code>None</code></em>, <strong><code>loss_kwargs</code></strong>:<code>listy[dict[str, Any]] | None</code>=<em><code>None</code></em>, <strong><code>loss_names</code></strong>:<code>listy[str] | None</code>=<em><code>None</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <code>Module</code></p>
+<h2 id="MultiLoss" class="doc_header"><code>class</code> <code>MultiLoss</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L26" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiLoss</code>(<strong><code>loss_funcs</code></strong>:<code>listy[Callable[..., nn.Module] | FunctionType]</code>, <strong><code>weights</code></strong>:<code>listified[Number] | None</code>=<em><code>None</code></em>, <strong><code>loss_kwargs</code></strong>:<code>listy[dict[str, Any]] | None</code>=<em><code>None</code></em>, <strong><code>loss_names</code></strong>:<code>listy[str] | None</code>=<em><code>None</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Combine multiple <code>loss_funcs</code> on one prediction &amp; target via <code>reduction</code>, with optional weighting.</p>
 <p>Log <code>loss_funcs</code> as metrics via <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>, optionally using <code>loss_names</code>.</p>
@@ -62,7 +62,7 @@ nb_path: "nbs/multiloss.ipynb"
 <tbody>
 <tr>
 <td><strong><code>loss_funcs</code></strong></td>
-<td><code>listy[nn.Module or FunctionType]</code></td>
+<td><code>listy[Callable[..., nn.Module] or FunctionType]</code></td>
 <td></td>
 <td>Uninitialized loss functions or classes. Must support PyTorch <code>reduction</code> string.</td>
 </tr>
@@ -131,7 +131,7 @@ nb_path: "nbs/multiloss.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="MultiTargetLoss" class="doc_header"><code>class</code> <code>MultiTargetLoss</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L92" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiTargetLoss</code>(<strong><code>loss_funcs</code></strong>:<code>listy[nn.Module | FunctionType]</code>, <strong><code>weights</code></strong>:<code>listified[Number] | None</code>=<em><code>None</code></em>, <strong><code>loss_kwargs</code></strong>:<code>listy[dict[str, Any]] | None</code>=<em><code>None</code></em>, <strong><code>loss_names</code></strong>:<code>listy[str] | None</code>=<em><code>None</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <a href="/fastxtend/multiloss.html#MultiLoss"><code>MultiLoss</code></a></p>
+<h2 id="MultiTargetLoss" class="doc_header"><code>class</code> <code>MultiTargetLoss</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L92" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiTargetLoss</code>(<strong><code>loss_funcs</code></strong>:<code>listy[Callable[..., nn.Module] | FunctionType]</code>, <strong><code>weights</code></strong>:<code>listified[Number] | None</code>=<em><code>None</code></em>, <strong><code>loss_kwargs</code></strong>:<code>listy[dict[str, Any]] | None</code>=<em><code>None</code></em>, <strong><code>loss_names</code></strong>:<code>listy[str] | None</code>=<em><code>None</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <a href="/fastxtend/multiloss.html#MultiLoss"><code>MultiLoss</code></a></p>
 </blockquote>
 <p>Combine <code>loss_funcs</code> from multiple predictions &amp; targets via <code>reduction</code>, with optional weighting.</p>
 <p>Log <code>loss_funcs</code> as metrics via <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>, optionally using <code>loss_names</code>.</p>
@@ -146,7 +146,7 @@ nb_path: "nbs/multiloss.ipynb"
 <tbody>
 <tr>
 <td><strong><code>loss_funcs</code></strong></td>
-<td><code>listy[nn.Module or FunctionType]</code></td>
+<td><code>listy[Callable[..., nn.Module] or FunctionType]</code></td>
 <td></td>
 <td>Uninitialized loss functions or classes. One per prediction and target. Must support PyTorch <code>reduction</code> string.</td>
 </tr>

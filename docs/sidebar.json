@@ -14,6 +14,7 @@
     "CutMixUp": "callback.cutmixup.html",
     "LR Finder": "callback.lr_finder.html",
     "Simple Profiler": "callback.simpleprofiler.html",
+    "Tensor Cast Backport": "callback.tensorcast.html",
     "Tracker": "callback.tracker.html"
   },
   "Data": {

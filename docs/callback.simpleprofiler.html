@@ -100,7 +100,10 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">_inner_loop</span> <span class="o">=</span> <span class="s2">&quot;before_draw before_batch after_pred after_loss before_backward before_step after_step after_cancel_batch after_batch&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">parse</span><span class="p">(</span><span class="n">fastai</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">parse</span><span class="p">(</span><span class="s1">&#39;2.7.0&#39;</span><span class="p">):</span>
+    <span class="n">_inner_loop</span> <span class="o">=</span> <span class="s2">&quot;before_draw before_batch after_pred after_loss before_backward after_cancel_backward after_backward before_step after_step after_cancel_batch after_batch&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">_inner_loop</span> <span class="o">=</span> <span class="s2">&quot;before_draw before_batch after_pred after_loss before_backward before_step after_step after_cancel_batch after_batch&quot;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
 </pre></div>
 
     </div>
@@ -117,10 +120,16 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">_events</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;after_create before_fit before_epoch before_train before_draw before_batch after_pred after_loss </span><span class="se">\</span>
-<span class="s1">    before_backward before_step after_cancel_step after_step after_cancel_batch after_batch after_cancel_train </span><span class="se">\</span>
-<span class="s1">    after_train before_validate after_cancel_validate after_validate after_cancel_epoch </span><span class="se">\</span>
-<span class="s1">    after_epoch after_cancel_fit after_fit&#39;</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">if</span> <span class="n">parse</span><span class="p">(</span><span class="n">fastai</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">parse</span><span class="p">(</span><span class="s1">&#39;2.7.0&#39;</span><span class="p">):</span>
+    <span class="n">_events</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;after_create before_fit before_epoch before_train before_draw before_batch after_pred after_loss </span><span class="se">\</span>
+<span class="s1">        before_backward after_cancel_backward after_backward before_step after_cancel_step after_step </span><span class="se">\</span>
+<span class="s1">        after_cancel_batch after_batch after_cancel_train after_train before_validate after_cancel_validate </span><span class="se">\</span>
+<span class="s1">        after_validate after_cancel_epoch after_epoch after_cancel_fit after_fit&#39;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">_events</span> <span class="o">=</span> <span class="n">L</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;after_create before_fit before_epoch before_train before_draw before_batch after_pred after_loss </span><span class="se">\</span>
+<span class="s1">        before_backward before_step after_cancel_step after_step after_cancel_batch after_batch after_cancel_train </span><span class="se">\</span>
+<span class="s1">        after_train before_validate after_cancel_validate after_validate after_cancel_epoch </span><span class="se">\</span>
+<span class="s1">        after_epoch after_cancel_fit after_fit&#39;</span><span class="p">)</span>
 
 <span class="n">mk_class</span><span class="p">(</span><span class="s1">&#39;event&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">_events</span><span class="o">.</span><span class="n">map_dict</span><span class="p">(),</span>
          <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;All possible events as attributes to get tab-completion and typo-proofing&quot;</span><span class="p">)</span>
@@ -151,7 +160,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Callback.__call__" class="doc_header"><code>Callback.__call__</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L33" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Callback.__call__</code>(<strong><code>event_name</code></strong>)</p>
+<h4 id="Callback.__call__" class="doc_header"><code>Callback.__call__</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L46" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Callback.__call__</code>(<strong><code>event_name</code></strong>)</p>
 </blockquote>
 <p>Call <code>self.{event_name}</code> if it's defined</p>
 
@@ -235,7 +244,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Learner.all_batches" class="doc_header"><code>Learner.all_batches</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L50" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.all_batches</code>()</p>
+<h4 id="Learner.all_batches" class="doc_header"><code>Learner.all_batches</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L63" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.all_batches</code>()</p>
 </blockquote>
 
 </div>
@@ -300,7 +309,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="SimpleProfilerPostCallback" class="doc_header"><code>class</code> <code>SimpleProfilerPostCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L86" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SimpleProfilerPostCallback</code>(<strong><code>after_create</code></strong>=<em><code>None</code></em>, <strong><code>before_fit</code></strong>=<em><code>None</code></em>, <strong><code>before_epoch</code></strong>=<em><code>None</code></em>, <strong><code>before_train</code></strong>=<em><code>None</code></em>, <strong><code>before_batch</code></strong>=<em><code>None</code></em>, <strong><code>after_pred</code></strong>=<em><code>None</code></em>, <strong><code>after_loss</code></strong>=<em><code>None</code></em>, <strong><code>before_backward</code></strong>=<em><code>None</code></em>, <strong><code>before_step</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_step</code></strong>=<em><code>None</code></em>, <strong><code>after_step</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_batch</code></strong>=<em><code>None</code></em>, <strong><code>after_batch</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_train</code></strong>=<em><code>None</code></em>, <strong><code>after_train</code></strong>=<em><code>None</code></em>, <strong><code>before_validate</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_validate</code></strong>=<em><code>None</code></em>, <strong><code>after_validate</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_epoch</code></strong>=<em><code>None</code></em>, <strong><code>after_epoch</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_fit</code></strong>=<em><code>None</code></em>, <strong><code>after_fit</code></strong>=<em><code>None</code></em>) :: <code>Callback</code></p>
+<h2 id="SimpleProfilerPostCallback" class="doc_header"><code>class</code> <code>SimpleProfilerPostCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L99" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SimpleProfilerPostCallback</code>(<strong><code>after_create</code></strong>=<em><code>None</code></em>, <strong><code>before_fit</code></strong>=<em><code>None</code></em>, <strong><code>before_epoch</code></strong>=<em><code>None</code></em>, <strong><code>before_train</code></strong>=<em><code>None</code></em>, <strong><code>before_batch</code></strong>=<em><code>None</code></em>, <strong><code>after_pred</code></strong>=<em><code>None</code></em>, <strong><code>after_loss</code></strong>=<em><code>None</code></em>, <strong><code>before_backward</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_backward</code></strong>=<em><code>None</code></em>, <strong><code>after_backward</code></strong>=<em><code>None</code></em>, <strong><code>before_step</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_step</code></strong>=<em><code>None</code></em>, <strong><code>after_step</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_batch</code></strong>=<em><code>None</code></em>, <strong><code>after_batch</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_train</code></strong>=<em><code>None</code></em>, <strong><code>after_train</code></strong>=<em><code>None</code></em>, <strong><code>before_validate</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_validate</code></strong>=<em><code>None</code></em>, <strong><code>after_validate</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_epoch</code></strong>=<em><code>None</code></em>, <strong><code>after_epoch</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_fit</code></strong>=<em><code>None</code></em>, <strong><code>after_fit</code></strong>=<em><code>None</code></em>) :: <code>Callback</code></p>
 </blockquote>
 <p>Pair with <a href="/fastxtend/callback.simpleprofiler.html#SimpleProfilerCallback"><code>SimpleProfilerCallback</code></a> to profile training performance. Removes itself after training is over.</p>
 
@@ -332,7 +341,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="SimpleProfilerCallback" class="doc_header"><code>class</code> <code>SimpleProfilerCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L129" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SimpleProfilerCallback</code>(<strong><code>show_report</code></strong>=<em><code>True</code></em>, <strong><code>plain</code></strong>=<em><code>False</code></em>, <strong><code>markdown</code></strong>=<em><code>False</code></em>, <strong><code>save_csv</code></strong>=<em><code>False</code></em>, <strong><code>csv_name</code></strong>=<em><code>'simple_profile.csv'</code></em>) :: <code>Callback</code></p>
+<h2 id="SimpleProfilerCallback" class="doc_header"><code>class</code> <code>SimpleProfilerCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L142" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SimpleProfilerCallback</code>(<strong><code>show_report</code></strong>=<em><code>True</code></em>, <strong><code>plain</code></strong>=<em><code>False</code></em>, <strong><code>markdown</code></strong>=<em><code>False</code></em>, <strong><code>save_csv</code></strong>=<em><code>False</code></em>, <strong><code>csv_name</code></strong>=<em><code>'simple_profile.csv'</code></em>) :: <code>Callback</code></p>
 </blockquote>
 <p>Adds a simple profiler to the fastai <code>Learner</code>. Optionally showing formatted report or saving unformatted results as csv.</p>
 <p>Pair with SimpleProfilerPostCallback to profile training performance.</p>
@@ -372,7 +381,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Learner.profile" class="doc_header"><code>Learner.profile</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L242" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.profile</code>(<strong><code>show_report</code></strong>=<em><code>True</code></em>, <strong><code>plain</code></strong>=<em><code>False</code></em>, <strong><code>markdown</code></strong>=<em><code>False</code></em>, <strong><code>save_csv</code></strong>=<em><code>False</code></em>, <strong><code>csv_name</code></strong>=<em><code>'simple_profile.csv'</code></em>)</p>
+<h4 id="Learner.profile" class="doc_header"><code>Learner.profile</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L255" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.profile</code>(<strong><code>show_report</code></strong>=<em><code>True</code></em>, <strong><code>plain</code></strong>=<em><code>False</code></em>, <strong><code>markdown</code></strong>=<em><code>False</code></em>, <strong><code>save_csv</code></strong>=<em><code>False</code></em>, <strong><code>csv_name</code></strong>=<em><code>'simple_profile.csv'</code></em>)</p>
 </blockquote>
 <p>Run Simple Profiler when training. Simple Profiler removes itself when finished.</p>
 
@@ -860,7 +869,8 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">learn</span> <span class="o">=</span> <span class="n">synth_learner</span><span class="p">()</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">fastai.test_utils</span> <span class="kn">import</span> <span class="n">synth_learner</span>
+<span class="n">learn</span> <span class="o">=</span> <span class="n">synth_learner</span><span class="p">()</span>
 <span class="n">learn</span><span class="o">.</span><span class="n">show_training_loop</span><span class="p">()</span>
 </pre></div>
 
