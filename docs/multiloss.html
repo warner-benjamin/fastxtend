@@ -50,7 +50,7 @@ nb_path: "nbs/multiloss.ipynb"
 <h2 id="MultiLoss" class="doc_header"><code>class</code> <code>MultiLoss</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L26" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiLoss</code>(<strong><code>loss_funcs</code></strong>:<code>listy[Callable[..., nn.Module] | FunctionType]</code>, <strong><code>weights</code></strong>:<code>listified[Number] | None</code>=<em><code>None</code></em>, <strong><code>loss_kwargs</code></strong>:<code>listy[dict[str, Any]] | None</code>=<em><code>None</code></em>, <strong><code>loss_names</code></strong>:<code>listy[str] | None</code>=<em><code>None</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <code>Module</code></p>
 </blockquote>
 <p>Combine multiple <code>loss_funcs</code> on one prediction &amp; target via <code>reduction</code>, with optional weighting.</p>
-<p>Log <code>loss_funcs</code> as metrics via <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>, optionally using <code>loss_names</code>.</p>
+<p>Log <code>loss_funcs</code> as metrics via <a href="/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>, optionally using <code>loss_names</code>.</p>
 <table>
 <thead><tr>
 <th></th>
@@ -82,7 +82,7 @@ nb_path: "nbs/multiloss.ipynb"
 <td><strong><code>loss_names</code></strong></td>
 <td><code>listy[str] or None</code></td>
 <td><code>None</code></td>
-<td>Loss names to log using <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>. Defaults to loss <code>__name__</code>.</td>
+<td>Loss names to log using <a href="/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>. Defaults to loss <code>__name__</code>.</td>
 </tr>
 <tr>
 <td><strong><code>reduction</code></strong></td>
@@ -112,7 +112,7 @@ nb_path: "nbs/multiloss.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><a href="/fastxtend/multiloss.html#MultiLoss"><code>MultiLoss</code></a> is a simple multiple loss wrapper which allows logging each individual loss automatically using the <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>.</p>
+<p><a href="/multiloss.html#MultiLoss"><code>MultiLoss</code></a> is a simple multiple loss wrapper which allows logging each individual loss automatically using the <a href="/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>.</p>
 <p>Pass uninitialized loss functions to <code>loss_funcs</code>, optional per loss weighting via <code>weights</code>, any loss arguments via a list of dictionaries in <code>loss_kwargs</code>, and optional names for each individual loss via <code>loss_names</code>.</p>
 <p>If passed, <code>weights</code>, <code>loss_kwargs</code>, &amp; <code>loss_names</code> must be an iterable of the same length as <code>loss_funcs</code>.</p>
 <p>Output from each loss function must be the same shape.</p>
@@ -131,10 +131,10 @@ nb_path: "nbs/multiloss.ipynb"
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="MultiTargetLoss" class="doc_header"><code>class</code> <code>MultiTargetLoss</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L92" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiTargetLoss</code>(<strong><code>loss_funcs</code></strong>:<code>listy[Callable[..., nn.Module] | FunctionType]</code>, <strong><code>weights</code></strong>:<code>listified[Number] | None</code>=<em><code>None</code></em>, <strong><code>loss_kwargs</code></strong>:<code>listy[dict[str, Any]] | None</code>=<em><code>None</code></em>, <strong><code>loss_names</code></strong>:<code>listy[str] | None</code>=<em><code>None</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <a href="/fastxtend/multiloss.html#MultiLoss"><code>MultiLoss</code></a></p>
+<h2 id="MultiTargetLoss" class="doc_header"><code>class</code> <code>MultiTargetLoss</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L92" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiTargetLoss</code>(<strong><code>loss_funcs</code></strong>:<code>listy[Callable[..., nn.Module] | FunctionType]</code>, <strong><code>weights</code></strong>:<code>listified[Number] | None</code>=<em><code>None</code></em>, <strong><code>loss_kwargs</code></strong>:<code>listy[dict[str, Any]] | None</code>=<em><code>None</code></em>, <strong><code>loss_names</code></strong>:<code>listy[str] | None</code>=<em><code>None</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <a href="/multiloss.html#MultiLoss"><code>MultiLoss</code></a></p>
 </blockquote>
 <p>Combine <code>loss_funcs</code> from multiple predictions &amp; targets via <code>reduction</code>, with optional weighting.</p>
-<p>Log <code>loss_funcs</code> as metrics via <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>, optionally using <code>loss_names</code>.</p>
+<p>Log <code>loss_funcs</code> as metrics via <a href="/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>, optionally using <code>loss_names</code>.</p>
 <table>
 <thead><tr>
 <th></th>
@@ -166,7 +166,7 @@ nb_path: "nbs/multiloss.ipynb"
 <td><strong><code>loss_names</code></strong></td>
 <td><code>listy[str] or None</code></td>
 <td><code>None</code></td>
-<td>Loss names to log using <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>. Defaults to loss <code>__name__</code>.</td>
+<td>Loss names to log using <a href="/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>. Defaults to loss <code>__name__</code>.</td>
 </tr>
 <tr>
 <td><strong><code>reduction</code></strong></td>
@@ -196,7 +196,7 @@ nb_path: "nbs/multiloss.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p><a href="/fastxtend/multiloss.html#MultiTargetLoss"><code>MultiTargetLoss</code></a> a single loss per multiple target version of <code>Multiloss</code>. It is a simple multiple loss wrapper which allows logging each individual loss automatically using the <a href="/fastxtend/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>.</p>
+<p><a href="/multiloss.html#MultiTargetLoss"><code>MultiTargetLoss</code></a> a single loss per multiple target version of <code>Multiloss</code>. It is a simple multiple loss wrapper which allows logging each individual loss automatically using the <a href="/multiloss.html#MultiLossCallback"><code>MultiLossCallback</code></a>.</p>
 <p>Pass uninitialized loss functions to <code>loss_funcs</code>, optional per loss weighting via <code>weights</code>, any loss arguments via a list of dictionaries in <code>loss_kwargs</code>, and optional names for each individual loss via <code>loss_names</code>.</p>
 <p>If passed, <code>weights</code>, <code>loss_kwargs</code>, &amp; <code>loss_names</code> must be an iterable of the same length as <code>loss_funcs</code>.</p>
 <p>Output from each loss function must be the same shape.</p>
@@ -217,7 +217,7 @@ nb_path: "nbs/multiloss.ipynb"
 <div class="output_markdown rendered_html output_subarea ">
 <h2 id="MultiLossCallback" class="doc_header"><code>class</code> <code>MultiLossCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/multiloss.py#L162" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>MultiLossCallback</code>(<strong><code>beta</code></strong>:<code>float</code>=<em><code>0.98</code></em>, <strong><code>reduction</code></strong>:<code>str | None</code>=<em><code>'mean'</code></em>) :: <code>Callback</code></p>
 </blockquote>
-<p>Callback to automatically log and name <a href="/fastxtend/multiloss.html#MultiLoss"><code>MultiLoss</code></a> losses as fastxtend metrics</p>
+<p>Callback to automatically log and name <a href="/multiloss.html#MultiLoss"><code>MultiLoss</code></a> losses as fastxtend metrics</p>
 <table>
 <thead><tr>
 <th></th>

@@ -33,7 +33,7 @@ nb_path: "nbs/callback.channelslast.ipynb"
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>Using Mixed Precision, image models trained in channels last format on Nvidia Tensor Cores can achieve 8%-35% increased performance over contiguous format.</p>
 <p>Channels last memory format is only implemented for 4D NCHW Tensors. Not all PyTorch operators have been converted to support channels last. See <a href="https://pytorch.org/tutorials/intermediate/memory_format_tutorial.html">(Beta) Channels Last Memory Format in PyTorch</a> for more details.</p>
-<p>Channels Last format can error out if <code>torch.backends.cudnn.benchmark = False</code>, e.g. via fast.ai's <a href="https://docs.fast.ai/torch_core.html#no_random">no_random</a> context manager. If this occurs the <a href="/fastxtend/utils.html#less_random"><code>less_random</code></a> context manager instead. This will allow reproducable training on the same GPU, PyTorch, and CUDA setup at the expense of less reproducablity should any of those change.</p>
+<p>Channels Last format can error out if <code>torch.backends.cudnn.benchmark = False</code>, e.g. via fast.ai's <a href="https://docs.fast.ai/torch_core.html#no_random">no_random</a> context manager. If this occurs the <a href="/utils.html#less_random"><code>less_random</code></a> context manager instead. This will allow reproducable training on the same GPU, PyTorch, and CUDA setup at the expense of less reproducablity should any of those change.</p>
 
 </div>
 </div>
@@ -79,8 +79,8 @@ nb_path: "nbs/callback.channelslast.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Channels last format requires inputs to be 4D NCHW Tensors, so <a href="/fastxtend/callback.channelslast.html#ChannelsLastTfm"><code>ChannelsLastTfm</code></a> only encodes <code>TensorImageBase</code> and <code>TensorMask</code> inputs to channels last using fastcore's type dispatch.</p>
-<p>To set another input type as channels last format, patch <a href="/fastxtend/callback.channelslast.html#ChannelsLastTfm.encodes"><code>ChannelsLastTfm.encodes</code></a> to dispatch for that type.</p>
+<p>Channels last format requires inputs to be 4D NCHW Tensors, so <a href="/callback.channelslast.html#ChannelsLastTfm"><code>ChannelsLastTfm</code></a> only encodes <code>TensorImageBase</code> and <code>TensorMask</code> inputs to channels last using fastcore's type dispatch.</p>
+<p>To set another input type as channels last format, patch <a href="/callback.channelslast.html#ChannelsLastTfm.encodes"><code>ChannelsLastTfm.encodes</code></a> to dispatch for that type.</p>
 
 </div>
 </div>

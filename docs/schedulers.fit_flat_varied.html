@@ -78,13 +78,13 @@ optionally with cosine annealing or custom <code>change_sched</code> over <code>
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="Example-Schedules">Example Schedules<a class="anchor-link" href="#Example-Schedules"> </a></h2><p>Discriminative Linear Warmup:</p>
 <p><code>learn.fit_flat_varied(4, slice(3e-5, 3e-3), next_lr=3e-3, change_by=1, change_time=1, change_sched=SchedLin)</code></p>
-<p><img src="/fastxtend/images/fit_flat_varied_3.png" alt="discriminative linear warmup"></p>
+<p><img src="/images/fit_flat_varied_3.png" alt="discriminative linear warmup"></p>
 <p>Multiple Cosine Annealing:</p>
 <p><code>learn.fit_flat_varied(15, 8e-3, next_lr=[6e-3, 4e-3], change_by=[4, 8], change_time=2)</code></p>
-<p><img src="/fastxtend/images/fit_flat_varied_1.png" alt="multiple cosine annealing"></p>
+<p><img src="/images/fit_flat_varied_1.png" alt="multiple cosine annealing"></p>
 <p>Immediate Change:</p>
 <p><code>learn.fit_flat_varied(10, 8e-3, next_lr=[6e-3, 4e-3], change_by=[0.25, 0.5], change_time=0)</code></p>
-<p><img src="/fastxtend/images/fit_flat_varied_2.png" alt="immediate change"></p>
+<p><img src="/images/fit_flat_varied_2.png" alt="immediate change"></p>
 
 </div>
 </div>
