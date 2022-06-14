@@ -258,7 +258,7 @@ modules = ["basics.py",
            "vision/models/pooling.py",
            "vision/models/xresnet.py"]
 
-doc_url = "https://warner-benjamin.github.io/fastxtend/"
+doc_url = "https://fastxtend.benjaminwarner.dev/"
 
 git_url = "https://github.com/warner-benjamin/fastxtend/tree/main/"
 
