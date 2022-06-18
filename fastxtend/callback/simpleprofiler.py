@@ -3,6 +3,7 @@
 __all__ = ['SimpleProfilerPostCallback', 'SimpleProfilerCallback']
 
 # Cell
+import locale
 import time
 import pandas as pd
 import numpy as np
@@ -91,49 +92,63 @@ def show_training_loop(self:Learner):
         else: print(f'{" "*indent} - {s:15}:', self.ordered_cbs(s))
 
 # Internal Cell
-_all = ['fit', 'epoch', 'train', 'validate']
-_train = ['backward', 'step', 'zero_grad']
-_multiple = ['draw', 'batch', 'pred', 'loss']
+_phase = ['fit', 'epoch', 'train', 'valid']
+_epoch = ['train', 'valid']
+_train = ['draw', 'batch', 'pred', 'loss', 'backward', 'opt_step', 'zero_grad']
+_valid = ['draw', 'batch', 'pred', 'loss']
 
 # Cell
 class SimpleProfilerPostCallback(Callback):
     "Pair with `SimpleProfilerCallback` to profile training performance. Removes itself after training is over."
     order,remove_on_fetch = Recorder.order-1,True
+    def __init__(self, samples_per_second=True, logger_callback='wandb'):
+        store_attr()
+        self._phase,self._train,self._valid = _phase,_train,_valid
 
     def before_fit(self):
         self.profiler = self.learn.simple_profiler
+        self.n_train_batches = len(self.dls.train)
+        self.n_valid_batches = len(self.dls.valid)
+        self.has_logger = hasattr(self.learn, self.logger_callback) and not hasattr(self.learn, 'lr_finder') and not hasattr(self, "gather_preds")
 
     def after_train(self):
-        self.profiler._raw_time['train'].append(time.monotonic() - self.profiler._train_start)
+        self.profiler._raw_values['train'].append(time.perf_counter() - self.profiler._train_start)
 
     def after_validate(self):
-        self.profiler._raw_time['validate'].append(time.monotonic() - self.profiler._validate_start)
+        self.profiler._raw_values['valid'].append(time.perf_counter() - self.profiler._validate_start)
 
     def after_pred(self):
-        if self.training: self.profiler._raw_time['train_pred'].append(time.monotonic() - self.profiler._train_batch_start)
-        else: self.profiler._raw_time['valid_pred'].append(time.monotonic() - self.profiler._valid_batch_start)
+        if self.training: self.profiler._raw_values['train_pred'].append(time.perf_counter() - self.profiler._train_batch_start)
+        else: self.profiler._raw_values['valid_pred'].append(time.perf_counter() - self.profiler._valid_batch_start)
 
-        if self.training: self.profiler._train_loss_start = time.monotonic()
-        else: self.profiler._valid_loss_start = time.monotonic()
+        if self.training: self.profiler._train_loss_start = time.perf_counter()
+        else: self.profiler._valid_loss_start = time.perf_counter()
 
     def after_loss(self):
-        if self.training: self.profiler._raw_time['train_loss'].append(time.monotonic() - self.profiler._train_loss_start)
-        else: self.profiler._raw_time['valid_loss'].append(time.monotonic() - self.profiler._valid_loss_start)
+        if self.training: self.profiler._raw_values['train_loss'].append(time.perf_counter() - self.profiler._train_loss_start)
+        else: self.profiler._raw_values['valid_loss'].append(time.perf_counter() - self.profiler._valid_loss_start)
 
     def after_step(self):
-        self.profiler._raw_time['step'].append(time.monotonic() - self.profiler._step_start)
-        self.profiler._zero_start = time.monotonic()
+        self.profiler._raw_values['train_opt_step'].append(time.perf_counter() - self.profiler._step_start)
+        self.profiler._zero_start = time.perf_counter()
 
     def after_batch(self):
-        if self.training: self.profiler._raw_time['train_batch'].append(time.monotonic() - self.profiler._train_draw_start)
-        else: self.profiler._raw_time['valid_batch'].append(time.monotonic() - self.profiler._valid_draw_start)
+        if self.training:
+            self.profiler._raw_values['train_batch'].append(time.perf_counter() - self.profiler._train_batch_start)
+            if self.samples_per_second:
+                self.profiler._raw_values['train_bs'].append(find_bs(self.learn.xb))
+                if self.has_logger: self.profiler._log_after_batch()
+        else:
+            self.profiler._raw_values['valid_batch'].append(time.perf_counter() - self.profiler._valid_batch_start)
+            if self.samples_per_second: self.profiler._raw_values['valid_bs'].append(find_bs(self.learn.xb))
 
     def after_epoch(self):
-        self.profiler._raw_time['epoch'].append(time.monotonic() - self.profiler._epoch_start)
+        self.profiler._raw_values['epoch'].append(time.perf_counter() - self.profiler._epoch_start)
 
     def after_fit(self):
-        self.profiler._raw_time['fit'].append(time.monotonic() - self.profiler._fit_start)
+        self.profiler._raw_values['fit'].append(time.perf_counter() - self.profiler._fit_start)
         self.profiler._generate_report()
+        if self.has_logger: self.profiler._log_after_fit()
         if not hasattr(self.learn, 'lr_finder'):
             self.profiler._display_report()
             self.learn.remove_cbs([SimpleProfilerCallback, SimpleProfilerPostCallback])
@@ -152,63 +167,77 @@ class SimpleProfilerCallback(Callback):
                  save_csv=False, csv_name='simple_profile.csv'):
         store_attr()
         self.csv_name = Path(csv_name)
+        self._phase,self._train,self._valid = _phase,_train,_valid
 
     def before_fit(self):
-        self._raw_time = dict()
-        for c in _all + _train:
-            self._raw_time[c] = []
-        for p in ['train', 'valid']:
-            for c in _multiple:
-                self._raw_time[f'{p}_{c}'] = []
+        self.log_wandb = hasattr(self.learn, 'wandb') and self.learn.wandb.run
+        self._raw_values = dict()
+        for p in _phase:
+            self._raw_values[p] = []
+        for p in _epoch:
+            for a in getattr(self, f'_{p}'):
+                self._raw_values[f'{p}_{a}'] = []
+            self._raw_values[f'{p}_bs'] = []
 
-        self._fit_start = time.monotonic()
+        self._fit_start = time.perf_counter()
 
     def before_epoch(self):
-        self._epoch_start = time.monotonic()
+        self._epoch_start = time.perf_counter()
 
     def before_train(self):
-        self._train_start = time.monotonic()
+        self._train_start = time.perf_counter()
 
     def before_validate(self):
-        self._validate_start = time.monotonic()
+        self._validate_start = time.perf_counter()
 
     def before_draw(self):
-        if self.training: self._train_draw_start = time.monotonic()
-        else: self._valid_draw_start = time.monotonic()
+        if self.training: self._train_draw_start = time.perf_counter()
+        else: self._valid_draw_start = time.perf_counter()
 
     def before_batch(self):
-        if self.training: self._raw_time['train_draw'].append(time.monotonic() - self._train_draw_start)
-        else: self._raw_time['valid_draw'].append(time.monotonic() - self._valid_draw_start)
+        if self.training: self._raw_values['train_draw'].append(time.perf_counter() - self._train_draw_start)
+        else: self._raw_values['valid_draw'].append(time.perf_counter() - self._valid_draw_start)
 
-        if self.training: self._train_batch_start = time.monotonic()
-        else: self._valid_batch_start = time.monotonic()
+        if self.training: self._train_batch_start = time.perf_counter()
+        else: self._valid_batch_start = time.perf_counter()
 
     def before_backward(self):
-        self._backward_start = time.monotonic()
+        self._backward_start = time.perf_counter()
 
     def before_step(self):
-        self._raw_time['backward'].append(time.monotonic() - self._backward_start)
-        self._step_start = time.monotonic()
+        self._raw_values['train_backward'].append(time.perf_counter() - self._backward_start)
+        self._step_start = time.perf_counter()
 
     def after_batch(self):
-        if self.training: self._raw_time['zero_grad'].append(time.monotonic() - self._zero_start)
+        if self.training: self._raw_values['train_zero_grad'].append(time.perf_counter() - self._zero_start)
+
+    def _train_samples_per_second(self, action):
+        if action =='draw':
+            bs = self._raw_values['train_bs'][-1]
+            batch = self._raw_values['train_batch'][-1]
+            return -(bs/batch - bs/(batch+self._raw_values[f'train_draw'][-1]))
+        else:
+            return self._raw_values[f'train_bs'][-1]/self._raw_values[f'train_{action}'][-1]
 
     def _generate_report(self):
-        total_time = self._raw_time['fit'][0]
+        total_time = self._raw_values['fit'][0]
         self.report = pd.DataFrame(columns=['Phase', 'Action', 'Mean Duration', 'Duration Std Dev',
-                                               'Number of Calls', 'Total Time', 'Percent of Total'])
+                                            'Number of Calls', 'Samples/Second', 'Total Time', 'Percent of Total'])
 
-        for c in _all:
-            if c == 'fit':
-                self._append_to_df(['fit', c, 0, 0, 1, total_time, f'{self._calc_percent(total_time):.0%}'])
-            else: self._append_to_df(self._create_row('fit', c, self._raw_time[c]))
+        for p in _phase:
+            if p == 'fit':
+                self._append_to_df(['fit', p, 0, 0, 1, '-', total_time, f'{self._calc_percent(total_time):.0%}'])
+            else:
+                if p in _epoch:
+                    self._append_to_df(self._create_overview_row('fit', p, self._raw_values[p], np.array(self._raw_values[f'{p}_bs'])))
+                else:
+                    self._append_to_df(self._create_overview_row('fit', p, self._raw_values[p], None))
 
-        for c in _train: self._append_to_df(self._create_row('train', f'{c}', self._raw_time[c]))
+        for p in _epoch:
+            bs = np.array(self._raw_values[f'{p}_bs'])
+            for i, a in enumerate(getattr(self, f'_{p}')):
+                self._append_to_df(self._create_detail_row(p, f'{a}', self._raw_values[f'{p}_{a}'], bs if a in _train else None))
 
-        for p in ['train', 'valid']:
-            for c in _multiple: self._append_to_df(self._create_row(p, f'{c}', self._raw_time[f'{p}_{c}']))
-
-        self.report = self.report.sort_values(['Phase','Total Time'], ascending=[True,False])
         self.learn.simple_profile_results = self.report.copy()
         for c in ['Mean Duration', 'Duration Std Dev', 'Total Time']:
             self.report[c] = self.report[c].apply(self._scale)
@@ -236,10 +265,26 @@ class SimpleProfilerCallback(Callback):
         self.report.loc[len(self.report.index)] = row
 
     def _calc_percent(self, time):
-        return time / self._raw_time['fit'][0]
+        return time / self._raw_values['fit'][0]
 
-    def _create_row(self, phase, name, input):
-        return [phase, name, np.mean(input), np.std(input), len(input),
+    def _create_overview_row(self, phase, action, input, bs=None):
+        if bs is not None:
+            draw = np.array(self._raw_values[f'{action}_draw'])
+            batch = np.array(self._raw_values[f'{action}_batch'])
+            sam_per_sec = f'{int(np.around(np.mean(bs/(draw+batch)))):,d}'
+        else:
+            sam_per_sec = '-'
+        return [phase, action, np.mean(input), np.std(input), len(input), sam_per_sec,
+                np.sum(input), f'{self._calc_percent(np.sum(input)):.0%}']
+
+    def _create_detail_row(self, phase, action, input, bs=None):
+        if bs is None or action=='zero_grad': sam_per_sec = '-'
+        elif action=='draw':
+            batch = np.array(self._raw_values[f'{phase}_batch'])
+            sam_per_sec = f'{-int(np.around(np.mean(bs/batch - bs/(np.array(input)+batch)))):,d}'
+        else:
+            sam_per_sec = f'{int(np.around(np.mean(bs/np.array(input)))):,d}'
+        return [phase, action, np.mean(input), np.std(input), len(input), sam_per_sec,
                 np.sum(input), f'{self._calc_percent(np.sum(input)):.0%}']
 
     # modified from https://github.com/thomasbrandon/mish-cuda/blob/master/test/perftest.py
@@ -253,8 +298,14 @@ class SimpleProfilerCallback(Callback):
 
 # Cell
 @patch
-def profile(self:Learner, show_report=True, plain=False, markdown=False,
-            save_csv=False, csv_name='simple_profile.csv'):
+def profile(self:Learner,
+        show_report=True,
+        plain=False,
+        markdown=False,
+        save_csv=False,
+        csv_name='simple_profile.csv',
+        sample_speed=True
+    ):
     "Run Simple Profiler when training. Simple Profiler removes itself when finished."
     self.add_cbs([SimpleProfilerCallback(show_report, plain, markdown, save_csv, csv_name),
                   SimpleProfilerPostCallback()])
@@ -263,32 +314,19 @@ def profile(self:Learner, show_report=True, plain=False, markdown=False,
 # Internal Cell
 try:
     import wandb
-    from fastai.callback.wandb import WandbCallback
-
-    if not hasattr(WandbCallback,'_orig_before_fit'): WandbCallback._orig_before_fit = WandbCallback.before_fit
-    if not hasattr(WandbCallback,'_orig_after_fit'): WandbCallback._orig_after_fit = WandbCallback.after_fit
 
     @patch
-    def before_fit(self:WandbCallback):
-        if not hasattr(self.learn, 'lr_finder') and hasattr(self.learn, 'simple_profiler'):
-            self.log_simple_profiler = True
-        else:
-            self.log_simple_profiler = False
-
-        self._orig_before_fit()
+    def _log_after_batch(self:SimpleProfilerCallback):
+        train_vals = {f'samples_per_second/train_{action}': self._train_samples_per_second(action) for action in _train[:-1]}
+        wandb.log(train_vals, self.learn.wandb._wandb_step+1)
 
     @patch
-    def after_fit(self:WandbCallback):
-        self._orig_after_fit()
+    def _log_after_fit(self:SimpleProfilerCallback):
+        report = wandb.Table(dataframe=self.learn.simple_profile_report)
+        results = wandb.Table(dataframe=self.learn.simple_profile_results)
 
-        if self.log_simple_profiler:
-            report = wandb.Table(dataframe=self.learn.simple_profile_report)
-            results = wandb.Table(dataframe=self.learn.simple_profile_results)
-
-            wandb.log({"simple_profile_report": report})
-            wandb.log({"simple_profile_results": results})
-            wandb.log({}) # ensure sync
-
-            self.log_simple_profiler = False
+        wandb.log({"simple_profile_report": report})
+        wandb.log({"simple_profile_results": results})
+        wandb.log({}) # ensure sync
 except:
     pass
