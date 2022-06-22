@@ -331,7 +331,7 @@ def profile(self:Learner,
                   SimpleProfilerPostCallback(samples_per_second)])
     return self
 
-# Internal Cell
+# Cell
 try:
     import wandb
 
