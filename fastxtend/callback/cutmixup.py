@@ -11,10 +11,11 @@ __all__ = ['MixUp', 'CutMix', 'CutMixUp', 'CutMixUpAugment']
 
 from torch.distributions.beta import Beta
 
-from fastcore.transform import Pipeline
+from fastcore.transform import Pipeline, Transform
 
 from fastai.data.transforms import IntToFloatTensor, Normalize
 from fastai.callback.mixup import reduce_loss
+from fastai.layers import NoneReduce
 
 from ..multiloss import MixHandlerX
 from ..imports import *
@@ -23,7 +24,7 @@ from ..imports import *
 class MixUp(MixHandlerX):
     "Implementation of https://arxiv.org/abs/1710.09412"
     def __init__(self,
-        alpha:float=.4 # Determine `Beta` distribution in range (0.,inf]
+        alpha:float=.4 # Alpha & beta parametrization for `Beta` distribution
     ):
         super().__init__(alpha)
 
@@ -44,7 +45,11 @@ class MixUp(MixHandlerX):
 # Cell
 class CutMix(MixHandlerX):
     "Implementation of https://arxiv.org/abs/1905.04899"
-    def __init__(self, alpha=1.): super().__init__(alpha)
+    def __init__(self,
+        alpha:float=1. # Alpha & beta parametrization for `Beta` distribution
+    ):
+        super().__init__(alpha)
+
     def before_batch(self):
         bs, _, H, W = self.x.size()
         self.lam = self.distrib.sample((1,)).to(self.x.device)
@@ -74,7 +79,13 @@ class CutMix(MixHandlerX):
 class CutMixUp(MixUp, CutMix):
     "Combo implementation of https://arxiv.org/abs/1710.09412 and https://arxiv.org/abs/1905.04899"
     run_valid = False
-    def __init__(self, mix_alpha=.4, cut_alpha=1., cutmix_ratio=1, mixup_ratio=1):
+    def __init__(self,
+        mix_alpha:float=.4, # MixUp alpha & beta parametrization for `Beta` distribution
+        cut_alpha:float=1., # CutMix alpha & beta parametrization for `Beta` distribution
+        mixup_ratio:Number=1, # Ratio to apply `MixUp` relative to `CutMix`
+        cutmix_ratio:Number=1 # Ratio to apply `CutMix` relative to `MixUp`
+    ):
+        store_attr()
         MixUp.__init__(self, mix_alpha)
         CutMix.__init__(self, cut_alpha)
         self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
@@ -91,9 +102,26 @@ class CutMixUp(MixUp, CutMix):
 
 # Cell
 class CutMixUpAugment(MixUp, CutMix):
-    "Combo implementation of https://arxiv.org/abs/1710.09412 and https://arxiv.org/abs/1905.04899 plus Augmentation"
+    """
+    Combo implementation of https://arxiv.org/abs/1710.09412 and https://arxiv.org/abs/1905.04899 plus Augmentation.
+
+    Pulls augmentations from `Dataloaders.train.after_batch`. These augmentations are not applied when performing `MixUp` & `CutMix`, the frequency is controled by `augment_ratio`.
+
+    Use `augment_finetune` to only apply dataloader augmentations at the end of training.
+
+    `cutmixup_augs` are a optional seperate set of augmentations to apply with `MixUp` and `CutMix`. Usually less intensive then the dataloader augmentations.
+    """
     run_valid = False
-    def __init__(self, mix_alpha=.4, cut_alpha=1., augment_ratio=1, cutmix_ratio=1, mixup_ratio=1, augs_only=None):
+    def __init__(self,
+        mix_alpha:float=.4, # MixUp alpha & beta parametrization for `Beta` distribution
+        cut_alpha:float=1., # CutMix alpha & beta parametrization for `Beta` distribution
+        mixup_ratio:Number=1, # Ratio to apply `MixUp` relative to `CutMix` & augmentations
+        cutmix_ratio:Number=1, # Ratio to apply `CutMix` relative to `MixUp` & augmentations
+        augment_ratio:Number=1, # Ratio to apply augmentations relative to `MixUp` & `CutMix`
+        augment_finetune:Number|None=None, # Number of epochs or pct of training to only apply augmentations
+        cutmixup_augs:listified[Transform|Callable[...,Transform]]|None=None # Augmentations to apply before `MixUp` & `CutMix`. Should not have `Normalize`
+    ):
+        store_attr()
         MixUp.__init__(self, mix_alpha)
         CutMix.__init__(self, cut_alpha)
         self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
@@ -101,16 +129,17 @@ class CutMixUpAugment(MixUp, CutMix):
         self.aug_cutmix_ratio = augment_ratio / (augment_ratio + cutmix_ratio + mixup_ratio)
         if self.aug_cutmix_ratio == 1: self.cut_mix_ratio = 0
         else: self.cut_mix_ratio = mixup_ratio / (cutmix_ratio + mixup_ratio)
-        self.augs_only = augs_only
+        self._docutmixaug = cutmixup_augs is not None
 
     def before_fit(self):
         super().before_fit()
-        if self.augs_only is None: self.augs_only = (self.learn.n_epoch + 1)/self.learn.n_epoch
-        elif self.augs_only >=1: self.augs_only = self.augs_only/self.learn.n_epoch
-        else: self.augs_only = self.augs_only
+        if self.augment_finetune is None: self.augment_finetune = (self.learn.n_epoch + 1)/self.learn.n_epoch
+        elif self.augment_finetune >= 1: self.augment_finetune = self.augment_finetune/self.learn.n_epoch
+        else: self.augment_finetune = self.augment_finetune
 
         self._inttofloat_pipe = Pipeline([])
         self._norm_pipe = Pipeline([])
+        self._cutmixaugs_pipe = Pipeline(self.cutmixup_augs) if self._docutmixaug else Pipeline([])
 
         # first copy transforms
         self._orig_pipe = self.dls.train.after_batch
@@ -127,9 +156,11 @@ class CutMixUpAugment(MixUp, CutMix):
         self.dls.train.after_batch = Pipeline([])
 
     def before_batch(self):
-        if self.augs_only >= self.learn.pct_train and torch.rand(1) >= self.aug_cutmix_ratio: # augs or mixup/cutmix
-            self._aug = False
+        if self.augment_finetune >= self.learn.pct_train and torch.rand(1) >= self.aug_cutmix_ratio: # augs or mixup/cutmix
+            self._doaugs = False
             self.learn.xb = self._inttofloat_pipe(self.xb) # apply inttofloat first
+            if self._docutmixaug:
+                self.learn.xb = self._cutmixaugs_pipe(self.xb)
             if self.cut_mix_ratio > 0 and torch.rand(1) <= self.cut_mix_ratio: # mixup or cutmix
                 self.distrib = self.mix_distrib
                 MixUp.before_batch(self)
@@ -138,7 +169,7 @@ class CutMixUpAugment(MixUp, CutMix):
                 CutMix.before_batch(self)
             self.learn.xb = self._norm_pipe(self.xb) # now normalize
         else:
-            self._aug = True
+            self._doaugs = True
             self.learn.xb = self._orig_pipe(self.xb) # original transforms
 
     def after_fit(self):
@@ -148,8 +179,17 @@ class CutMixUpAugment(MixUp, CutMix):
         self.after_fit()
         MixUp.after_cancel_fit(self)
 
-    def lf(self, pred, *yb):
-        if not self.training or self._aug: return self.old_lf(pred, *yb)
+    def solo_lf(self, pred, *yb):
+        "`norm_lf` applies the original loss function on both outputs based on `self.lam` if applicable"
+        if not self.training or self._doaugs:
+            return self.old_lf(pred, *yb)
         with NoneReduce(self.old_lf) as lf:
             loss = torch.lerp(lf(pred,*self.yb1), lf(pred,*yb), self.lam)
         return reduce_loss(loss, getattr(self.old_lf, 'reduction', 'mean'))
+
+    def multi_lf(self, pred, *yb):
+        "`norm_lf` applies the original loss function on both outputs based on `self.lam` if applicable"
+        if not self.training or self._doaugs:
+            return self.learn.loss_func_mixup(pred, *yb)
+        else:
+            return self.learn.loss_func_mixup.forward_mixup(pred, *self.yb1, *yb, self.lam)
