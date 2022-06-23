@@ -4,14 +4,17 @@
 from __future__ import annotations
 
 
-__all__ = ['MultiLoss', 'MultiTargetLoss', 'MultiLossCallback']
+__all__ = ['MultiLoss', 'MultiTargetLoss', 'MixHandlerX', 'MultiLossCallback']
 
 # Cell
 #nbdev_comment from __future__ import annotations
 from types import FunctionType
 
+from torch.distributions.beta import Beta
+
 from fastai.callback.core import Callback
 from fastai.learner import Recorder
+from fastai.layers import NoneReduce
 
 from .basics import is_listish
 from .metrics import AvgLossX, AvgSmoothLossX
@@ -55,10 +58,23 @@ class MultiLoss(Module):
         self.loss_names = L(loss_names)
         self._reduction,self._loss = reduction,{}
 
+        for loss in self.loss_funcs:
+            if getattr(loss, 'y_int', False):
+                self.y_int = True
+
     def forward(self, pred, targ):
         for i, loss_func in enumerate(self.loss_funcs):
-            l = TensorBase(self.weights[i]*loss_func(pred, targ))
-            if i == 0: loss = TensorBase(torch.zeros_like(targ)).float()
+            l = self.weights[i]*loss_func(pred, targ)
+            if i == 0: loss = torch.zeros_like(targ).float()
+            loss += l
+            self._loss[i] = l
+
+        return loss.mean() if self._reduction=='mean' else loss.sum() if self._reduction=='sum' else loss
+
+    def forward_mixup(self, pred, targ1, targ2, lam):
+        for i, loss_func in enumerate(self.loss_funcs):
+            l = self.weights[i]*torch.lerp(loss_func(pred, targ1), loss_func(pred, targ2), lam)
+            if i == 0: loss = torch.zeros_like(targ1).float()
             loss += l
             self._loss[i] = l
 
@@ -113,6 +129,9 @@ class MultiTargetLoss(MultiLoss):
 
         return loss.mean() if self._reduction=='mean' else loss.sum() if self._reduction=='sum' else loss
 
+    def forward_mixup(self, **kwargs):
+        raise NotImplementedError("Mixup doesn't support Multi-Target training")
+
     def activation(self, preds):
         "Returns list of `activation`"
         return [getattr(self.loss_funcs[i], 'activation', noop)(pred) for i, pred in enumerate(preds)]
@@ -158,6 +177,77 @@ class MultiAvgSmoothLoss(AvgSmoothLossX):
         loss = loss.mean() if self.reduction=='mean' else loss.sum() if self.reduction=='sum' else loss
         self.val = torch.lerp(to_detach(loss, gather=False), self.val, self.beta)
 
+# Internal Cell
+class MultiAvgSmoothLossMixup(AvgSmoothLossX):
+    "Smooth average of the MultiLoss losses (exponentially weighted with `beta`)"
+    def __init__(self,
+        i, # `Multiloss` loss function location
+        name, # Loss function name
+        beta:float=0.98, # Smoothing beta
+        reduction:str|None='mean' # Override loss reduction for logging
+    ):
+        super().__init__()
+        store_attr(but='name')
+        self._name = name
+
+    def accumulate(self, learn):
+        self.count += 1
+        loss = learn.loss_func_mixup.losses[self.i]
+        loss = loss.mean() if self.reduction=='mean' else loss.sum() if self.reduction=='sum' else loss
+        self.val = torch.lerp(to_detach(loss, gather=False), self.val, self.beta)
+
+# Cell
+class MixHandlerX(Callback):
+    "A handler class for implementing `MixUp` style scheduling. Like fastai's `MixHandler` but supports `MultiLoss`."
+    run_valid = False
+    def __init__(self,
+        alpha:float=0.5 # Determine `Beta` distribution in range (0.,inf]
+    ):
+        self.distrib = Beta(tensor(alpha), tensor(alpha))
+
+    def before_fit(self):
+        self.multiloss = isinstance(self.learn.loss_func, MultiLoss)
+        self.stack_y = getattr(self.learn.loss_func, 'y_int', False)
+
+    def before_train(self):
+        "Determine whether to stack y"
+        if self.stack_y:
+            if self.multiloss:
+                self.learn.loss_func_mixup = self.learn.loss_func
+                self.learn.loss_func = self.mixup_lf
+            else:
+                self.old_lf = self.learn.loss_func
+                self.learn.loss_func = self.norm_lf
+
+    def after_train(self):
+        "Set the loss function back to the previous loss"
+        if self.stack_y:
+            if self.multiloss:
+                self.learn.loss_func = self.learn.loss_func_mixup
+            else:
+                self.learn.loss_func = self.old_lf
+
+    def after_cancel_train(self):
+        "If training is canceled, still set the loss function back"
+        self.after_train()
+
+    def after_cancel_fit(self):
+        "If fit is canceled, still set the loss function back"
+        self.after_train()
+
+    def norm_lf(self, pred, *yb):
+        "lf is a loss function that applies the original loss function on both outputs based on `self.lam`"
+        if not self.training: return self.old_lf(pred, *yb)
+        with NoneReduce(self.old_lf) as lf:
+            loss = torch.lerp(lf(pred,*self.yb1), lf(pred,*yb), self.lam)
+        return reduce_loss(loss, getattr(self.old_lf, 'reduction', 'mean'))
+
+    def mixup_lf(self, pred, *yb):
+        if not self.training:
+            return self.learn.loss_func_mixup(pred, *yb)
+        else:
+            return self.learn.loss_func_mixup.forward_mixup(pred, *self.yb1, *yb, self.lam)
+
 # Cell
 class MultiLossCallback(Callback):
     "Callback to automatically log and name `MultiLoss` losses as fastxtend metrics"
@@ -173,10 +263,13 @@ class MultiLossCallback(Callback):
         if not isinstance(self.loss_func, MultiLoss):
             raise ValueError("`MultiLossCallback` requires loss to be `MultiLoss` class")
 
+        mixup = len(self.learn._grab_cbs(MixHandlerX)) > 0 and getattr(self.learn.loss_func, 'y_int', False)
+
         mets= L()
         reduction = self.loss_func.reduction if self.reduction is None else self.reduction
         for i in range(len(self.loss_func.loss_funcs)):
-            mets += MultiAvgSmoothLoss(i, self.loss_func.loss_names[i], self.beta, reduction)
+            if mixup: mets += MultiAvgSmoothLossMixup(i, self.loss_func.loss_names[i], self.beta, reduction)
+            else:     mets += MultiAvgSmoothLoss(i, self.loss_func.loss_names[i], self.beta, reduction)
             mets += MultiAvgLoss(i, self.loss_func.loss_names[i], reduction)
 
         self.learn.metrics = mets + self.learn.metrics
