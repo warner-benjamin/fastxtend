@@ -18,9 +18,11 @@ except ImportError:
 from timm.utils.model_ema import ModelEmaV2
 
 from fastai.callback.core import Callback
+from fastai.callback.mixup import reduce_loss
 from fastai.callback.fp16 import MixedPrecision
+from fastai.layers import NoneReduce
 
-from ..multiloss import MultiLoss, MultiLossCallback
+from ..multiloss import MultiLoss, MultiLossCallback, MixHandlerX
 from ..imports import *
 
 # Cell
@@ -40,10 +42,22 @@ class MESALoss(MultiLoss):
         self.loss_names = L('orig_loss', 'mesa_loss')
         self.loss_funcs = self.loss_names # compatibility with MultiLossCallback
         self._zero, self._loss = torch.tensor(0., requires_grad=False), {}
+        if getattr(self.orig_loss, 'y_int', False): self.y_int = True
 
     def forward(self, pred, *targs):
         targ, mesa_targ = targs
         self._loss[0] = self.orig_loss(pred, targ)
+        if self.mesa_loss:
+            self._loss[1] = self.weight*self._mesa_loss(F.log_softmax(self.temp*pred, dim=1), F.log_softmax(self.temp*mesa_targ, dim=1))
+        else:
+            self._loss[1] = self._zero
+        return self._loss[0] + self._loss[1]
+
+    def forward_mixup(self, pred, *targs):
+        targ1, targ2, mesa_targ, lam = targs
+        with NoneReduce(self.orig_loss) as ol:
+            loss = torch.lerp(ol(pred, targ1), ol(pred, targ2), lam)
+        self._loss[0] = reduce_loss(loss, getattr(self.orig_loss, 'reduction', 'mean'))
         if self.mesa_loss:
             self._loss[1] = self.weight*self._mesa_loss(F.log_softmax(self.temp*pred, dim=1), F.log_softmax(self.temp*mesa_targ, dim=1))
         else:
@@ -98,10 +112,12 @@ class MESACallback(Callback):
         self.learn.loss_func = MESALoss(self.orig_loss, self.temp, self.weight, self.reduction)
         self.learn.loss_func.to(getattr(self.dls, 'device', default_device()))
         self.ema_model = ModelEmaV2(self.learn.model, self.decay)
+        self._mixup = len(self.learn._grab_cbs(MixHandlerX)) > 0 and getattr(self.orig_loss, 'y_int', False)
 
     def before_train(self):
         if self.start_epoch == self.epoch:
-            self.learn.loss_func.mesa_loss = True
+            if self._mixup: self.learn.loss_func_mixup.mesa_loss = True
+            else:           self.learn.loss_func.mesa_loss = True
             self._ema_pred = self.ema_model.module
 
     @torch.no_grad()

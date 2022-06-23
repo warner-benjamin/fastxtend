@@ -205,12 +205,10 @@ class MixHandlerX(Callback):
     ):
         self.distrib = Beta(tensor(alpha), tensor(alpha))
 
-    def before_fit(self):
-        self.multiloss = isinstance(self.learn.loss_func, MultiLoss)
-        self.stack_y = getattr(self.learn.loss_func, 'y_int', False)
-
     def before_train(self):
         "Determine whether to stack y"
+        self.multiloss = isinstance(self.learn.loss_func, MultiLoss)
+        self.stack_y = getattr(self.learn.loss_func, 'y_int', False)
         if self.stack_y:
             if self.multiloss:
                 self.learn.loss_func_mixup = self.learn.loss_func
