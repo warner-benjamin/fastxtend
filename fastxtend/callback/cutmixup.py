@@ -105,11 +105,11 @@ class CutMixUpAugment(MixUp, CutMix):
     """
     Combo implementation of https://arxiv.org/abs/1710.09412 and https://arxiv.org/abs/1905.04899 plus Augmentation.
 
-    Pulls augmentations from `Dataloaders.train.after_batch`. These augmentations are not applied when performing `MixUp` & `CutMix`, the frequency is controled by `augment_ratio`.
+    Pulls augmentations from `Dataloaders.train.after_batch`. These augmentations are not applied when performing `MixUp` & `CutMix`, the frequency is controlled by `augment_ratio`.
 
     Use `augment_finetune` to only apply dataloader augmentations at the end of training.
 
-    `cutmixup_augs` are a optional seperate set of augmentations to apply with `MixUp` and `CutMix`. Usually less intensive then the dataloader augmentations.
+    `cutmixup_augs` are an optional separate set of augmentations to apply with `MixUp` and `CutMix`. Usually less intensive then the dataloader augmentations.
     """
     run_valid = False
     def __init__(self,
