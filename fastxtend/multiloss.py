@@ -201,13 +201,18 @@ class MixHandlerX(Callback):
     "A handler class for implementing `MixUp` style scheduling. Like fastai's `MixHandler` but supports `MultiLoss`."
     run_valid = False
     def __init__(self,
-        alpha:float=0.5 # Alpha & beta parametrization for `Beta` distribution
+        alpha:float=0.5, # Alpha & beta parametrization for `Beta` distribution
+        interp_label:bool|None=None # Blend or stack labels. Defaults to `loss_func.y_int` if None
     ):
+        store_attr()
         self.distrib = Beta(tensor(alpha), tensor(alpha))
 
     def before_fit(self):
         self.multiloss = isinstance(self.learn.loss_func, MultiLoss)
-        self.stack_y = getattr(self.learn.loss_func, 'y_int', False)
+        if self.interp_label is None:
+            self.stack_y = getattr(self.learn.loss_func, 'y_int', False)
+        else:
+            self.stack_y = not self.interp_label
 
     def before_train(self):
         "Determine whether to stack y"
