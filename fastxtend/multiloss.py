@@ -201,9 +201,18 @@ class MixHandlerX(Callback):
     "A handler class for implementing `MixUp` style scheduling. Like fastai's `MixHandler` but supports `MultiLoss`."
     run_valid = False
     def __init__(self,
-        alpha:float=0.5 # Determine `Beta` distribution in range (0.,inf]
+        alpha:float=0.5, # Alpha & beta parametrization for `Beta` distribution
+        interp_label:bool|None=None # Blend or stack labels. Defaults to `loss_func.y_int` if None
     ):
+        store_attr()
         self.distrib = Beta(tensor(alpha), tensor(alpha))
+
+    def before_fit(self):
+        self.multiloss = isinstance(self.learn.loss_func, MultiLoss)
+        if self.interp_label is None:
+            self.stack_y = getattr(self.learn.loss_func, 'y_int', False)
+        else:
+            self.stack_y = not self.interp_label
 
     def before_train(self):
         "Determine whether to stack y"
@@ -212,10 +221,10 @@ class MixHandlerX(Callback):
         if self.stack_y:
             if self.multiloss:
                 self.learn.loss_func_mixup = self.learn.loss_func
-                self.learn.loss_func = self.mixup_lf
+                self.learn.loss_func = self.multi_lf
             else:
                 self.old_lf = self.learn.loss_func
-                self.learn.loss_func = self.norm_lf
+                self.learn.loss_func = self.solo_lf
 
     def after_train(self):
         "Set the loss function back to the previous loss"
@@ -233,14 +242,14 @@ class MixHandlerX(Callback):
         "If fit is canceled, still set the loss function back"
         self.after_train()
 
-    def norm_lf(self, pred, *yb):
+    def solo_lf(self, pred, *yb):
         "lf is a loss function that applies the original loss function on both outputs based on `self.lam`"
         if not self.training: return self.old_lf(pred, *yb)
         with NoneReduce(self.old_lf) as lf:
             loss = torch.lerp(lf(pred,*self.yb1), lf(pred,*yb), self.lam)
         return reduce_loss(loss, getattr(self.old_lf, 'reduction', 'mean'))
 
-    def mixup_lf(self, pred, *yb):
+    def multi_lf(self, pred, *yb):
         if not self.training:
             return self.learn.loss_func_mixup(pred, *yb)
         else:

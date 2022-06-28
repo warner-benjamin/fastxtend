@@ -98,31 +98,32 @@ class MESACallback(Callback):
         weight:float=0.8, # Weight of MESA loss. λ in paper
         decay:float=0.9998, # EMA decay. β in paper
         reduction:str='mean', # PyTorch loss reduction
-        cleanup:bool=True
+        cleanup:bool=True # Remove `MESACallback` after training
     ):
         store_attr()
 
     @torch.no_grad()
     def before_fit(self):
         if hasattr(self.learn, 'lr_finder') or hasattr(self, "gather_preds"): return
-        self.start_epoch=self.start_epoch-1
-        self._ema_pred = lambda x: 0
+        self.start_epoch = max(self.start_epoch-1, 0)
+        self._ema_forward = lambda x: 0
         self.orig_loss = self.learn.loss_func
         self.orig_loss_reduction = self.orig_loss.reduction if hasattr(self.orig_loss, 'reduction') else None
         self.learn.loss_func = MESALoss(self.orig_loss, self.temp, self.weight, self.reduction)
         self.learn.loss_func.to(getattr(self.dls, 'device', default_device()))
         self.ema_model = ModelEmaV2(self.learn.model, self.decay)
-        self._mixup = len(self.learn._grab_cbs(MixHandlerX)) > 0 and getattr(self.orig_loss, 'y_int', False)
+        mix = self.learn._grab_cbs(MixHandlerX)
+        self._mixup = len(mix) > 0 and mix[0].stack_y
 
     def before_train(self):
         if self.start_epoch == self.epoch:
             if self._mixup: self.learn.loss_func_mixup.mesa_loss = True
             else:           self.learn.loss_func.mesa_loss = True
-            self._ema_pred = self.ema_model.module
+            self._ema_forward = self.ema_model.module
 
     @torch.no_grad()
     def after_pred(self):
-        self.learn.yb = tuple([self.y, self._ema_pred(*self.xb)])
+        self.learn.yb = tuple([self.y, self._ema_forward(*self.xb)])
 
     def after_loss(self):
         y, _ = self.yb
