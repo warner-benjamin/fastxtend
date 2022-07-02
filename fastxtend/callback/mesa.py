@@ -27,9 +27,10 @@ from ..imports import *
 
 # Cell
 class MESALoss(MultiLoss):
+    "Loss function for MESA. Automatically added to `Learner` by `MESACallback`"
     def __init__(self,
-        orig_loss:nn.Module|FunctionType,
-        temp:Number=3, # Soften MESA targets by this temperature. τ in paper
+        orig_loss:nn.Module|FunctionType, # Original loss function from `Learner.loss_func`
+        temp:Number=5, # Soften MESA targets by this temperature. τ in paper
         weight:float=0.8, # Weight of MESA loss. λ in paper
         reduction:str='mean' # PyTorch loss reduction
     ):
@@ -45,21 +46,23 @@ class MESALoss(MultiLoss):
         if getattr(self.orig_loss, 'y_int', False): self.y_int = True
 
     def forward(self, pred, *targs):
+        "Add MESA loss to `orig_loss` if `mesa_loss==True`"
         targ, mesa_targ = targs
         self._loss[0] = self.orig_loss(pred, targ)
         if self.mesa_loss:
-            self._loss[1] = self.weight*self._mesa_loss(F.log_softmax(self.temp*pred, dim=1), F.log_softmax(self.temp*mesa_targ, dim=1))
+            self._loss[1] = self.weight*self._mesa_loss(self.temp*F.log_softmax(pred, dim=1), self.temp*F.log_softmax(mesa_targ, dim=1))
         else:
             self._loss[1] = self._zero
         return self._loss[0] + self._loss[1]
 
     def forward_mixup(self, pred, *targs):
+        "Used by `MixHandlerX` for MixUp, CutMix, etc. Otherwise, same as `forward`."
         targ1, targ2, mesa_targ, lam = targs
         with NoneReduce(self.orig_loss) as ol:
             loss = torch.lerp(ol(pred, targ1), ol(pred, targ2), lam)
         self._loss[0] = reduce_loss(loss, getattr(self.orig_loss, 'reduction', 'mean'))
         if self.mesa_loss:
-            self._loss[1] = self.weight*self._mesa_loss(F.log_softmax(self.temp*pred, dim=1), F.log_softmax(self.temp*mesa_targ, dim=1))
+            self._loss[1] = self.weight*self._mesa_loss(self.temp*F.log_softmax(pred, dim=1), self.temp*F.log_softmax(mesa_targ, dim=1))
         else:
             self._loss[1] = self._zero
         return self._loss[0] + self._loss[1]
@@ -91,10 +94,10 @@ class MESALoss(MultiLoss):
 # Cell
 class MESACallback(Callback):
     order = MixedPrecision.order+1
-    "Callback to implment Memory-Efficient Sharpness-Aware training from https://arxiv.org/abs/2205.14083"
+    "Callback to implement Memory-Efficient Sharpness-Aware Training from https://arxiv.org/abs/2205.14083"
     def __init__(self,
-        start_epoch:int=5, # Epoch to start MESA. Defaults to `start_pct` if None (index 1)
-        temp:Number=3, # Soften MESA targets by this temperature. τ in paper
+        start_epoch:int=4, # Epoch to start MESA (index 0)
+        temp:Number=5, # Soften MESA targets by this temperature. τ in paper
         weight:float=0.8, # Weight of MESA loss. λ in paper
         decay:float=0.9998, # EMA decay. β in paper
         reduction:str='mean', # PyTorch loss reduction
@@ -105,7 +108,7 @@ class MESACallback(Callback):
     @torch.no_grad()
     def before_fit(self):
         if hasattr(self.learn, 'lr_finder') or hasattr(self, "gather_preds"): return
-        self.start_epoch = max(self.start_epoch-1, 0)
+        self.start_epoch = max(self.start_epoch, 0)
         self._ema_forward = lambda x: 0
         self.orig_loss = self.learn.loss_func
         self.orig_loss_reduction = self.orig_loss.reduction if hasattr(self.orig_loss, 'reduction') else None
@@ -116,6 +119,7 @@ class MESACallback(Callback):
         self._mixup = len(mix) > 0 and mix[0].stack_y
 
     def before_train(self):
+        "Start calculating MESA if `start_epoch` is reached"
         if self.start_epoch == self.epoch:
             if self._mixup: self.learn.loss_func_mixup.mesa_loss = True
             else:           self.learn.loss_func.mesa_loss = True
@@ -123,17 +127,21 @@ class MESACallback(Callback):
 
     @torch.no_grad()
     def after_pred(self):
+        "Create MESA targets from EMA prediction"
         self.learn.yb = tuple([self.y, self._ema_forward(*self.xb)])
 
     def after_loss(self):
+        "Remove MESA targets `yb` for metrics compatibility"
         y, _ = self.yb
         self.learn.yb = tuple([y])
 
     def after_batch(self):
+        "Update model's EMA"
         self.ema_model.update(self.learn.model)
 
     @torch.no_grad()
     def after_fit(self):
+        "Optionally remove `MESACallback` from `Learner` post fit"
         if self.cleanup:
             if hasattr(self.orig_loss, 'reduction'):
                 self.orig_loss.reduction = self.orig_loss_reduction
