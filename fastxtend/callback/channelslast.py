@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 
-__all__ = ['ChannelsLastTfm', 'ChannelsLastCallback']
+__all__ = ['ChannelsLastImgTfm', 'ChannelsLastTensorTfm', 'ChannelsLastCallback']
 
 # Cell
 #nbdev_comment from __future__ import annotations
@@ -22,18 +22,28 @@ from fastai.basics import Pipeline
 from ..imports import *
 
 # Cell
-class ChannelsLastTfm(DisplayedTransform):
+class ChannelsLastImgTfm(DisplayedTransform):
     "Sets image-like inputs to `channels_last` format. For use in ChannelsLastCallback"
     order = 110 # run after all other transforms if added to batch_tfms
     def encodes(self, x:TensorImageBase):
         return x.to(memory_format=torch.channels_last)
 
 # Cell
+class ChannelsLastTensorTfm(DisplayedTransform):
+    "Sets tensor inputs to `channels_last` format. For use in ChannelsLastCallback"
+    order = 110 # run after all other transforms if added to batch_tfms
+    def encodes(self, x:Tensor):
+        return x.to(memory_format=torch.channels_last)
+
+# Cell
 class ChannelsLastCallback(Callback):
     "Channels last training using PyTorch's Channels Last Memory Format (beta)"
     order = 8 # Before CastToTensor
-    def __init__(self):
-        self._channels_last = Pipeline([ChannelsLastTfm()])
+    def __init__(self,
+        tensor_image:bool=True # Apply to `TensorImageBase` or all `Tensor` using Type Dispatch
+    ):
+        if tensor_image: self._channels_last = Pipeline([ChannelsLastImgTfm()])
+        else:            self._channels_last = Pipeline([ChannelsLastTensorTfm()])
 
     def before_fit(self):
         self.learn.model.to(memory_format=torch.channels_last)
@@ -44,12 +54,16 @@ class ChannelsLastCallback(Callback):
 # Cell
 @patch
 @delegates(GradScaler)
-def to_channelslast(self:Learner, to_fp16=True, **kwargs):
+def to_channelslast(self:Learner,
+    to_fp16:bool=True, # Add `MixedPrecision` callback for mixed precision training
+    tensor_image:bool=True, # Apply to `TensorImageBase` or all `Tensor` using Type Dispatch
+    **kwargs
+):
     "Set `Learner` and inputs to `channels_last` format and Mixed Precision by default"
     if to_fp16 and not hasattr(self, 'mixed_precision') and not hasattr(self, 'channels_last'):
-        return self.add_cbs([ChannelsLastCallback(), MixedPrecision(**kwargs)])
+        return self.add_cbs([ChannelsLastCallback(tensor_image), MixedPrecision(**kwargs)])
     elif not hasattr(self, 'channels_last'):
-        return self.add_cb(ChannelsLastCallback())
+        return self.add_cb(ChannelsLastCallback(tensor_image))
 
 # Cell
 @patch

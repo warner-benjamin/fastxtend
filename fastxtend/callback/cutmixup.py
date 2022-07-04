@@ -17,6 +17,7 @@ from fastcore.transform import Pipeline, Transform
 from fastai.data.transforms import IntToFloatTensor, Normalize
 from fastai.callback.mixup import reduce_loss
 from fastai.layers import NoneReduce
+from fastai.vision.augment import AffineCoordTfm, RandomResizedCropGPU
 
 from ..multiloss import MixHandlerX
 from ..imports import *
@@ -185,18 +186,29 @@ class CutMixUpAugment(MixUp, CutMix):
 
         self._inttofloat_pipe = Pipeline([])
         self._norm_pipe = Pipeline([])
-        self._cutmixaugs_pipe = Pipeline(self.cutmixup_augs) if self._docutmixaug else Pipeline([])
+        if self._docutmixaug:
+            self._cutmixaugs_pipe = Pipeline(self.cutmixup_augs)
 
         # first copy transforms
         self._orig_pipe = self.dls.train.after_batch
         self._orig_pipe.split_idx = 0 # need to manually set split_idx for training augmentations to run
 
-        # loop through existing transforms looking for IntToFloatTensor and Normalize
+        # loop through existing transforms looking for IntToFloatTensor, Normalize
+        size, mode = None, None
         for i in range(len(self.dls.train.after_batch.fs)):
-            if isinstance(self.dls.train.after_batch[i], IntToFloatTensor):
-                self._inttofloat_pipe = Pipeline([self.dls.train.after_batch[i]])
-            elif isinstance(self.dls.train.after_batch[i], Normalize):
-                self._norm_pipe = Pipeline([self.dls.train.after_batch[i]])
+            aug = self.dls.train.after_batch[i]
+            if isinstance(aug, IntToFloatTensor):
+                self._inttofloat_pipe = Pipeline([aug])
+            elif isinstance(aug, Normalize):
+                self._norm_pipe = Pipeline([aug])
+            elif isinstance(aug, (AffineCoordTfm, RandomResizedCropGPU)) and aug.size is not None:
+                size = aug.size
+                mode = aug.mode
+
+        # If there is a resize in Augmentations and no `cutmixup_augs`, need to replicate it for MixUp/CutMix
+        if not self._docutmixaug and size is not None:
+            self._docutmixaug = True
+            self._cutmixaugs_pipe = Pipeline([AffineCoordTfm(size=size, mode=mode)])
 
         # set existing transforms to an empty Pipeline
         self.dls.train.after_batch = Pipeline([])
