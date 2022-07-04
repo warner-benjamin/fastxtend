@@ -31,21 +31,46 @@ nb_path: "nbs/index.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Install">Install<a class="anchor-link" href="#Install"> </a></h2><p>To install, run:</p>
-
-<pre><code>pip install fastxtend</code></pre>
-<p>Or to create an editable install:</p>
-
-<pre><code>git clone https://github.com/warner-benjamin/fastxtend.git
-cd fastxtend
-pip install -e ".[dev]"</code></pre>
+<h2 id="Documentation">Documentation<a class="anchor-link" href="#Documentation"> </a></h2><p><a href="https://fastxtend.benjaminwarner.dev">https://fastxtend.benjaminwarner.dev</a></p>
 
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Requirements">Requirements<a class="anchor-link" href="#Requirements"> </a></h2><p>fastxtend requires fastai to be installed. See <a href="http://docs.fast.ai/">http://docs.fast.ai/</a> for installation instructions.</p>
+<h2 id="Feature-overview">Feature overview<a class="anchor-link" href="#Feature-overview"> </a></h2><p><strong>General Features</strong></p>
+<ul>
+<li>Flexible metrics which can log on train, valid, or both. Backwards compatible with fastai metrics.</li>
+<li>Easily use multiple losses and log each individual loss on train and valid.</li>
+<li>A simple profiler for profiling fastai training.</li>
+</ul>
+<p><strong>Vision</strong></p>
+<ul>
+<li>Apply <a href="/callback.cutmixup.html#MixUp"><code>MixUp</code></a>, <a href="/callback.cutmixup.html#CutMix"><code>CutMix</code></a>, or Augmentations with <a href="/callback.cutmixup.html#CutMixUp"><code>CutMixUp</code></a> or <a href="/callback.cutmixup.html#CutMixUpAugment"><code>CutMixUpAugment</code></a>.</li>
+<li>Additional image augmentations</li>
+<li>Support for running fastai batch transforms on CPU.</li>
+<li>More attention modules</li>
+<li>A flexible implementation of fastai’s xresnet.</li>
+</ul>
+<p><strong>Audio</strong></p>
+<ul>
+<li><a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a>, <a href="/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a>, <code>TensorMel</code> objects which maintain metadata and support plotting themselves using librosa.</li>
+<li>A selection of performant audio augmentations inspired by fastaudio and torch-audiomentations.</li>
+<li>Uses TorchAudio to quickly convert <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> waveforms into <a href="/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> spectrograms or <code>TensorMel</code> mel spectrograms using the GPU.</li>
+<li>Out of the box support for converting one <a href="/audio.01_core.html#TensorAudio"><code>TensorAudio</code></a> to one or multiple <a href="/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <code>TensorMel</code> objects from the Datablock api.</li>
+<li>Audio MixUp and CutMix Callbacks.</li>
+<li><a href="/audio.04_learner.html#audio_learner"><code>audio_learner</code></a> which merges multiple <a href="/audio.01_core.html#TensorSpec"><code>TensorSpec</code></a> or <code>TensorMel</code> objects before passing to the model.</li>
+</ul>
+<p>Check out the documentation for additional splitters, callbacks, schedulers, utilities, and more.</p>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Install">Install<a class="anchor-link" href="#Install"> </a></h2><p>To install, run:</p>
+
+<pre><code>pip install fastxtend</code></pre>
 <p>To install with dependencies for vision, audio, or all tasks run one of:</p>
 
 <pre><code>pip install fastxtend[vision]
@@ -53,6 +78,11 @@ pip install -e ".[dev]"</code></pre>
 pip install fastxtend[audio]
 
 pip install fastxtend[all]</code></pre>
+<p>Or to create an editable install:</p>
+
+<pre><code>git clone https://github.com/warner-benjamin/fastxtend.git
+cd fastxtend
+pip install -e ".[dev]"</code></pre>
 
 </div>
 </div>
@@ -70,7 +100,35 @@ pip install fastxtend[all]</code></pre>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Documentation">Documentation<a class="anchor-link" href="#Documentation"> </a></h2><p><a href="https://fastxtend.benjaminwarner.dev">https://fastxtend.benjaminwarner.dev</a></p>
+<h2 id="Examples">Examples<a class="anchor-link" href="#Examples"> </a></h2><p>Log an accuracy metric on the training set as a smoothed metric and validation set like normal:</p>
+<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="n">Accuracy</span><span class="p">(</span><span class="n">log_metric</span><span class="o">=</span><span class="n">LogMetric</span><span class="o">.</span><span class="n">Train</span><span class="p">,</span> <span class="n">metric_type</span><span class="o">=</span><span class="n">MetricType</span><span class="o">.</span><span class="n">Smooth</span><span class="p">),</span>
+                      <span class="n">Accuracy</span><span class="p">()])</span>
+</pre></div>
+<p>Log multiple losses as individual metrics on train and valid:</p>
+<div class="highlight"><pre><span></span><span class="n">mloss</span> <span class="o">=</span> <span class="n">MultiLoss</span><span class="p">(</span><span class="n">loss_funcs</span><span class="o">=</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">MSELoss</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">L1Loss</span><span class="p">],</span> 
+                  <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">],</span> <span class="n">loss_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mse_loss&#39;</span><span class="p">,</span> <span class="s1">&#39;l1_loss&#39;</span><span class="p">])</span>
+
+<span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">loss_func</span><span class="o">=</span><span class="n">mloss</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="n">RMSE</span><span class="p">(),</span> <span class="n">cbs</span><span class="o">=</span><span class="n">MultiLossCallback</span><span class="p">)</span>
+</pre></div>
+<p>Apply MixUp, CutMix, or Augmentation while training:</p>
+<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">cbs</span><span class="o">=</span><span class="n">CutMixUpAugment</span><span class="p">)</span>
+</pre></div>
+<p>Profile a fastai training loop:</p>
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">fastxtend.callback</span> <span class="kn">import</span> <span class="n">simpleprofiler</span>
+
+<span class="n">learn</span> <span class="o">=</span> <span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">profile</span><span class="p">()</span>
+<span class="n">learn</span><span class="o">.</span><span class="n">fit_one_cycle</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mf">3e-3</span><span class="p">)</span>
+</pre></div>
+<p>Train in channels last format:</p>
+<div class="highlight"><pre><span></span><span class="n">Learner</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">to_channelslast</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Requirements">Requirements<a class="anchor-link" href="#Requirements"> </a></h2><p>fastxtend requires fastai to be installed. See <a href="http://docs.fast.ai/">http://docs.fast.ai/</a> for installation instructions.</p>
 
 </div>
 </div>
