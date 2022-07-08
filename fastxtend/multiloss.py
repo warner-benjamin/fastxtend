@@ -208,6 +208,7 @@ class MixHandlerX(Callback):
         self.distrib = Beta(tensor(alpha), tensor(alpha))
 
     def before_fit(self):
+        "Determine whether to stack or interpolate labels"
         self.multiloss = isinstance(self.learn.loss_func, MultiLoss)
         if self.interp_label is None:
             self.stack_y = getattr(self.learn.loss_func, 'y_int', False)
@@ -225,7 +226,7 @@ class MixHandlerX(Callback):
                 self.learn.loss_func = self.solo_lf
 
     def after_train(self):
-        "Set the loss function back to the previous loss"
+        "Set the loss function back to the original loss"
         if self.stack_y:
             if self.multiloss:
                 self.learn.loss_func = self.learn.loss_func_mixup
@@ -241,7 +242,7 @@ class MixHandlerX(Callback):
         self.after_train()
 
     def solo_lf(self, pred, *yb):
-        "lf is a loss function that applies the original loss function on both outputs based on `self.lam`"
+        "Interpolates losses on stacked labels by `self.lam` during training"
         if not self.training: return self.old_lf(pred, *yb)
         with NoneReduce(self.old_lf) as lf:
             loss = torch.lerp(lf(pred,*self.yb1), lf(pred,*yb), self.lam)
