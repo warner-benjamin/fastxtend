@@ -29,7 +29,7 @@ def _to_size(t:Tensor):
 
 # Cell
 class ProgressiveResize(Callback):
-    run_valid, order = False, 5 # Needs to run before MixUp et al
+    run_valid, order = True, 5 # Needs to run before MixUp et al
     "Progressively increase the size of input images during training. Final image size is the valid image size."
     def __init__(self,
         initial_size:Number|tuple[int,int]|None=0.5,
@@ -61,29 +61,28 @@ class ProgressiveResize(Callback):
                 if isinstance(x, TensorImageBase):
                     self.input_size = x.shape[-2:]
         finally:
-            assert self.input_size is not None, "Could not determine input size. Set `input_size` to input size."
+            assert self.input_size is not None, "Could not determine input size. Set `input_size`."
             self.input_size = tensor(self.input_size)
 
-        if self.input_size.equal(tensor(-1)):
-            raise ValueError('No `TensorImageBase` derived inputs detected to gather shape')
-
+        # Set the initial resize
         if isinstance(self.initial_size, float):
             self.current_size = (tensor(self.initial_size) * self.input_size).int()
         elif isinstance(self.initial_size, tuple):
             self.current_size = tensor(self.initial_size)
 
+        # Double check that the step size works
         self.increase_by = tensor(self.increase_by)
         if ((self.input_size-self.current_size) % self.increase_by).sum() != 0:
             raise ValueError(f'Resize amount {self.input_size-self.current_size} not evenly divisible by `increase_by` {self.increase_by}')
 
+        # Set when the progressive resizing step is applied
         n_steps = ((self.input_size-self.current_size) / self.increase_by).int()
         if len(n_steps.shape)==2: assert n_steps[0]==n_steps[1]
         pct = (self.finish_at - self.start_at) / (n_steps[0].item()-1)
         self.step_pcts = [self.start_at + pct*i for i in range(n_steps[0].item())]+[1.1]
-        print(self.step_pcts)
 
         self._resize = []
-         # If `add_resize`, add a seperate resize
+        # If `add_resize`, add a seperate resize
         if self.add_resize:
             self._resize_pipe = Pipeline(AffineCoordTfm(size=_to_size(self.current_size), mode=self.resize_mode))
             self._resize.append(self._resize_pipe[0])
@@ -97,7 +96,7 @@ class ProgressiveResize(Callback):
                         self.null_resize = self.null_resize and self.learn.cutmixupaugment._orig_pipe[i].size is None
                         self.remove_resize = False
 
-                # If `CutMixUpAugment` has an Affine Transform for Augmentations then
+                # If `CutMixUpAugment` has an Affine Transform for Augmentations then use it
                 if len(self._resize) > 0:
                     # Check for pre-mixup augment pipeline and modify it
                     if self.learn.cutmixupaugment._docutmixaug:
@@ -128,6 +127,7 @@ class ProgressiveResize(Callback):
                 self._resize.append(self._resize_pipe[0])
                 self.remove_resize = True
 
+        # Set created or detected resize to the first size and store original interpolation
         self._orig_modes = []
         for resize in self._resize:
             resize.size = _to_size(self.current_size)
@@ -138,7 +138,7 @@ class ProgressiveResize(Callback):
     def before_batch(self):
         if self.add_resize:
             self.learn.xb = self._resize_pipe(self.xb)
-            # self.learn.yb = self._resize_pipe(self.yb)
+            # self.learn.yb = self._resize_pipe(self.yb) TODO this wasn't working
 
     def after_batch(self):
         if self.pct_train >= self.step_pcts[0]:
@@ -148,7 +148,7 @@ class ProgressiveResize(Callback):
                 if (self.current_size < self.input_size).all():
                     resize.size = _to_size(self.current_size)
                 else:
-                    print("input")
+                    # Reset everything after progressive resizing is done
                     if self.null_resize:
                         resize.size = None
                     elif self.remove_resize:
