@@ -1,23 +1,39 @@
 
 name: nbdev CI
 on: [push, pull_request]
+
+env:
+  FXND_CACHE: ~/fastxtend_cache
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/checkout@v3
+    - name: Set up python
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.7'
+        python-version: 3.7
         architecture: 'x64'
+  
+    - name: Activate python cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{ env.pythonLocation }}
+          ${{ env.FXND_CACHE }}
+        key: ${{ env.pythonLocation }}-${{ hashFiles('setup.py') }}
+
     - name: Install the library
       run: |
         sudo apt-get install libsndfile1-dev
-        pip install jupyter fastcore fastai -qq
+        pip install --upgrade pip
         pip install -e .[dev]
+
     - name: Read all notebooks
       run: |
         nbdev_read_nbs
+
     - name: Check if all notebooks are cleaned
       run: |
         echo "Check we are starting with clean git checkout"
@@ -27,9 +43,11 @@ jobs:
         echo "Check that strip out was unnecessary"
         git status -s # display the status to see which nbs need cleaning up
         if [ -n "$(git status -uno -s)" ]; then echo -e "!!! Detected unstripped out notebooks !!!Remember to run nbdev_install_git_hooks"; false; fi
+
     - name: Check if there is no diff library/notebooks
       run: |
         if [ -n "$(nbdev_diff_nbs)" ]; then echo -e "!!! Detected difference between the notebooks and the library"; false; fi
+
     - name: Run tests
       run: |
         nbdev_test_nbs

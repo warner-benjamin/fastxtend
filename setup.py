@@ -33,10 +33,10 @@ lic = licenses[cfg['license']]
 requirements = ['pip', 'packaging']
 if cfg.get('requirements'): requirements += cfg.get('requirements','').split()
 if cfg.get('pip_requirements'): requirements += cfg.get('pip_requirements','').split()
-dev_requirements = (cfg.get('dev_requirements') or '').split()
 vision_requirements = (cfg.get('vision_requirements') or '').split()
 audio_requirements = (cfg.get('audio_requirements') or '').split()
 all_requirements = vision_requirements + audio_requirements + (cfg.get('all_requirements') or '').split()
+dev_requirements = all_requirements + (cfg.get('dev_requirements') or '').split()
 
 long_description = open('README.md').read()
 # ![png](docs/images/output_13_0.png)
