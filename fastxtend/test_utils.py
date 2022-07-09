@@ -18,4 +18,4 @@ from .utils import less_random
 #nbdev_comment _all_ = ['test_fail', 'test', 'nequals', 'test_eq', 'test_eq_type', 'test_ne', 'is_close', 'test_close', 'test_is', 'test_shuffled', 'test_stdout', 'test_warns', 'TEST_IMAGE', 'test_fig_exists', 'ExceptionExpected', 'exception',  'synth_dbunch', 'RegModel', 'synth_learner', 'VerboseCallback', 'get_env', 'try_import', 'nvidia_smi', 'nvidia_mem', 'test_show_install', 'less_random']
 
 # Cell
-TEST_AUDIO = 'audio/whistle.mp3'
+TEST_AUDIO = 'audio/whistle.wav'
