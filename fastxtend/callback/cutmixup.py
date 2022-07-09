@@ -55,15 +55,13 @@ class CutMix(MixHandlerX):
         interp_label:bool|None=None # Blend or stack labels. Defaults to loss' `y_int` if None
     ):
         super().__init__(alpha, interp_label)
-        store_attr(but='alpha')
+        store_attr(but='alpha,interp_label')
         if not uniform: self.bernoulli = Bernoulli(p)
 
     def before_batch(self):
         "Add patches and blend labels from another random item in batch"
-        if self.uniform:
-            self._uniform_cutmix()
-        else:
-            self._multi_cutmix()
+        if self.uniform: self._uniform_cutmix()
+        else:            self._multi_cutmix()
 
     def _uniform_cutmix(self):
         "Add uniform patches and blend labels from another random item in batch"
@@ -99,7 +97,7 @@ class CutMix(MixHandlerX):
     def rand_bbox(self,
         W:int, # Input image width
         H:int, # Input image height
-        lam:Tensor # lambda sample from Beta distribution i.e tensor([0.3647])
+        lam:Tensor # Lambda sample from Beta distribution
     ) -> tuple[Tensor, Tensor, Tensor, Tensor]: # Top-left and bottom-right coordinates
         "Return random sub coordinates"
         cut_rat = torch.sqrt(1. - lam).to(self.x.device)

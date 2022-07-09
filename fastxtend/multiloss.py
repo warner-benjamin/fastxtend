@@ -13,6 +13,7 @@ from types import FunctionType
 from torch.distributions.beta import Beta
 
 from fastai.callback.core import Callback
+from fastai.callback.mixup import reduce_loss
 from fastai.learner import Recorder
 from fastai.layers import NoneReduce
 
