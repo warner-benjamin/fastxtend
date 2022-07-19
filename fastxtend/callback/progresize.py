@@ -27,6 +27,18 @@ def _to_size(t:Tensor):
     if sum(t.shape)==2: return tuple(t.tolist())
     else:               return tuple(t.item(),t.item())
 
+# Internal Cell
+class PostProgResize(Callback):
+    "Delete batch after resize to assist with PyTorch memory management"
+    run_valid, order = True, 100 # Runs last
+
+    def after_batch(self):
+        if self.learn._progresize:
+            del self.learn.xb
+            del self.learn.yb
+            del self.learn.pred
+            self.learn._progresize = False
+
 # Cell
 class ProgressiveResize(Callback):
     run_valid, order = True, 5 # Needs to run before MixUp et al
@@ -49,6 +61,8 @@ class ProgressiveResize(Callback):
             self.run = False
             return
 
+        self.learn._progresize = False
+        if not hasattr(self.learn, 'post_prog_resize'): self.learn.add_cb(PostProgResize)
         self.remove_resize, self.null_resize, self.remove_cutmix = True, True, False
         self.has_logger = hasattr(self.learn, self.logger_callback)
 
@@ -142,6 +156,7 @@ class ProgressiveResize(Callback):
 
     def after_batch(self):
         if self.pct_train >= self.step_pcts[0]:
+            self.learn._progresize = True
             self.step_pcts = self.step_pcts[1:]
             self.current_size += self.increase_by
             for i, resize in enumerate(self._resize):
