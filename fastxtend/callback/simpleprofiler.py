@@ -230,7 +230,7 @@ class SimpleProfilerCallback(Callback):
         if action =='draw':
             bs = self._raw_values['train_bs'][-1]
             batch = self._raw_values['train_batch'][-1]
-            return -(bs/batch - bs/(batch+self._raw_values[f'train_draw'][-1]))
+            return bs/(batch+self._raw_values[f'train_draw'][-1]) - bs/batch
         else:
             return self._raw_values[f'train_bs'][-1]/self._raw_values[f'train_{action}'][-1]
 
@@ -300,7 +300,7 @@ class SimpleProfilerCallback(Callback):
         if bs is None or step=='zero_grad': sam_per_sec = '-'
         elif action=='draw':
             batch = np.array(self._raw_values[f'{phase}_batch'])
-            sam_per_sec = f'{-int(np.around(np.mean(bs/batch - bs/(np.array(input)+batch)))):,d}'
+            sam_per_sec = f'{int(np.around(np.mean(bs/(np.array(input)+batch) - bs/batch))):,d}'
         else:
             sam_per_sec = f'{int(np.around(np.mean(bs/np.array(input)))):,d}'
         return [phase, action, step, np.mean(input), np.std(input), len(input), sam_per_sec,
