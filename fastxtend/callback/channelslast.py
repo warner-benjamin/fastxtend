@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 
-__all__ = ['ChannelsLastImgTfm', 'ChannelsLastTensorTfm', 'ChannelsLastCallback']
+__all__ = ['ChannelsLast']
 
 # Cell
 #nbdev_comment from __future__ import annotations
@@ -22,53 +22,30 @@ from fastai.basics import Pipeline
 from ..imports import *
 
 # Cell
-class ChannelsLastImgTfm(DisplayedTransform):
-    "Sets image-like inputs to `channels_last` format. For use in ChannelsLastCallback"
-    order = 110 # run after all other transforms if added to batch_tfms
-    def encodes(self, x:TensorImageBase):
-        return x.to(memory_format=torch.channels_last)
-
-# Cell
-class ChannelsLastTensorTfm(DisplayedTransform):
-    "Sets tensor inputs to `channels_last` format. For use in ChannelsLastCallback"
-    order = 110 # run after all other transforms if added to batch_tfms
-    def encodes(self, x:Tensor):
-        return x.to(memory_format=torch.channels_last)
-
-# Cell
-class ChannelsLastCallback(Callback):
+class ChannelsLast(Callback):
     "Channels last training using PyTorch's Channels Last Memory Format (beta)"
-    order = 8 # Before CastToTensor
-    def __init__(self,
-        tensor_image:bool=True # Apply to `TensorImageBase` or all `Tensor` using Type Dispatch
-    ):
-        if tensor_image: self._channels_last = Pipeline([ChannelsLastImgTfm()])
-        else:            self._channels_last = Pipeline([ChannelsLastTensorTfm()])
+    order = -1 # Needs to run before any model modification callbacks occur (Distributed, EMA, etc)
 
     def before_fit(self):
         self.learn.model.to(memory_format=torch.channels_last)
-
-    def before_batch(self):
-        self.learn.xb = self._channels_last(self.xb)
 
 # Cell
 @patch
 @delegates(GradScaler)
 def to_channelslast(self:Learner,
-    to_fp16:bool=True, # Add `MixedPrecision` callback for mixed precision training
-    tensor_image:bool=True, # Apply to `TensorImageBase` or all `Tensor` using Type Dispatch
+    to_fp16:bool=True, # Add `MixedPrecision` callback. Required for full channels last performance
     **kwargs
 ):
     "Set `Learner` and inputs to `channels_last` format and Mixed Precision by default"
     if to_fp16 and not hasattr(self, 'mixed_precision') and not hasattr(self, 'channels_last'):
-        return self.add_cbs([ChannelsLastCallback(tensor_image), MixedPrecision(**kwargs)])
+        return self.add_cbs([ChannelsLast(), MixedPrecision(**kwargs)])
     elif not hasattr(self, 'channels_last'):
-        return self.add_cb(ChannelsLastCallback(tensor_image))
+        return self.add_cb(ChannelsLast())
 
 # Cell
 @patch
 def to_contiguous(self:Learner, to_fp32=False):
     "Set `Learner` and inputs to `contiguous_format` (default format), optionally to single precision"
     self.model.to(memory_format=torch.contiguous_format)
-    if to_fp32: return self.remove_cbs([ChannelsLastCallback, MixedPrecision])
-    else:       return self.remove_cb(ChannelsLastCallback)
+    if to_fp32: return self.remove_cbs([ChannelsLast, MixedPrecision])
+    else:       return self.remove_cb(ChannelsLast)
