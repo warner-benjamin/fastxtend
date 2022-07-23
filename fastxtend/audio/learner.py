@@ -58,8 +58,8 @@ def audio_learner(
             detuple = is_listy(dls.train.after_batch[i].n_fft)
 
     if detuple:
-        if cbs is None: cbs = DetupleSpecCallback()
-        else: cbs = L(cbs) + L(DetupleSpecCallback())
+        if cbs is None: cbs = StackSpecCallback()
+        else: cbs = L(cbs) + L(StackSpecCallback())
 
     return Learner(dls=dls, model=model, loss_func=loss_func, opt_func=opt_func, lr=lr, splitter=splitter, cbs=cbs,
                     metrics=metrics, path=path, model_dir=model_dir, wd=wd, wd_bn_bias=wd_bn_bias, train_bn=train_bn,
