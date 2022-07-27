@@ -9,7 +9,7 @@ __all__ = ['MixUp', 'CutMix', 'CutMixUp', 'CutMixUpAugment']
 # Cell
 #nbdev_comment from __future__ import annotations
 
-from torch.distributions import Bernoulli
+from torch.distributions import Bernoulli, Categorical
 from torch.distributions.beta import Beta
 
 from fastcore.transform import Pipeline, Transform
@@ -33,11 +33,9 @@ class MixUp(MixHandlerX):
 
     def before_batch(self):
         "Blend inputs and labels with another random item in the batch"
-        lam = self.distrib.sample((self.y.size(0),)).squeeze().to(self.x.device)
-        lam = torch.stack([lam, 1-lam], 1)
-        self.lam = lam.max(1)[0]
         shuffle = torch.randperm(self.y.size(0)).to(self.x.device)
         xb1,self.yb1 = tuple(L(self.xb).itemgot(shuffle)),tuple(L(self.yb).itemgot(shuffle))
+        self.lam = self._mixup(self.y.size(0))
         nx_dims = len(self.x.size())
         self.learn.xb = tuple(L(xb1,self.xb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=nx_dims-1)))
 
@@ -45,54 +43,55 @@ class MixUp(MixHandlerX):
             ny_dims = len(self.y.size())
             self.learn.yb = tuple(L(self.yb1,self.yb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=ny_dims-1)))
 
+    def _mixup(self, bs):
+        lam = self.distrib.sample((bs,)).squeeze().to(self.x.device)
+        lam = torch.stack([lam, 1-lam], 1)
+        return lam.max(1)[0]
+
 # Cell
 class CutMix(MixHandlerX):
     "Implementation of https://arxiv.org/abs/1905.04899"
     def __init__(self,
         alpha:float=1., # Alpha & beta parametrization for `Beta` distribution
         uniform:bool=True, # Uniform patches across batch. True matches fastai CutMix
-        p:float=1., # Per Image probablily of applying CutMix if `uniform` is False
         interp_label:bool|None=None # Blend or stack labels. Defaults to loss' `y_int` if None
     ):
         super().__init__(alpha, interp_label)
         store_attr(but='alpha,interp_label')
-        if not uniform: self.bernoulli = Bernoulli(p)
 
     def before_batch(self):
         "Add patches and blend labels from another random item in batch"
-        if self.uniform: self._uniform_cutmix()
-        else:            self._multi_cutmix()
+        bs, _, H, W = self.x.size()
+        shuffle = torch.randperm(bs).to(self.x.device)
+        xb1,self.yb1 = self.x[shuffle], (self.y[shuffle],)
 
-    def _uniform_cutmix(self):
+        if self.uniform:
+            xb, self.lam = self._uniform_cutmix(self.x, xb1, H, W)
+        else:
+            xb, self.lam = self._multi_cutmix(self.x, xb1, H, W, bs)
+        self.learn.xb = (xb,)
+
+        if not self.stack_y:
+            ny_dims = len(self.y.size())
+            self.learn.yb = tuple(L(self.yb1,self.yb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=ny_dims-1)))
+
+    def _uniform_cutmix(self, xb, xb1, H, W):
         "Add uniform patches and blend labels from another random item in batch"
-        bs, _, H, W = self.x.size()
         self.lam = self.distrib.sample((1,)).to(self.x.device)
-        shuffle = torch.randperm(bs).to(self.x.device)
-        xb1,self.yb1 = self.x[shuffle], tuple((self.y[shuffle],))
         x1, y1, x2, y2 = self.rand_bbox(W, H, self.lam)
-        self.learn.xb[0][..., y1:y2, x1:x2] = xb1[..., y1:y2, x1:x2]
-        self.lam = (1 - ((x2-x1)*(y2-y1))/float(W*H))
-        if not self.stack_y:
-            ny_dims = len(self.y.size())
-            self.learn.yb = tuple(L(self.yb1,self.yb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=ny_dims-1)))
+        xb[..., y1:y2, x1:x2] = xb1[..., y1:y2, x1:x2]
+        lam = (1 - ((x2-x1)*(y2-y1))/float(W*H))
+        return xb, lam
 
-    def _multi_cutmix(self):
+    def _multi_cutmix(self, xb, xb1, H, W, bs):
         "Add random patches and blend labels from another random item in batch"
-        bs, _, H, W = self.x.size()
-        samples = self.bernoulli.sample((bs,)).sum().int()
-        idxes = torch.multinomial(torch.ones(bs, device=self.x.device), samples).to(self.x.device)
-        self.lam = self.distrib.sample((samples,)).to(self.x.device)
-        shuffle = torch.randperm(bs).to(self.x.device)
-        xb1,self.yb1 = self.x[idxes][shuffle], tuple((self.y[idxes][shuffle],))
-        for i, idx in enumerate(idxes):
-            if 1 > self.lam[i] > 0:
-                x1, y1, x2, y2 = self.rand_bbox(W, H, self.lam[i])
-                self.learn.xb[0][idx, ..., y1:y2, x1:x2] = xb1[i, ..., y1:y2, x1:x2]
-                self.lam[i] = (1 - ((x2-x1)*(y2-y1))/float(W*H))
-        if not self.stack_y:
-            ny_dims = len(self.y.size())
-            self.learn.yb = tuple(L(self.yb1,self.yb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=ny_dims-1)))
-
+        lam = self.distrib.sample((bs,)).to(self.x.device)
+        for i in range(bs):
+            if 1 > lam[i] > 0:
+                x1, y1, x2, y2 = self.rand_bbox(W, H, lam[i])
+                xb[i, ..., y1:y2, x1:x2] = xb1[i, ..., y1:y2, x1:x2]
+                lam[i] = (1 - ((x2-x1)*(y2-y1))/float(W*H))
+        return xb, lam
 
     def rand_bbox(self,
         W:int, # Input image width
@@ -121,13 +120,12 @@ class CutMixUp(MixUp, CutMix):
         cut_alpha:float=1., # CutMix alpha & beta parametrization for `Beta` distribution
         mixup_ratio:Number=1, # Ratio to apply `MixUp` relative to `CutMix`
         cutmix_ratio:Number=1, # Ratio to apply `CutMix` relative to `MixUp`
-        cutmix_uniform:bool=True, # Uniform patches across batch. True matches fastai CutMix
-        cutmix_p:float=1., # Per Image probablily of applying CutMix if `uniform` is False
+        cutmix_uniform:bool=False, # Uniform patches across batch. True matches fastai CutMix
         interp_label:bool|None=None # Blend or stack labels. Defaults to loss' `y_int` if None
     ):
         store_attr()
         MixUp.__init__(self, mix_alpha, interp_label)
-        CutMix.__init__(self, cut_alpha, cutmix_uniform, cutmix_p, interp_label)
+        CutMix.__init__(self, cut_alpha, cutmix_uniform, interp_label)
         self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
         self.cut_distrib = Beta(tensor(cut_alpha), tensor(cut_alpha))
         self.ratio = mixup_ratio / (cutmix_ratio + mixup_ratio)
@@ -160,14 +158,17 @@ class CutMixUpAugment(MixUp, CutMix):
         cutmix_ratio:Number=1, # Ratio to apply `CutMix` relative to `MixUp` & augmentations
         augment_ratio:Number=1, # Ratio to apply augmentations relative to `MixUp` & `CutMix`
         augment_finetune:Number|None=None, # Number of epochs or pct of training to only apply augmentations
-        cutmix_uniform:bool=True, # Uniform patches across batch. True matches fastai CutMix
-        cutmix_p:float=1., # Per Image probablily of applying CutMix if `uniform` is False
+        cutmix_uniform:bool=False, # Uniform patches across batch. True matches fastai CutMix
+        cutmixup_augs:listified[Transform|Callable[...,Transform]]|None=None, # Augmentations to apply before `MixUp` & `CutMix`. Should not have `Normalize`
+        one_batch:bool=True, # MixUp, CutMix, and Augment all in one batch
         interp_label:bool|None=None, # Blend or stack labels. Defaults to loss' `y_int` if None
-        cutmixup_augs:listified[Transform|Callable[...,Transform]]|None=None # Augmentations to apply before `MixUp` & `CutMix`. Should not have `Normalize`
     ):
         store_attr()
+        if one_batch:
+            total = mixup_ratio+cutmix_ratio+augment_ratio
+            self.categorical = Categorical(tensor([mixup_ratio/total, cutmix_ratio/total, augment_ratio/total]))
         MixUp.__init__(self, mix_alpha, interp_label)
-        CutMix.__init__(self, cut_alpha, cutmix_uniform, cutmix_p, interp_label)
+        CutMix.__init__(self, cut_alpha, cutmix_uniform, interp_label)
         self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
         self.cut_distrib = Beta(tensor(cut_alpha), tensor(cut_alpha))
         self.aug_cutmix_ratio = augment_ratio / (augment_ratio + cutmix_ratio + mixup_ratio)
@@ -191,17 +192,22 @@ class CutMixUpAugment(MixUp, CutMix):
         self._orig_pipe = self.dls.train.after_batch
         self._orig_pipe.split_idx = 0 # need to manually set split_idx for training augmentations to run
 
-        # loop through existing transforms looking for IntToFloatTensor, Normalize
-        size, mode = None, None
-        for i in range(len(self.dls.train.after_batch.fs)):
-            aug = self.dls.train.after_batch[i]
+        # Loop through existing transforms looking for IntToFloatTensor, Normalize
+        size, mode, augs = None, None, []
+        for aug in self.dls.train.after_batch.fs:
             if isinstance(aug, IntToFloatTensor):
                 self._inttofloat_pipe = Pipeline([aug])
-            elif isinstance(aug, Normalize):
-                self._norm_pipe = Pipeline([aug])
-            elif isinstance(aug, (AffineCoordTfm, RandomResizedCropGPU)) and aug.size is not None:
-                size = aug.size
-                mode = aug.mode
+            else:
+                if isinstance(aug, Normalize):
+                    self._norm_pipe = Pipeline([aug])
+                elif isinstance(aug, (AffineCoordTfm, RandomResizedCropGPU)) and aug.size is not None:
+                    size = aug.size
+                    mode = aug.mode
+                if self.one_batch:
+                    augs.append(aug)
+
+        # One Batch requires IntToFloatTensor before self._aug_pipe is called
+        if self.one_batch: self._aug_pipe = Pipeline(augs)
 
         # If there is a resize in Augmentations and no `cutmixup_augs`, need to replicate it for MixUp/CutMix
         if not self._docutmixaug and size is not None:
@@ -212,22 +218,69 @@ class CutMixUpAugment(MixUp, CutMix):
         self.dls.train.after_batch = Pipeline([])
 
     def before_batch(self):
-        "Apply MixUp, CutMix, optional MixUp/CutMix augmentations, or augmentations"
-        if self.augment_finetune >= self.learn.pct_train and torch.rand(1) >= self.aug_cutmix_ratio: # augs or mixup/cutmix
-            self._doaugs = False
-            self.learn.xb = self._inttofloat_pipe(self.xb) # apply inttofloat first
+        "Apply MixUp, CutMix, optional MixUp/CutMix augmentations, and/or augmentations"
+        if self.one_batch and self.augment_finetune >= self.learn.pct_train:
+            xb, self.yb1 = self.x, self.y
+            bs = xb.shape[0]
+            self.lam = torch.zeros(bs, device=xb.device)
+            aug_type = self.categorical.sample((bs,))
+            shuffle = torch.randperm(xb[aug_type<2].shape[0]).to(xb.device)
+            self.yb1[aug_type<2] = self.yb1[aug_type<2][shuffle]
+
+            # Apply IntToFloat to all samples
+            xb  = self._inttofloat_pipe(xb)
+
+            # Apply MixUp/CutMix Augmentations to MixUp and CutMix samples
             if self._docutmixaug:
-                self.learn.xb = self._cutmixaugs_pipe(self.xb)
-            if self.cut_mix_ratio > 0 and torch.rand(1) <= self.cut_mix_ratio: # mixup or cutmix
-                self.distrib = self.mix_distrib
-                MixUp.before_batch(self)
+                xb[aug_type<2] = self._cutmixaugs_pipe(xb[aug_type<2])
+            xb1 = xb[aug_type<2][shuffle]
+
+            # Apply MixUp
+            self.distrib = self.mix_distrib
+            self.lam[aug_type==0] = MixUp._mixup(self, xb[aug_type==0].shape[0])
+            xb[aug_type==0] = torch.lerp(xb1[aug_type[aug_type<2]==0], xb[aug_type==0], weight=unsqueeze(self.lam[aug_type==0], n=3))
+
+            # Apply CutMix
+            bs, _, H, W = xb[aug_type==1].size()
+            self.distrib = self.cut_distrib
+            if self.cutmix_uniform:
+                xb[aug_type==1], self.lam[aug_type==1] = CutMix._uniform_cutmix(self, xb[aug_type==1], xb1[aug_type[aug_type<2]==1], H, W)
             else:
-                self.distrib = self.cut_distrib
-                CutMix.before_batch(self)
-            self.learn.xb = self._norm_pipe(self.xb) # now normalize
+                xb[aug_type==1], self.lam[aug_type==1] = CutMix._multi_cutmix(self, xb[aug_type==1], xb1[aug_type[aug_type<2]==1], H, W, bs)
+
+            # Normalize MixUp and CutMix
+            xb[aug_type<2] = self._norm_pipe(xb[aug_type<2])
+
+            # Original Augmentations
+            xb[aug_type==2]= self._aug_pipe(xb[aug_type==2])
+
+            self.learn.xb = (xb,)
+            if not self.stack_y:
+                ny_dims = len(self.yb1.size())
+                self.learn.yb = tuple(L(self.yb1,self.yb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=ny_dims-1)))
+
+        elif self.augment_finetune >= self.learn.pct_train and torch.rand(1) >= self.aug_cutmix_ratio: # augs or mixup/cutmix
+                self._doaugs = False
+
+                # Apply IntToFloat to MixUp/CutMix and MixUp/CutMix Augmentations
+                self.learn.xb = self._inttofloat_pipe(self.xb)
+                if self._docutmixaug:
+                    self.learn.xb = self._cutmixaugs_pipe(self.xb)
+
+                # Perform MixUp or CutMix
+                if self.cut_mix_ratio > 0 and torch.rand(1) <= self.cut_mix_ratio:
+                    self.distrib = self.mix_distrib
+                    MixUp.before_batch(self)
+                else:
+                    self.distrib = self.cut_distrib
+                    CutMix.before_batch(self)
+
+                # Normalize MixUp/CutMix
+                self.learn.xb = self._norm_pipe(self.xb) # now normalize
         else:
+            # Original Augmentations
             self._doaugs = True
-            self.learn.xb = self._orig_pipe(self.xb) # original transforms
+            self.learn.xb = self._orig_pipe(self.xb)
 
     def after_fit(self):
         "Reset the train dataloader augmentations"
