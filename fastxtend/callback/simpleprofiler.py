@@ -18,6 +18,7 @@ from fastai.learner import Learner, Recorder
 from fastai.callback.core import *
 
 from ..imports import *
+from ..utils import scale_time
 
 if in_notebook():
     from IPython.display import display
@@ -256,7 +257,7 @@ class SimpleProfilerCallback(Callback):
 
         self.learn.simple_profile_results = self.report.copy()
         for c in ['Mean Duration', 'Duration Std Dev', 'Total Time']:
-            self.report[c] = self.report[c].apply(self._scale)
+            self.report[c] = self.report[c].apply(self.scale_time)
         self.report[['Phase', 'Action']] = self.report[['Phase', 'Action']].where(~self.report[['Phase', 'Action']].duplicated(), '')
         self.report['Phase']  = self.report['Phase'].where(~self.report['Phase'].duplicated(), '')
         self.report['Step']   = self.report['Step'].where(self.report['Step'] != self.report['Action']).fillna('')
@@ -305,15 +306,6 @@ class SimpleProfilerCallback(Callback):
             sam_per_sec = f'{int(np.around(np.mean(bs/np.array(input)))):,d}'
         return [phase, action, step, np.mean(input), np.std(input), len(input), sam_per_sec,
                 np.sum(input), f'{self._calc_percent(np.sum(input)):.0%}']
-
-    # modified from https://github.com/thomasbrandon/mish-cuda/blob/master/test/perftest.py
-    def _scale(self, val, spec="#0.4G"):
-        if val == 0: return '-'
-        PREFIXES = np.array([c for c in u"yzafpnµm kMGTPEZY"])
-        exp = np.int8(np.log10(np.abs(val)) // 3 * 3 * np.sign(val))
-        val /= 10.**exp
-        prefix = PREFIXES[exp//3 + len(PREFIXES)//2]
-        return f"{val:{spec}}{prefix}s"
 
 # Cell
 @patch
