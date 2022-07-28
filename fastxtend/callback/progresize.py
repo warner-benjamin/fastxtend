@@ -9,10 +9,15 @@ __all__ = ['ProgSizeMode', 'ProgressiveResize']
 # Cell
 #nbdev_comment from __future__ import annotations
 
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
 from fastcore.basics import detuplify
 from fastcore.transform import Pipeline, Transform
 
 from fastai.callback.core import Callback
+from fastai.callback.fp16 import MixedPrecision
+from fastai.learner import _cast_tensor
 from fastai.vision.augment import AffineCoordTfm, RandomResizedCropGPU
 
 from .cutmixup import CutMixUpAugment
@@ -48,41 +53,71 @@ class ProgSizeMode(Enum):
 
 # Cell
 class ProgressiveResize(Callback):
-    order = CutMixUpAugment.order+1 # Needs to run after CutMixUpAugment
+    order = MixedPrecision.order+1 # Needs to run after MixedPrecision
     "Progressively increase the size of input images during training. Final image size is the valid image size or `input_size`."
     def __init__(self,
         initial_size:float|tuple[int,int]=0.5, # Staring size to increase from. Image shape must be square
         start:Number=0.5, # Earliest upsizing epoch in percent of training time or epoch (index 0)
         finish:Number=0.75, # Last upsizing epoch in percent of training time or epoch (index 0)
-        min_increase:int=4, # Minimum increase per resising epoch
-        size_mode:ProgSizeMode=ProgSizeMode.Auto, # Automatically determine the resizing schedule
+        min_increase:int=4, # Minimum increase per upsizing epoch
+        size_mode:ProgSizeMode=ProgSizeMode.Auto, # Automatically determine the resizing schedule or manually set `start` and `finish`
         resize_mode:str='bilinear', # PyTorch interpolate mode string for progressive resizing
-        add_resize:bool=False, # Add a seperate resize step. Use if for non-fastai DataLoaders or DataLoaders without batch transforms
+        add_resize:bool=False, # Add a seperate resize step. Use for non-fastai DataLoaders or DataLoaders without batch transforms
         resize_valid:bool=True, # Apply progressive resizing to valid dataset
         input_size:tuple[int,int]|None=None, # Final image size. Set if using a non-fastai DataLoaders.
-        logger_callback:str='wandb', # Log report and samples/second to `logger_callback` using `Callback.name` if avalible
-        empty_cache:bool=True, # Call `torch.cuda.empty_cache()` after each epoch to prevent memory allocation overflow
+        empty_cache:bool=False, # Call `torch.cuda.empty_cache()` before a resizing epoch. May prevent cuda & magma errors. Don't use with multiple GPUs.
         verbose:str=True, # Print a summary of the progressive resizing schedule
+        logger_callback:str='wandb', # Log report and samples/second to `logger_callback` using `Callback.name` if avalible
     ):
         store_attr()
         self.run_valid = resize_valid
 
     def before_fit(self):
+        "Sets up Progressive Resizing"
         if hasattr(self.learn, 'lr_finder') and not hasattr(self, "gather_preds"):
             self.run = False
             return
 
-        self.remove_resize, self.null_resize, self.remove_cutmix = True, True, False
+        self._resize, self.remove_resize, self.null_resize, self.remove_cutmix = [], True, True, False
         self._log_after_resize = getattr(self, f'_{self.logger_callback}_log_after_resize', noop)
         self.has_logger = hasattr(self.learn, self.logger_callback) and self._log_after_resize != noop
         self.min_increase = tensor(self.min_increase)
 
+        # Dry run at full resolution to pre-allocate memory
+        # See https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#pre-allocate-memory-in-case-of-variable-input-length
+        try:
+            states = get_random_states()
+            path = self.path/self.model_dir
+            path.mkdir(parents=True, exist_ok=True)
+            tmp_d = TemporaryDirectory(dir=path)
+            tmp_p = Path(tmp_d.name).stem
+            self.learn.save(f'{tmp_p}/_tmp')
+
+            b = self.dls.valid.one_batch()
+            i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
+            self.learn.xb, self.learn.yb = b[:i],b[i:]
+
+            if hasattr(self.learn, 'mixed_precision'):
+                self.learn.mixed_precision.autocast.__enter__()
+
+            self.learn.pred = self.learn.model(*_cast_tensor(self.learn.xb))
+            self.learn.loss = self.learn.loss_func(self.learn.pred, *_cast_tensor(self.learn.yb))
+
+            if hasattr(self.learn, 'mixed_precision'):
+                self.learn.mixed_precision.autocast.__exit__(None, None, None)
+
+            self.learn.loss.backward()
+            self.learn.opt.zero_grad()
+
+        finally:
+            self.learn.load(f'{tmp_p}/_tmp', with_opt=True)
+            tmp_d.cleanup()
+            set_random_states(**states)
+
         # Try to automatically determine the input size
         try:
-            n_inp = self.dls.train.n_inp
-            xb = self.dls.valid.one_batch()[:n_inp]
-            for n in range(n_inp):
-                x = detuplify(xb[n])
+            for n in range(i):
+                x = detuplify(self.learn.xb[n])
                 if isinstance(x, TensorImageBase):
                     self.input_size = x.shape[-2:]
         finally:
@@ -95,7 +130,7 @@ class ProgressiveResize(Callback):
                  raise ValueError(f"Input shape must be even: {self.input_size}")
             assert self.min_increase.item() % 2 == 0, f"Minimum increase must be even: {self.min_increase}"
 
-        # Set the initial resize
+        # Set the initial size
         if isinstance(self.initial_size, float):
             self.current_size = (tensor(self.initial_size) * self.input_size).int()
         elif isinstance(self.initial_size, tuple):
@@ -138,7 +173,6 @@ class ProgressiveResize(Callback):
                   f'{(self.current_size+(len(self.step_epochs))*self.min_increase).tolist()}.'
             print(msg)
 
-        self._resize = []
         # If `add_resize`, add a seperate resize
         if self.add_resize:
             self._resize_pipe = Pipeline(AffineCoordTfm(size=_to_size(self.current_size), mode=self.resize_mode))
@@ -183,13 +217,14 @@ class ProgressiveResize(Callback):
             self._orig_modes.append(resize.mode)
             resize.mode = self.resize_mode
 
-
     def before_batch(self):
+        "Applies optional additional resize"
         if self.add_resize:
             self.learn.xb = self._resize_pipe(self.xb)
             # self.learn.yb = self._resize_pipe(self.yb) TODO this wasn't working
 
     def before_train(self):
+        "Increases the image size before the training epoch"
         if len(self.step_epochs)> 0 and self.epoch >= self.step_epochs[0]:
             _ = self.step_epochs.pop(0)
             self.current_size += self.min_increase
@@ -214,14 +249,16 @@ class ProgressiveResize(Callback):
         if self.has_logger: self._log_after_resize()
 
     def after_epoch(self):
-        # This hacky fix prevents fastai/PyTorch from an exploding allocation of GPU RAM which can cause training to slowdown
+        'Calls `torch.cuda.empty_cache()` if `empty_cache=True` before a resizing epoch. May slightly increase single GPU training speed. Do not use with multiple GPUs.'
         if self.empty_cache and len(self.step_epochs) > 0 and self.epoch+1 >= self.step_epochs[0]:
             del self.learn.xb
             del self.learn.yb
             del self.learn.pred
             torch.cuda.empty_cache()
+        if self.has_logger: self._log_after_resize(step=0)
 
     def _process_pipeline(self, pipe, remove_resize=False, null_resize=None):
+        "Helper method for processing augmentation pipelines"
         for p in pipe:
             if isinstance(p, _resize_augs):
                 self._resize.append(p)
@@ -237,7 +274,7 @@ try:
 
     @patch
     def _wandb_log_after_resize(self:ProgressiveResize):
-        size = _to_size(self.current_size)
-        wandb.log({'progressive_resize_size': size[0]}, self.learn.wandb._wandb_step+1)
+        size = _to_size(self.current_size, step=1)
+        wandb.log({'progressive_resize_size': size[0]}, self.learn.wandb._wandb_step+step)
 except:
     pass
