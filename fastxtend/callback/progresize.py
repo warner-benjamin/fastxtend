@@ -179,23 +179,27 @@ class ProgressiveResize(Callback):
             self._resize.append(self._resize_pipe[0])
             self.remove_resize = True
         else:
-            if hasattr(self.learn, 'cutmixupaugment'):
+            if hasattr(self.learn, 'cut_mix_up_augment'):
+                self._has_cutmixupaug = True
                 # Modify the `CutMixUpAugment` augmentation pipeline
-                self._process_pipeline(self.learn.cutmixupaugment._orig_pipe, False)
+                self._process_pipeline(self.learn.cut_mix_up_augment._orig_pipe, False)
 
                 # If `CutMixUpAugment` has an Affine Transform for Augmentations then use it
                 if len(self._resize) > 0:
                     # Check for pre-mixup augment pipeline and modify it
-                    if self.learn.cutmixupaugment._docutmixaug:
-                        self._process_pipeline(self.learn.cutmixupaugment._cutmixaugs_pipe, False)
+                    if self.learn.cut_mix_up_augment._docutmixaug:
+                        self._process_pipeline(self.learn.cut_mix_up_augment._cutmixaugs_pipe, False)
+                        self.learn.cut_mix_up_augment._size = _to_size(self.current_size)
                     else:
                         # There isn't one, then add it a pre-mixup augment pipeline for resizing
-                        self.learn.cutmixupaugment._cutmixaugs_pipe = Pipeline(AffineCoordTfm(size=_to_size(self.current_size)))
-                        self.learn.cutmixupaugment._docutmixaug = True
-                        self._resize.append(self.learn.cutmixupaugment._cutmixaugs_pipe[0])
+                        self.learn.cut_mix_up_augment._cutmixaugs_pipe = Pipeline(AffineCoordTfm(size=_to_size(self.current_size)))
+                        self.learn.cut_mix_up_augment._docutmixaug = True
+                        self.learn.cut_mix_up_augment._size = _to_size(self.current_size)
+                        self._resize.append(self.learn.cut_mix_up_augment._cutmixaugs_pipe[0])
                         self.remove_cutmix, self.remove_resize = True, True
 
             else:
+                self._has_cutmixupaug = False
                 # If no `CutMixUpAugment` check the train dataloader pipeline for Affine Transforms
                 self._process_pipeline(self.dls.train.after_batch.fs, False)
 
@@ -232,20 +236,25 @@ class ProgressiveResize(Callback):
             for i, resize in enumerate(self._resize):
                 if (self.current_size < self.input_size).all():
                     resize.size = _to_size(self.current_size)
+                    if self._has_cutmixupaug:
+                        self.learn.cut_mix_up_augment._size = _to_size(self.current_size)
                 else:
                     # Reset everything after progressive resizing is done
                     if self.null_resize:
                         resize.size = None
-                    elif self.remove_resize:
-                        if self.remove_cutmix:
-                            self.learn.cutmixupaugment._cutmixaugs_pipe = Pipeline([])
-                            self.learn.cutmixupaugment._docutmixaug = False
-                        else:
-                            self._resize_pipe = Pipeline([])
-                            self.add_resize = False
+                        if self._has_cutmixupaug:
+                            self.learn.cut_mix_up_augment._size = None
                     else:
                         resize.size = _to_size(self.current_size)
                         resize.mode = self._orig_modes[i]
+
+            if (self.current_size == self.input_size).all() and self.remove_resize:
+                self._resize_pipe = Pipeline([])
+                self.add_resize = False
+                if self.remove_cutmix:
+                    self.learn.cut_mix_up_augment._cutmixaugs_pipe = Pipeline([])
+                    self.learn.cut_mix_up_augment._docutmixaug = False
+
         if self.has_logger: self._log_after_resize()
 
     def after_epoch(self):

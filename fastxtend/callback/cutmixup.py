@@ -193,7 +193,7 @@ class CutMixUpAugment(MixUp, CutMix):
         self._orig_pipe.split_idx = 0 # need to manually set split_idx for training augmentations to run
 
         # Loop through existing transforms looking for IntToFloatTensor, Normalize
-        size, mode, augs = None, None, []
+        self._size, mode, augs = None, None, []
         for aug in self.dls.train.after_batch.fs:
             if isinstance(aug, IntToFloatTensor):
                 self._inttofloat_pipe = Pipeline([aug])
@@ -201,7 +201,7 @@ class CutMixUpAugment(MixUp, CutMix):
                 if isinstance(aug, Normalize):
                     self._norm_pipe = Pipeline([aug])
                 elif isinstance(aug, (AffineCoordTfm, RandomResizedCropGPU)) and aug.size is not None:
-                    size = aug.size
+                    self._size = aug.size
                     mode = aug.mode
                 if self.one_batch:
                     augs.append(aug)
@@ -210,9 +210,9 @@ class CutMixUpAugment(MixUp, CutMix):
         if self.one_batch: self._aug_pipe = Pipeline(augs)
 
         # If there is a resize in Augmentations and no `cutmixup_augs`, need to replicate it for MixUp/CutMix
-        if not self._docutmixaug and size is not None:
+        if not self._docutmixaug and self._size is not None:
             self._docutmixaug = True
-            self._cutmixaugs_pipe = Pipeline([AffineCoordTfm(size=size, mode=mode)])
+            self._cutmixaugs_pipe = Pipeline([AffineCoordTfm(size=self._size, mode=mode)])
 
         # set existing transforms to an empty Pipeline
         self.dls.train.after_batch = Pipeline([])
@@ -220,19 +220,31 @@ class CutMixUpAugment(MixUp, CutMix):
     def before_batch(self):
         "Apply MixUp, CutMix, optional MixUp/CutMix augmentations, and/or augmentations"
         if self.one_batch and self.augment_finetune >= self.learn.pct_train:
+            self._doaugs = False
             xb, self.yb1 = self.x, self.y
-            bs = xb.shape[0]
+            bs, C, H, W = xb.size()
             self.lam = torch.zeros(bs, device=xb.device)
             aug_type = self.categorical.sample((bs,))
             shuffle = torch.randperm(xb[aug_type<2].shape[0]).to(xb.device)
             self.yb1[aug_type<2] = self.yb1[aug_type<2][shuffle]
 
             # Apply IntToFloat to all samples
-            xb  = self._inttofloat_pipe(xb)
+            xb = self._inttofloat_pipe(xb)
+
+            # New Tensor for possibly resized
+            xb2 = torch.zeros([bs, C, self._size[0], self._size[1]], dtype=xb.dtype, device=xb.device) if self._size is not None else torch.zeros_like(xb)
 
             # Apply MixUp/CutMix Augmentations to MixUp and CutMix samples
             if self._docutmixaug:
-                xb[aug_type<2] = self._cutmixaugs_pipe(xb[aug_type<2])
+                xb2[aug_type<2] = self._cutmixaugs_pipe(xb[aug_type<2])
+            else:
+                xb2[aug_type<2] = xb[aug_type<2]
+
+            # Original Augmentations
+            xb2[aug_type==2] = self._aug_pipe(xb[aug_type==2])
+
+            # Possibly Resized xb and shuffled xb1
+            xb = xb2
             xb1 = xb[aug_type<2][shuffle]
 
             # Apply MixUp
@@ -251,32 +263,31 @@ class CutMixUpAugment(MixUp, CutMix):
             # Normalize MixUp and CutMix
             xb[aug_type<2] = self._norm_pipe(xb[aug_type<2])
 
-            # Original Augmentations
-            xb[aug_type==2]= self._aug_pipe(xb[aug_type==2])
-
             self.learn.xb = (xb,)
             if not self.stack_y:
                 ny_dims = len(self.yb1.size())
                 self.learn.yb = tuple(L(self.yb1,self.yb).map_zip(torch.lerp,weight=unsqueeze(self.lam, n=ny_dims-1)))
+            else:
+                self.yb1 = (self.yb1,)
 
         elif self.augment_finetune >= self.learn.pct_train and torch.rand(1) >= self.aug_cutmix_ratio: # augs or mixup/cutmix
-                self._doaugs = False
+            self._doaugs = False
 
-                # Apply IntToFloat to MixUp/CutMix and MixUp/CutMix Augmentations
-                self.learn.xb = self._inttofloat_pipe(self.xb)
-                if self._docutmixaug:
-                    self.learn.xb = self._cutmixaugs_pipe(self.xb)
+            # Apply IntToFloat to MixUp/CutMix and MixUp/CutMix Augmentations
+            self.learn.xb = self._inttofloat_pipe(self.xb)
+            if self._docutmixaug:
+                self.learn.xb = self._cutmixaugs_pipe(self.xb)
 
-                # Perform MixUp or CutMix
-                if self.cut_mix_ratio > 0 and torch.rand(1) <= self.cut_mix_ratio:
-                    self.distrib = self.mix_distrib
-                    MixUp.before_batch(self)
-                else:
-                    self.distrib = self.cut_distrib
-                    CutMix.before_batch(self)
+            # Perform MixUp or CutMix
+            if self.cut_mix_ratio > 0 and torch.rand(1) <= self.cut_mix_ratio:
+                self.distrib = self.mix_distrib
+                MixUp.before_batch(self)
+            else:
+                self.distrib = self.cut_distrib
+                CutMix.before_batch(self)
 
-                # Normalize MixUp/CutMix
-                self.learn.xb = self._norm_pipe(self.xb) # now normalize
+            # Normalize MixUp/CutMix
+            self.learn.xb = self._norm_pipe(self.xb) # now normalize
         else:
             # Original Augmentations
             self._doaugs = True
