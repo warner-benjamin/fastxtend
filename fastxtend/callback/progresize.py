@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 
-__all__ = ['ProgSizeMode', 'ProgressiveResize']
+__all__ = ['IncreaseMode', 'ProgressiveResize']
 
 # Cell
 #nbdev_comment from __future__ import annotations
@@ -33,44 +33,49 @@ def _to_size(t:Tensor):
     else:               return tuple(t.item(),t.item())
 
 # Internal Cell
-def _num_steps(input_size, current_size, min_increase):
+def _num_steps(final_size, current_size, increase_by):
     "Convert Tensor to size compatible values"
-    steps = (input_size - current_size) / min_increase
+    steps = (final_size - current_size) / increase_by
     if sum(steps.shape)==2:
         steps = steps[0].item()
     return steps
 
 # Internal Cell
-def _evenly_divisible(input_size, current_size, min_increase, steps):
-    min_increase = tensor(min_increase)
-    return (((input_size-current_size) % min_increase).sum() == 0) and (((input_size-current_size) - (min_increase*steps)).sum() == 0)
+def _evenly_divisible(final_size, current_size, increase_by, steps):
+    increase_by = tensor(increase_by)
+    return (((final_size-current_size) % increase_by).sum() == 0) and (((final_size-current_size) - (increase_by*steps)).sum() == 0)
 
 # Cell
-class ProgSizeMode(Enum):
-    "Delete batch after resize to assist with PyTorch memory management"
-    Auto = 'auto'
-    Strict = 'strict'
+class IncreaseMode(Enum):
+    "Increase mode for `ProgressiveResize`"
+    Epoch = 'epoch'
+    Batch = 'batch'
 
 # Cell
 class ProgressiveResize(Callback):
     order = MixedPrecision.order+1 # Needs to run after MixedPrecision
-    "Progressively increase the size of input images during training. Final image size is the valid image size or `input_size`."
+    "Progressively increase the size of input images during training. Starting from `initial_size` and ending at the valid image size or `final_size`."
     def __init__(self,
         initial_size:float|tuple[int,int]=0.5, # Staring size to increase from. Image shape must be square
         start:Number=0.5, # Earliest upsizing epoch in percent of training time or epoch (index 0)
         finish:Number=0.75, # Last upsizing epoch in percent of training time or epoch (index 0)
-        min_increase:int=4, # Minimum increase per upsizing epoch
-        size_mode:ProgSizeMode=ProgSizeMode.Auto, # Automatically determine the resizing schedule or manually set `start` and `finish`
-        resize_mode:str='bilinear', # PyTorch interpolate mode string for progressive resizing
-        add_resize:bool=False, # Add a seperate resize step. Use for non-fastai DataLoaders or DataLoaders without batch transforms
+        increase_by:int=4, # Progressivly increase image size by `increase_by`, or minimum increase per upsizing epoch
+        increase_mode:IncreaseMode=IncreaseMode.Batch, # Increase image size by training percent or before an epoch starts
+        resize_mode:str='bilinear', # PyTorch interpolate mode string for upsizing. Resets to existing fastai DataLoader mode at `final_size`.
         resize_valid:bool=True, # Apply progressive resizing to valid dataset
-        input_size:tuple[int,int]|None=None, # Final image size. Set if using a non-fastai DataLoaders.
-        empty_cache:bool=False, # Call `torch.cuda.empty_cache()` before a resizing epoch. May prevent cuda & magma errors. Don't use with multiple GPUs.
+        final_size:tuple[int,int]|None=None, # Final image size. Set if using a non-fastai DataLoaders, automatically detected from fastai DataLoader with batch_tfms
+        add_resize:bool=False, # Add a seperate resize step. Use for non-fastai DataLoaders or fastai DataLoader without batch_tfms
+        resize_targ:bool=False, # Applies the seperate resize step to targets
+        empty_cache:bool=False, # Call `torch.cuda.empty_cache()` before a resizing epoch. May prevent cuda & magma errors. Don't use with multiple GPUs
         verbose:str=True, # Print a summary of the progressive resizing schedule
-        logger_callback:str='wandb', # Log report and samples/second to `logger_callback` using `Callback.name` if avalible
+        logger_callback:str='wandb', # Log image size to `logger_callback` using `Callback.name` if avalible
     ):
         store_attr()
         self.run_valid = resize_valid
+        if resize_targ and not add_resize:
+            warn(f'`resize_targ` requires `add_resize` set to True')
+        if empty_cache and increase_mode==IncreaseMode.Batch:
+            warn(f'`empty_cache` requires `increase_mode` set to Epoch')
 
     def before_fit(self):
         "Sets up Progressive Resizing"
@@ -81,7 +86,8 @@ class ProgressiveResize(Callback):
         self._resize, self.remove_resize, self.null_resize, self.remove_cutmix = [], True, True, False
         self._log_after_resize = getattr(self, f'_{self.logger_callback}_log_after_resize', noop)
         self.has_logger = hasattr(self.learn, self.logger_callback) and self._log_after_resize != noop
-        self.min_increase = tensor(self.min_increase)
+        self.increase_by = tensor(self.increase_by)
+        self.resize_batch = self.increase_mode == IncreaseMode.Batch
 
         # Dry run at full resolution to pre-allocate memory
         # See https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#pre-allocate-memory-in-case-of-variable-input-length
@@ -119,20 +125,22 @@ class ProgressiveResize(Callback):
             for n in range(i):
                 x = detuplify(self.learn.xb[n])
                 if isinstance(x, TensorImageBase):
-                    self.input_size = x.shape[-2:]
+                    self.final_size = x.shape[-2:]
         finally:
-            if self.input_size is None:
-                raise ValueError(f'Could not determine input size. Set `input_size`: {self.input_size}')
-            self.input_size = tensor(self.input_size)
-            if self.input_size[0] != self.input_size[1]:
-                raise ValueError(f'`ProgressiveResize` does not support non-square images: `input_size` = {self.input_size.tolist()}')
-            if self.input_size[0] % 2 != 0:
-                 raise ValueError(f"Input shape must be even: {self.input_size}")
-            assert self.min_increase.item() % 2 == 0, f"Minimum increase must be even: {self.min_increase}"
+            if self.final_size is None:
+                raise ValueError(f'Could not determine image size from DataLoader. Set `final_size`: {self.final_size}')
+            self.final_size = tensor(self.final_size)
+            if self.final_size[0] != self.final_size[1]:
+                raise ValueError(f'`ProgressiveResize` does not support non-square images: `final_size` = {self.final_size.tolist()}')
+            if not self.resize_batch:
+                if self.final_size[0] % 2 != 0:
+                    raise ValueError(f"In Epoch mode, input image size must be even: {self.final_size.tolist()}")
+                if self.increase_by.item() % 2 != 0:
+                    raise ValueError(f"In Epoch Mode, `increase_by` must be even: {self.increase_by}")
 
         # Set the initial size
         if isinstance(self.initial_size, float):
-            self.current_size = (tensor(self.initial_size) * self.input_size).int()
+            self.current_size = (tensor(self.initial_size) * self.final_size).int()
         elif isinstance(self.initial_size, tuple):
             self.current_size = tensor(self.initial_size)
 
@@ -140,43 +148,54 @@ class ProgressiveResize(Callback):
         finish_epoch = int(self.n_epoch*self.finish) if self.finish < 1 else self.finish
         max_steps = finish_epoch - start_epoch
 
-        # Automatically determine the number of steps, increasing `min_increase` as needed
-        if self.size_mode == ProgSizeMode.Auto:
+        if self.resize_batch:
+            # Set when the progressive resizing step is applied in training percent
+            n_steps = ((self.final_size-self.current_size) / self.increase_by).int()
+            if sum(n_steps.shape)==2:
+                n_steps = n_steps[0].item()
+            pct = (self.finish - self.start) / (n_steps-1)
+            self.step_pcts = [self.start + pct*i for i in range(n_steps)]
+        else:
+            # Automatically determine the number of steps, increasing `increase_by` as needed
             count = 10000 # prevent infinite loop
-            steps = _num_steps(self.input_size, self.current_size, self.min_increase)
-            while ((steps > max_steps) or not _evenly_divisible(self.input_size, self.current_size, self.min_increase, steps)) and count > 0:
-                self.min_increase += 2
-                steps = _num_steps(self.input_size, self.current_size, self.min_increase)
+            steps = _num_steps(self.final_size, self.current_size, self.increase_by)
+            while ((steps > max_steps) or not _evenly_divisible(self.final_size, self.current_size, self.increase_by, steps)) and count > 0:
+                self.increase_by += 2
+                steps = _num_steps(self.final_size, self.current_size, self.increase_by)
                 count -= 1
-        n_steps = _num_steps(self.input_size, self.current_size, self.min_increase)
+            n_steps = _num_steps(self.final_size, self.current_size, self.increase_by)
 
-        # Double check that the number of resize steps works
-        if (n_steps > max_steps) or ((max_steps % n_steps != 0) and self.size_mode != ProgSizeMode.Auto):
-            raise ValueError(f'invalid number of steps {n_steps}')
+            # Set when per epoch progressive resizing steps are applied
+            step_size = int(max_steps / n_steps)
+            start_epoch = finish_epoch - ((self.final_size-self.current_size) / self.increase_by)*step_size
+            if isinstance(start_epoch, torch.Tensor):
+                if sum(start_epoch.shape)==2: start_epoch = int(start_epoch[0].item())
+                else:                         start_epoch = int(start_epoch.item())
+            self.step_epochs = [i for i in range(start_epoch+step_size, finish_epoch+step_size, step_size)]
+
 
         # Double check that the step size works
-        if not _evenly_divisible(self.input_size, self.current_size, self.min_increase, n_steps):
-            raise ValueError(f'Resize amount {self.input_size-self.current_size} not evenly divisible by `min_increase` {self.min_increase}')
-
-        # Set when progressive resizing steps are applied
-        step_size = int(max_steps / n_steps)
-        start_epoch = finish_epoch - ((self.input_size-self.current_size) / self.min_increase)*step_size
-        if isinstance(start_epoch, torch.Tensor):
-            if sum(start_epoch.shape)==2: start_epoch = int(start_epoch[0].item())
-            else:                         start_epoch = int(start_epoch.item())
-        self.step_epochs = [i for i in range(start_epoch+step_size, finish_epoch+step_size, step_size)]
+        if not _evenly_divisible(self.final_size, self.current_size, self.increase_by, n_steps):
+            raise ValueError(f'Resize amount {self.final_size-self.current_size} not evenly divisible by `increase_by` {self.increase_by}')
 
         if self.verbose:
-            msg = f'Progressively increase the initial image size of {self.current_size.tolist()} by {self.min_increase} '\
-                  f'pixels every {step_size} epoch{"s" if step_size > 1 else ""} for {len(self.step_epochs)} resizes.\nStarting '\
-                  f'at epoch {start_epoch+step_size} and finishing at epoch {finish_epoch} for a final training size of '\
-                  f'{(self.current_size+(len(self.step_epochs))*self.min_increase).tolist()}.'
-            print(msg)
+            if self.resize_batch:
+                msg = f'Progressively increase the initial image size of {self.current_size.tolist()} by {self.increase_by} '\
+                      f'pixels every {pct*self.n_epoch:.4g} epochs for {len(self.step_pcts)} resizes. \nStarting at epoch '\
+                      f'{self.step_pcts[0]*self.n_epoch:.4g} and finishing at epoch {self.step_pcts[-1]*self.n_epoch:.4g} '\
+                      f'for a final training size of {(self.current_size+(len(self.step_pcts))*self.increase_by).tolist()}.'
+                print(msg)
+            else:
+                msg = f'Progressively increase the initial image size of {self.current_size.tolist()} by {self.increase_by} '\
+                      f'pixels every {step_size} epoch{"s" if step_size > 1 else ""} for {len(self.step_epochs)} resizes.\nStarting '\
+                      f'at epoch {start_epoch+step_size} and finishing at epoch {finish_epoch} for a final training size of '\
+                      f'{(self.current_size+(len(self.step_epochs))*self.increase_by).tolist()}.'
+                print(msg)
+
 
         # If `add_resize`, add a seperate resize
         if self.add_resize:
-            self._resize_pipe = Pipeline(AffineCoordTfm(size=_to_size(self.current_size), mode=self.resize_mode))
-            self._resize.append(self._resize_pipe[0])
+            self._added_resize = partial(F.interpolate, mode=self.resize_mode, recompute_scale_factor=True)
             self.remove_resize = True
         else:
             if hasattr(self.learn, 'cut_mix_up_augment'):
@@ -197,7 +216,6 @@ class ProgressiveResize(Callback):
                         self.learn.cut_mix_up_augment._size = _to_size(self.current_size)
                         self._resize.append(self.learn.cut_mix_up_augment._cutmixaugs_pipe[0])
                         self.remove_cutmix, self.remove_resize = True, True
-
             else:
                 self._has_cutmixupaug = False
                 # If no `CutMixUpAugment` check the train dataloader pipeline for Affine Transforms
@@ -207,13 +225,6 @@ class ProgressiveResize(Callback):
             if self.resize_valid:
                 self._process_pipeline(self.dls.valid.after_batch.fs, False)
 
-            # If no there are no detected resizes add a resize transform pipeline
-            if len(self._resize) == 0:
-                self.add_resize = True
-                self._resize_pipe = Pipeline(AffineCoordTfm(size=_to_size(self.current_size)))
-                self._resize.append(self._resize_pipe[0])
-                self.remove_resize = True
-
         # Set created or detected resize to the first size and store original interpolation
         self._orig_modes = []
         for resize in self._resize:
@@ -222,52 +233,59 @@ class ProgressiveResize(Callback):
             resize.mode = self.resize_mode
 
     def before_batch(self):
-        "Applies optional additional resize"
+        "Increases the image size before a batch if set to ProgSizeMode.Batch and applies optional additional resize"
+        if self.resize_batch and len(self.step_pcts) > 0 and self.pct_train >= self.step_pcts[0]:
+            _ = self.step_pcts.pop(0)
+            self._increase_size()
         if self.add_resize:
-            self.learn.xb = self._resize_pipe(self.xb)
-            # self.learn.yb = self._resize_pipe(self.yb) TODO this wasn't working
+            self.learn.xb = (self._added_resize(self.x, scale_factor=(self.current_size/self.final_size)[0]),)
+            if self.resize_targ:
+                self.learn.yb = (self._added_resize(self.y, scale_factor=(self.current_size/self.final_size)[0]),)
 
     def before_train(self):
-        "Increases the image size before the training epoch"
-        if len(self.step_epochs)> 0 and self.epoch >= self.step_epochs[0]:
+        "Increases the image size before the training epoch if set to ProgSizeMode.Epoch"
+        if not self.resize_batch and len(self.step_epochs) > 0 and self.epoch >= self.step_epochs[0]:
             _ = self.step_epochs.pop(0)
-            self.current_size += self.min_increase
-
-            for i, resize in enumerate(self._resize):
-                if (self.current_size < self.input_size).all():
-                    resize.size = _to_size(self.current_size)
-                    if self._has_cutmixupaug:
-                        self.learn.cut_mix_up_augment._size = _to_size(self.current_size)
-                else:
-                    # Reset everything after progressive resizing is done
-                    if self.null_resize:
-                        resize.size = None
-                        if self._has_cutmixupaug:
-                            self.learn.cut_mix_up_augment._size = None
-                    else:
-                        resize.size = _to_size(self.current_size)
-                        resize.mode = self._orig_modes[i]
-
-            if (self.current_size == self.input_size).all() and self.remove_resize:
-                self._resize_pipe = Pipeline([])
-                self.add_resize = False
-                if self.remove_cutmix:
-                    self.learn.cut_mix_up_augment._cutmixaugs_pipe = Pipeline([])
-                    self.learn.cut_mix_up_augment._docutmixaug = False
-
-        if self.has_logger: self._log_after_resize()
+            self._increase_size()
 
     def after_epoch(self):
-        'Calls `torch.cuda.empty_cache()` if `empty_cache=True` before a resizing epoch. May slightly increase single GPU training speed. Do not use with multiple GPUs.'
-        if self.empty_cache and len(self.step_epochs) > 0 and self.epoch+1 >= self.step_epochs[0]:
+        "Calls `torch.cuda.empty_cache()` if `empty_cache=True` before a resizing epoch if set to ProgSizeMode.Epoch. May slightly increase single GPU training speed."
+        if not self.resize_batch and self.empty_cache and len(self.step_epochs) > 0 and self.epoch+1 >= self.step_epochs[0]:
             del self.learn.xb
             del self.learn.yb
             del self.learn.pred
             torch.cuda.empty_cache()
+
+    def _increase_size(self):
+        "Increase the input size"
         if self.has_logger: self._log_after_resize(step=0)
 
+        self.current_size += self.increase_by
+        for i, resize in enumerate(self._resize):
+            if (self.current_size < self.final_size).all():
+                resize.size = _to_size(self.current_size)
+                if self._has_cutmixupaug:
+                    self.learn.cut_mix_up_augment._size = _to_size(self.current_size)
+            else:
+                # Reset everything after progressive resizing is done
+                if self.null_resize:
+                    resize.size = None
+                    if self._has_cutmixupaug:
+                        self.learn.cut_mix_up_augment._size = None
+                else:
+                    resize.size = _to_size(self.current_size)
+                    resize.mode = self._orig_modes[i]
+
+        if (self.current_size == self.final_size).all() and self.remove_resize:
+            self.add_resize = False
+            if self.remove_cutmix:
+                self.learn.cut_mix_up_augment._cutmixaugs_pipe = Pipeline([])
+                self.learn.cut_mix_up_augment._docutmixaug = False
+
+        if self.has_logger: self._log_after_resize()
+
     def _process_pipeline(self, pipe, remove_resize=False, null_resize=None):
-        "Helper method for processing augmentation pipelines"
+        'Helper method for processing augmentation pipelines'
         for p in pipe:
             if isinstance(p, _resize_augs):
                 self._resize.append(p)
