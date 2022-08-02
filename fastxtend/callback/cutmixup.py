@@ -113,19 +113,23 @@ class CutMix(MixHandlerX):
 
 # Cell
 class CutMixUp(MixUp, CutMix):
-    "Combo implementation of https://arxiv.org/abs/1710.09412 and https://arxiv.org/abs/1905.04899"
+    """
+    Combo implementation of https://arxiv.org/abs/1710.09412 and https://arxiv.org/abs/1905.04899"
+
+    Supports element-wise application of MixUp and CutMix on a batch.
+    """
     run_valid = False
     def __init__(self,
         mix_alpha:float=.4, # MixUp alpha & beta parametrization for `Beta` distribution
         cut_alpha:float=1., # CutMix alpha & beta parametrization for `Beta` distribution
         mixup_ratio:Number=1, # Ratio to apply `MixUp` relative to `CutMix`
         cutmix_ratio:Number=1, # Ratio to apply `CutMix` relative to `MixUp`
-        cutmix_uniform:bool=False, # Uniform patches across batch. True matches fastai CutMix
-        same_batch:bool=True, # Apply MixUp and CutMix on the same batch
+        cutmix_uniform:bool=True, # Uniform patches across batch. True matches fastai CutMix
+        element:bool=True, # Apply element-wise MixUp and CutMix on a batch
         interp_label:bool|None=None # Blend or stack labels. Defaults to loss' `y_int` if None
     ):
         store_attr()
-        if same_batch:
+        if element:
             total = mixup_ratio + cutmix_ratio
             self.categorical = Categorical(tensor([mixup_ratio/total, cutmix_ratio/total]))
         MixUp.__init__(self, mix_alpha, interp_label)
@@ -136,7 +140,7 @@ class CutMixUp(MixUp, CutMix):
 
     def before_batch(self):
         "Apply MixUp or CutMix"
-        if self.same_batch:
+        if self.element:
             xb, self.yb1 = self.x, self.y
             bs, _, _, _ = xb.size()
             self.lam = torch.zeros(bs, device=xb.device)
@@ -176,6 +180,8 @@ class CutMixUpAugment(MixUp, CutMix):
     """
     Combo implementation of https://arxiv.org/abs/1710.09412 and https://arxiv.org/abs/1905.04899 plus Augmentation.
 
+    Supports element-wise application of MixUp, CutMix, and Augmentation on a batch.
+
     Pulls augmentations from `Dataloaders.train.after_batch`. These augmentations are not applied when performing `MixUp` & `CutMix`, the frequency is controlled by `augment_ratio`.
 
     Use `augment_finetune` to only apply dataloader augmentations at the end of training.
@@ -190,13 +196,13 @@ class CutMixUpAugment(MixUp, CutMix):
         cutmix_ratio:Number=1, # Ratio to apply `CutMix` relative to `MixUp` & augmentations
         augment_ratio:Number=1, # Ratio to apply augmentations relative to `MixUp` & `CutMix`
         augment_finetune:Number|None=None, # Number of epochs or pct of training to only apply augmentations
-        cutmix_uniform:bool=False, # Uniform patches across batch. True matches fastai CutMix
+        cutmix_uniform:bool=True, # Uniform patches across batch. True matches fastai CutMix
         cutmixup_augs:listified[Transform|Callable[...,Transform]]|None=None, # Augmentations to apply before `MixUp` & `CutMix`. Should not have `Normalize`
-        same_batch:bool=True, # Apply MixUp, CutMix, and Augment on the same batch
+        element:bool=True, # Apply element-wise MixUp, CutMix, and Augment on a batch
         interp_label:bool|None=None, # Blend or stack labels. Defaults to loss' `y_int` if None
     ):
         store_attr()
-        if same_batch:
+        if element:
             total = mixup_ratio + cutmix_ratio + augment_ratio
             self.categorical = Categorical(tensor([mixup_ratio/total, cutmix_ratio/total, augment_ratio/total]))
         MixUp.__init__(self, mix_alpha, interp_label)
@@ -235,11 +241,11 @@ class CutMixUpAugment(MixUp, CutMix):
                 elif isinstance(aug, (AffineCoordTfm, RandomResizedCropGPU)) and aug.size is not None:
                     self._size = aug.size
                     mode = aug.mode
-                if self.same_batch:
+                if self.element:
                     augs.append(aug)
 
         # One Batch requires IntToFloatTensor before self._aug_pipe is called
-        if self.same_batch: self._aug_pipe = Pipeline(augs)
+        if self.element: self._aug_pipe = Pipeline(augs)
 
         # If there is a resize in Augmentations and no `cutmixup_augs`, need to replicate it for MixUp/CutMix
         if not self._docutmixaug and self._size is not None:
@@ -251,7 +257,7 @@ class CutMixUpAugment(MixUp, CutMix):
 
     def before_batch(self):
         "Apply MixUp, CutMix, optional MixUp/CutMix augmentations, and/or augmentations"
-        if self.same_batch and self.augment_finetune >= self.learn.pct_train:
+        if self.element and self.augment_finetune >= self.learn.pct_train:
             self._doaugs = False
             xb, self.yb1 = self.x, self.y
             bs, C, H, W = xb.size()
