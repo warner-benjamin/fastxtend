@@ -15,6 +15,7 @@ https://fastxtend.benjaminwarner.dev
 
 **Vision**
 
+* Increase training speed using `ProgressiveResize` to automaticly apply progressive resizing.
 * Apply `MixUp`, `CutMix`, or Augmentations with `CutMixUp` or `CutMixUpAugment`.
 * Additional image augmentations
 * Support for running fastai batch transforms on CPU.
