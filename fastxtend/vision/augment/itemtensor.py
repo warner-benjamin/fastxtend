@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 
-__all__ = []
+__all__ = ['encodes', 'encodes', 'encodes', 'encodes', 'encodes']
 
 # Cell
 #nbdev_comment from __future__ import annotations
@@ -97,22 +97,22 @@ def crop_pad(x:TensorImage|TensorMask,
         return x._do_crop_pad(sz, tl, orig_sz=orig_sz, pad_mode=pad_mode, resize_mode=resize_mode, resize_to=resize_to)
 
 # Cell
-@patch
-def encodes(self:RandomCrop, x:TensorImage|TensorMask):
+@RandomCrop
+def encodes(self, x:TensorImage|TensorMask):
     'Extends RandomCrop to `TensorImage` & `TensorMask`'
     return x.crop_pad(self.size, self.tl, orig_sz=self.orig_sz)
 
 # Cell
-@patch
-def encodes(self:CropPad, x:TensorImage|TensorMask):
+@CropPad
+def encodes(self, x:TensorImage|TensorMask):
     'Extends CropPad to `TensorImage` & `TensorMask`'
     orig_sz = _get_sz(x)
     tl = (orig_sz-self.size)//2
     return x.crop_pad(self.size, tl, orig_sz=orig_sz, pad_mode=self.pad_mode)
 
 # Cell
-@patch
-def encodes(self:Resize, x:TensorImage|TensorMask):
+@Resize
+def encodes(self, x:TensorImage|TensorMask):
     'Extends Resize to `TensorImage` & `TensorMask`'
     orig_sz = _get_sz(x)
     if self.method==ResizeMethod.Squish:
@@ -128,8 +128,8 @@ def encodes(self:Resize, x:TensorImage|TensorMask):
                 resize_mode=self.mode_mask if isinstance(x,TensorMask) else self.mode, resize_to=self.size)
 
 # Cell
-@patch
-def encodes(self:RandomResizedCrop, x:TensorImage|TensorMask):
+@RandomResizedCrop
+def encodes(self, x:TensorImage|TensorMask):
     'Extends RandomResizedCrop to `TensorImage` & `TensorMask`'
     res = x.crop_pad(self.cp_size, self.tl, orig_sz=self.orig_sz,
         resize_mode=self.mode_mask if isinstance(x,TensorMask) else self.mode, resize_to=self.final_size)
@@ -137,8 +137,8 @@ def encodes(self:RandomResizedCrop, x:TensorImage|TensorMask):
     return res
 
 # Cell
-@patch
-def encodes(self:RatioResize, x:TensorImage|TensorMask):
+@RatioResize
+def encodes(self, x:TensorImage|TensorMask):
     'Extends RatioResize to `TensorImage` & `TensorMask`'
     w,h = _get_sz(x)
     if w >= h: nw,nh = self.max_sz,h*self.max_sz/w

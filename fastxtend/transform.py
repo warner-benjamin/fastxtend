@@ -11,8 +11,31 @@ __all__ = ['BatchRandTransform']
 from torch.distributions import Bernoulli
 
 from fastcore.transform import DisplayedTransform, _is_tuple, retain_type
+from fastcore.dispatch import typedispatch, explode_types
+
+from fastai.data.core import TfmdDL
 
 from .imports import *
+
+# Internal Cell
+@patch
+def to(self:TfmdDL, device):
+    self.device = device
+    for tfm in self.after_batch.fs:
+        for a in L(getattr(tfm, 'parameters', None)): setattr(tfm, a, getattr(tfm, a).to(device))
+        if hasattr(tfm, 'to'): tfm.to(device)
+    return self
+
+# Internal Cell
+@patch
+def _one_pass(self:TfmdDL):
+    b = self.do_batch([self.do_item(None)])
+    if self.device is not None:
+        b = to_device(b, self.device)
+        self.to(self.device)
+    its = self.after_batch(b)
+    self._n_inp = 1 if not isinstance(its, (list,tuple)) or len(its)==1 else len(its)-1
+    self._types = explode_types(its)
 
 # Cell
 class BatchRandTransform(DisplayedTransform):
