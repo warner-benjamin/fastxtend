@@ -88,7 +88,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>To add <code>before_draw</code> as a callable event, first it needs to be added to both lists of fastai events.</p>
+<p>To add <code>before_draw</code> as a callable event, first it needs to be added to both the <code>_inner_loop</code> and <code>_events</code> lists of fastai events (fastai 2.7.0 adds new backward events).</p>
 
 </div>
 </div>
@@ -160,7 +160,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Callback.__call__" class="doc_header"><code>Callback.__call__</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L46" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Callback.__call__</code>(<strong><code>event_name</code></strong>)</p>
+<h4 id="Callback.__call__" class="doc_header"><code>Callback.__call__</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L48" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Callback.__call__</code>(<strong><code>event_name</code></strong>)</p>
 </blockquote>
 <p>Call <code>self.{event_name}</code> if it's defined</p>
 
@@ -187,7 +187,12 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
     <span class="n">_run</span> <span class="o">=</span> <span class="p">(</span><span class="n">event_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_inner_loop</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_train</span> <span class="ow">and</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;training&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span> <span class="ow">or</span>
             <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">run_valid</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;training&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)))</span>
     <span class="n">res</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span> <span class="ow">and</span> <span class="n">_run</span><span class="p">:</span> <span class="n">res</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_name</span><span class="p">,</span> <span class="n">noop</span><span class="p">)()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span> <span class="ow">and</span> <span class="n">_run</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span> <span class="n">res</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_name</span><span class="p">,</span> <span class="n">noop</span><span class="p">)()</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">CancelBatchException</span><span class="p">,</span> <span class="n">CancelEpochException</span><span class="p">,</span> <span class="n">CancelFitException</span><span class="p">,</span> <span class="n">CancelStepException</span><span class="p">,</span> <span class="n">CancelTrainException</span><span class="p">,</span> <span class="n">CancelValidException</span><span class="p">):</span> <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;Exception occured in `</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s1">` when calling event `</span><span class="si">{</span><span class="n">event_name</span><span class="si">}</span><span class="s1">`:</span><span class="se">\n\t</span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">]</span>
+            <span class="k">raise</span>
     <span class="k">if</span> <span class="n">event_name</span><span class="o">==</span><span class="s1">&#39;after_fit&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">run</span><span class="o">=</span><span class="kc">True</span> <span class="c1">#Reset self.run to True at each end of fit</span>
     <span class="k">return</span> <span class="n">res</span>
 </pre></div>
@@ -244,7 +249,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Learner.all_batches" class="doc_header"><code>Learner.all_batches</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L63" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.all_batches</code>()</p>
+<h4 id="Learner.all_batches" class="doc_header"><code>Learner.all_batches</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L70" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.all_batches</code>()</p>
 </blockquote>
 
 </div>
@@ -309,7 +314,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="SimpleProfilerPostCallback" class="doc_header"><code>class</code> <code>SimpleProfilerPostCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L99" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SimpleProfilerPostCallback</code>(<strong><code>after_create</code></strong>=<em><code>None</code></em>, <strong><code>before_fit</code></strong>=<em><code>None</code></em>, <strong><code>before_epoch</code></strong>=<em><code>None</code></em>, <strong><code>before_train</code></strong>=<em><code>None</code></em>, <strong><code>before_batch</code></strong>=<em><code>None</code></em>, <strong><code>after_pred</code></strong>=<em><code>None</code></em>, <strong><code>after_loss</code></strong>=<em><code>None</code></em>, <strong><code>before_backward</code></strong>=<em><code>None</code></em>, <strong><code>before_step</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_step</code></strong>=<em><code>None</code></em>, <strong><code>after_step</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_batch</code></strong>=<em><code>None</code></em>, <strong><code>after_batch</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_train</code></strong>=<em><code>None</code></em>, <strong><code>after_train</code></strong>=<em><code>None</code></em>, <strong><code>before_validate</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_validate</code></strong>=<em><code>None</code></em>, <strong><code>after_validate</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_epoch</code></strong>=<em><code>None</code></em>, <strong><code>after_epoch</code></strong>=<em><code>None</code></em>, <strong><code>after_cancel_fit</code></strong>=<em><code>None</code></em>, <strong><code>after_fit</code></strong>=<em><code>None</code></em>) :: <code>Callback</code></p>
+<h2 id="SimpleProfilerPostCallback" class="doc_header"><code>class</code> <code>SimpleProfilerPostCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L107" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SimpleProfilerPostCallback</code>(<strong><code>samples_per_second</code></strong>=<em><code>True</code></em>) :: <code>Callback</code></p>
 </blockquote>
 <p>Pair with <a href="/callback.simpleprofiler.html#SimpleProfilerCallback"><code>SimpleProfilerCallback</code></a> to profile training performance. Removes itself after training is over.</p>
 
@@ -341,11 +346,58 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h2 id="SimpleProfilerCallback" class="doc_header"><code>class</code> <code>SimpleProfilerCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L142" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SimpleProfilerCallback</code>(<strong><code>show_report</code></strong>=<em><code>True</code></em>, <strong><code>plain</code></strong>=<em><code>False</code></em>, <strong><code>markdown</code></strong>=<em><code>False</code></em>, <strong><code>save_csv</code></strong>=<em><code>False</code></em>, <strong><code>csv_name</code></strong>=<em><code>'simple_profile.csv'</code></em>) :: <code>Callback</code></p>
+<h2 id="SimpleProfilerCallback" class="doc_header"><code>class</code> <code>SimpleProfilerCallback</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L165" class="source_link" style="float:right">[source]</a></h2><blockquote><p><code>SimpleProfilerCallback</code>(<strong><code>show_report</code></strong>=<em><code>True</code></em>, <strong><code>plain</code></strong>=<em><code>False</code></em>, <strong><code>markdown</code></strong>=<em><code>False</code></em>, <strong><code>save_csv</code></strong>=<em><code>False</code></em>, <strong><code>csv_name</code></strong>=<em><code>'simple_profile.csv'</code></em>, <strong><code>logger_callback</code></strong>=<em><code>'wandb'</code></em>) :: <code>Callback</code></p>
 </blockquote>
 <p>Adds a simple profiler to the fastai <code>Learner</code>. Optionally showing formatted report or saving unformatted results as csv.</p>
 <p>Pair with SimpleProfilerPostCallback to profile training performance.</p>
 <p>Post fit, access report &amp; results via <code>Learner.simple_profile_report</code> &amp; <code>Learner.simple_profile_results</code>.</p>
+<table>
+<thead><tr>
+<th></th>
+<th>Type</th>
+<th>Default</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>show_report</code></strong></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Display formatted report post profile</td>
+</tr>
+<tr>
+<td><strong><code>plain</code></strong></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>For Jupyter Notebooks, display plain report</td>
+</tr>
+<tr>
+<td><strong><code>markdown</code></strong></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Display markdown formatted report</td>
+</tr>
+<tr>
+<td><strong><code>save_csv</code></strong></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Save raw results to csv</td>
+</tr>
+<tr>
+<td><strong><code>csv_name</code></strong></td>
+<td><code>str</code></td>
+<td><code>simple_profile.csv</code></td>
+<td>CSV save location</td>
+</tr>
+<tr>
+<td><strong><code>logger_callback</code></strong></td>
+<td><code>str</code></td>
+<td><code>wandb</code></td>
+<td>Log report and samples/second to <code>logger_callback</code> using <code>Callback.name</code></td>
+</tr>
+</tbody>
+</table>
 
 </div>
 
@@ -381,9 +433,62 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 
 <div class="output_markdown rendered_html output_subarea ">
-<h4 id="Learner.profile" class="doc_header"><code>Learner.profile</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L255" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.profile</code>(<strong><code>show_report</code></strong>=<em><code>True</code></em>, <strong><code>plain</code></strong>=<em><code>False</code></em>, <strong><code>markdown</code></strong>=<em><code>False</code></em>, <strong><code>save_csv</code></strong>=<em><code>False</code></em>, <strong><code>csv_name</code></strong>=<em><code>'simple_profile.csv'</code></em>)</p>
+<h4 id="Learner.profile" class="doc_header"><code>Learner.profile</code><a href="https://github.com/warner-benjamin/fastxtend/tree/main/fastxtend/callback/simpleprofiler.py#L311" class="source_link" style="float:right">[source]</a></h4><blockquote><p><code>Learner.profile</code>(<strong><code>show_report</code></strong>=<em><code>True</code></em>, <strong><code>plain</code></strong>=<em><code>False</code></em>, <strong><code>markdown</code></strong>=<em><code>False</code></em>, <strong><code>save_csv</code></strong>=<em><code>False</code></em>, <strong><code>csv_name</code></strong>=<em><code>'simple_profile.csv'</code></em>, <strong><code>samples_per_second</code></strong>=<em><code>True</code></em>, <strong><code>logger_callback</code></strong>=<em><code>'wandb'</code></em>)</p>
 </blockquote>
 <p>Run Simple Profiler when training. Simple Profiler removes itself when finished.</p>
+<table>
+<thead><tr>
+<th></th>
+<th>Type</th>
+<th>Default</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>show_report</code></strong></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Display formatted report post profile</td>
+</tr>
+<tr>
+<td><strong><code>plain</code></strong></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>For Jupyter Notebooks, display plain report</td>
+</tr>
+<tr>
+<td><strong><code>markdown</code></strong></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Display markdown formatted report</td>
+</tr>
+<tr>
+<td><strong><code>save_csv</code></strong></td>
+<td><code>bool</code></td>
+<td><code>False</code></td>
+<td>Save raw results to csv</td>
+</tr>
+<tr>
+<td><strong><code>csv_name</code></strong></td>
+<td><code>str</code></td>
+<td><code>simple_profile.csv</code></td>
+<td>CSV save location</td>
+</tr>
+<tr>
+<td><strong><code>samples_per_second</code></strong></td>
+<td><code>bool</code></td>
+<td><code>True</code></td>
+<td>Log samples/second for all actions &amp; steps</td>
+</tr>
+<tr>
+<td><strong><code>logger_callback</code></strong></td>
+<td><code>str</code></td>
+<td><code>wandb</code></td>
+<td>Log report and samples/second to <code>logger_callback</code> using <code>Callback.name</code></td>
+</tr>
+</tbody>
+</table>
 
 </div>
 
@@ -416,24 +521,24 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 <li><code>fit</code>:  total time fitting the model takes.</li>
 <li><code>epoch</code>: duration of both training and validation epochs. Often epoch total time is the same amount of elapsed time as fit.</li>
 <li><code>train</code>: duration of each training epoch.</li>
-<li><code>validate</code>: duration of each validation epoch.</li>
+<li><code>valid</code>: duration of each validation epoch.</li>
 </ul>
 <p>Train:</p>
 <ul>
-<li><code>draw</code>: time spent waiting for a batch to be drawn. Measured from <code>before_draw</code> to <code>before_batch</code>. With default prefetching settings, ideally this is as close to instantly as possible. </li>
-<li><code>batch</code>: total duration of all batch steps sans drawing the batch. Measured from <code>before_batch</code> to <code>after_batch</code>.</li>
-<li><code>pred</code>: duration of the forward pass and any additional batch modifications. Measured from <code>before_batch</code> to <code>after_pred</code>.</li>
-<li><code>loss</code>: duration of caculating loss. Measured from <code>after_pred</code> to <code>after_loss</code>.</li>
+<li><code>draw</code>: time spent waiting for a batch to be drawn. Measured from <code>before_draw</code> to <code>before_batch</code>. Ideally this value should be as close to zero as possible. </li>
+<li><code>batch</code>: total duration of all batch steps except drawing the batch. Measured from <code>before_batch</code> to <code>after_batch</code>.</li>
+<li><code>forward</code>: duration of the forward pass and any additional batch modifications. Measured from <code>before_batch</code> to <code>after_pred</code>.</li>
+<li><code>loss</code>: duration of calculating loss. Measured from <code>after_pred</code> to <code>after_loss</code>.</li>
 <li><code>backward</code>: duration of the backward pass. Measured from <code>before_backward</code> to <code>before_step</code>.</li>
-<li><code>step</code>: duration of the optimizer step. Measured from <code>before_step</code> to <code>after_step</code>.</li>
+<li><code>opt_step</code>: duration of the optimizer step. Measured from <code>before_step</code> to <code>after_step</code>.</li>
 <li><code>zero_grad</code>: duration of the zero_grad step. Measured from <code>after_step</code> to <code>after_batch</code>.</li>
 </ul>
 <p>Valid:</p>
 <ul>
-<li><code>draw</code>: time spent waiting for a batch to be drawn. Measured from <code>before_draw</code> to <code>before_batch</code>. With default prefetching settings, ideally this is as close to instantly as possible. </li>
-<li><code>batch</code>: total duration of all batch steps sans drawing the batch. Measured from <code>before_batch</code> to <code>after_batch</code>.</li>
-<li><code>pred</code>: duration of the forward pass and any additional batch modifications. Measured from <code>before_batch</code> to <code>after_pred</code>.</li>
-<li><code>loss</code>: duration of caculating loss. Measured from <code>after_pred</code> to <code>after_loss</code>.</li>
+<li><code>draw</code>: time spent waiting for a batch to be drawn. Measured from <code>before_draw</code> to <code>before_batch</code>. Ideally this value should be as close to zero as possible. </li>
+<li><code>batch</code>: total duration of all batch steps except drawing the batch. Measured from <code>before_batch</code> to <code>after_batch</code>.</li>
+<li><code>predict</code>: duration of the prediction pass and any additional batch modifications. Measured from <code>before_batch</code> to <code>after_pred</code>.</li>
+<li><code>loss</code>: duration of calculating loss. Measured from <code>after_pred</code> to <code>after_loss</code>.</li>
 </ul>
 
 </div>
@@ -441,7 +546,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Examples">Examples<a class="anchor-link" href="#Examples"> </a></h2><p>Both examples are trained on Imagenette with an image size of 256 and batch size of 64 on a Colab P100 4CPU instance.</p>
+<h2 id="Examples">Examples<a class="anchor-link" href="#Examples"> </a></h2><p>The example is trained on Imagenette with an image size of 256 and batch size of 64 on a SageMaker Studio Lab T4 four CPU instance.</p>
 
 </div>
 </div>
@@ -453,7 +558,8 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">learn</span> <span class="o">=</span> <span class="n">Learner</span><span class="p">(</span><span class="n">dls</span><span class="p">,</span> <span class="n">xse_resnet50</span><span class="p">(</span><span class="n">n_out</span><span class="o">=</span><span class="n">dls</span><span class="o">.</span><span class="n">c</span><span class="p">),</span> <span class="n">metrics</span><span class="o">=</span><span class="n">accuracy</span><span class="p">)</span><span class="o">.</span><span class="n">to_fp16</span><span class="p">()</span><span class="o">.</span><span class="n">profile</span><span class="p">()</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#|cuda</span>
+<span class="n">learn</span> <span class="o">=</span> <span class="n">Learner</span><span class="p">(</span><span class="n">dls</span><span class="p">,</span> <span class="n">xse_resnet50</span><span class="p">(</span><span class="n">n_out</span><span class="o">=</span><span class="n">dls</span><span class="o">.</span><span class="n">c</span><span class="p">),</span> <span class="n">metrics</span><span class="o">=</span><span class="n">Accuracy</span><span class="p">())</span><span class="o">.</span><span class="n">to_fp16</span><span class="p">()</span><span class="o">.</span><span class="n">profile</span><span class="p">()</span>
 <span class="n">learn</span><span class="o">.</span><span class="n">fit_one_cycle</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mf">3e-3</span><span class="p">)</span>
 </pre></div>
 
@@ -480,17 +586,17 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
   <tbody>
     <tr>
       <td>0</td>
-      <td>1.624050</td>
-      <td>2.352882</td>
-      <td>0.376051</td>
-      <td>03:25</td>
+      <td>1.526267</td>
+      <td>1.588631</td>
+      <td>0.509554</td>
+      <td>02:43</td>
     </tr>
     <tr>
       <td>1</td>
-      <td>1.184010</td>
-      <td>1.147916</td>
-      <td>0.643567</td>
-      <td>03:19</td>
+      <td>1.044853</td>
+      <td>0.949273</td>
+      <td>0.705732</td>
+      <td>02:46</td>
     </tr>
   </tbody>
 </table></div>
@@ -500,352 +606,192 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 <div class="output_area">
 
 
-<div class="output_html rendered_html output_subarea "><style  type="text/css" >
-</style><table id="T_a0525fb0_3831_11ec_a814_0242ac1c0002" class="dataframe"><caption>Simple Profiler Results</caption><thead>    <tr>        <th class="col_heading level0 col0" >Phase</th>        <th class="col_heading level0 col1" >Action</th>        <th class="col_heading level0 col2" >Mean Duration</th>        <th class="col_heading level0 col3" >Duration Std Dev</th>        <th class="col_heading level0 col4" >Number of Calls</th>        <th class="col_heading level0 col5" >Total Time</th>        <th class="col_heading level0 col6" >Percent of Total</th>    </tr></thead><tbody>
-                <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row0_col0" class="data row0 col0" >fit</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row0_col1" class="data row0 col1" >fit</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row0_col2" class="data row0 col2" >-</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row0_col3" class="data row0 col3" >-</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row0_col4" class="data row0 col4" >1</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row0_col5" class="data row0 col5" >404.7 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row0_col6" class="data row0 col6" >100%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row1_col0" class="data row1 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row1_col1" class="data row1 col1" >epoch</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row1_col2" class="data row1 col2" >202.4 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row1_col3" class="data row1 col3" >2.721 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row1_col4" class="data row1 col4" >2</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row1_col5" class="data row1 col5" >404.7 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row1_col6" class="data row1 col6" >100%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row2_col0" class="data row2 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row2_col1" class="data row2 col1" >train</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row2_col2" class="data row2 col2" >178.4 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row2_col3" class="data row2 col3" >2.020 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row2_col4" class="data row2 col4" >2</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row2_col5" class="data row2 col5" >356.7 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row2_col6" class="data row2 col6" >88%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row3_col0" class="data row3 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row3_col1" class="data row3 col1" >validate</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row3_col2" class="data row3 col2" >23.99 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row3_col3" class="data row3 col3" >699.9ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row3_col4" class="data row3 col4" >2</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row3_col5" class="data row3 col5" >47.98 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row3_col6" class="data row3 col6" >12%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row4_col0" class="data row4 col0" >train</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row4_col1" class="data row4 col1" >batch</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row4_col2" class="data row4 col2" >1.203 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row4_col3" class="data row4 col3" >293.3ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row4_col4" class="data row4 col4" >294</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row4_col5" class="data row4 col5" >353.7 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row4_col6" class="data row4 col6" >87%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row5_col0" class="data row5 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row5_col1" class="data row5 col1" >step</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row5_col2" class="data row5 col2" >726.8ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row5_col3" class="data row5 col3" >35.05ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row5_col4" class="data row5 col4" >294</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row5_col5" class="data row5 col5" >213.7 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row5_col6" class="data row5 col6" >53%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row6_col0" class="data row6 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row6_col1" class="data row6 col1" >backward</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row6_col2" class="data row6 col2" >411.3ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row6_col3" class="data row6 col3" >159.6ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row6_col4" class="data row6 col4" >294</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row6_col5" class="data row6 col5" >120.9 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row6_col6" class="data row6 col6" >30%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row7_col0" class="data row7 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row7_col1" class="data row7 col1" >pred</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row7_col2" class="data row7 col2" >32.90ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row7_col3" class="data row7 col3" >107.5ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row7_col4" class="data row7 col4" >294</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row7_col5" class="data row7 col5" >9.673 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row7_col6" class="data row7 col6" >2%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row8_col0" class="data row8 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row8_col1" class="data row8 col1" >draw</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row8_col2" class="data row8 col2" >28.49ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row8_col3" class="data row8 col3" >78.12ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row8_col4" class="data row8 col4" >294</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row8_col5" class="data row8 col5" >8.375 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row8_col6" class="data row8 col6" >2%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row9_col0" class="data row9 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row9_col1" class="data row9 col1" >zero_grad</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row9_col2" class="data row9 col2" >2.437ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row9_col3" class="data row9 col3" >324.4µs</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row9_col4" class="data row9 col4" >294</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row9_col5" class="data row9 col5" >716.4ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row9_col6" class="data row9 col6" >0%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row10_col0" class="data row10 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row10_col1" class="data row10 col1" >loss</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row10_col2" class="data row10 col2" >958.6µs</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row10_col3" class="data row10 col3" >107.4µs</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row10_col4" class="data row10 col4" >294</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row10_col5" class="data row10 col5" >281.8ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row10_col6" class="data row10 col6" >0%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row11_col0" class="data row11 col0" >valid</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row11_col1" class="data row11 col1" >batch</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row11_col2" class="data row11 col2" >72.83ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row11_col3" class="data row11 col3" >176.0ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row11_col4" class="data row11 col4" >124</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row11_col5" class="data row11 col5" >9.031 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row11_col6" class="data row11 col6" >2%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row12_col0" class="data row12 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row12_col1" class="data row12 col1" >pred</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row12_col2" class="data row12 col2" >40.13ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row12_col3" class="data row12 col3" >126.7ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row12_col4" class="data row12 col4" >124</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row12_col5" class="data row12 col5" >4.976 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row12_col6" class="data row12 col6" >1%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row13_col0" class="data row13 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row13_col1" class="data row13 col1" >draw</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row13_col2" class="data row13 col2" >31.58ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row13_col3" class="data row13 col3" >121.3ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row13_col4" class="data row13 col4" >124</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row13_col5" class="data row13 col5" >3.916 s</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row13_col6" class="data row13 col6" >1%</td>
-            </tr>
-            <tr>
-                                <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row14_col0" class="data row14 col0" ></td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row14_col1" class="data row14 col1" >loss</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row14_col2" class="data row14 col2" >967.8µs</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row14_col3" class="data row14 col3" >1.034ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row14_col4" class="data row14 col4" >124</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row14_col5" class="data row14 col5" >120.0ms</td>
-                        <td id="T_a0525fb0_3831_11ec_a814_0242ac1c0002row14_col6" class="data row14 col6" >0%</td>
-            </tr>
-    </tbody></table></div>
-
-</div>
-
-</div>
-</div>
-
-</div>
-    {% endraw %}
-
-<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
-<div class="text_cell_render border-box-sizing rendered_html">
-<p>When training a XResNet18, the total time spent drawing while training increases to 20 seconds, twenty percent of total fit time. This is due to Colab's four core CPU and slow disk not being able to prefetch quickly enough, causing the training process to wait on drawing a batch. In contrast in the XSEResNet50 training above, total training draw time was only 8 seconds, two percent of the total fit time.</p>
-
-</div>
-</div>
-</div>
-    {% raw %}
-    
-<div class="cell border-box-sizing code_cell rendered">
-<div class="input">
-
-<div class="inner_cell">
-    <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">learn</span> <span class="o">=</span> <span class="n">Learner</span><span class="p">(</span><span class="n">dls</span><span class="p">,</span> <span class="n">xresnet18</span><span class="p">(</span><span class="n">n_out</span><span class="o">=</span><span class="n">dls</span><span class="o">.</span><span class="n">c</span><span class="p">),</span> <span class="n">metrics</span><span class="o">=</span><span class="n">accuracy</span><span class="p">)</span><span class="o">.</span><span class="n">to_fp16</span><span class="p">()</span><span class="o">.</span><span class="n">profile</span><span class="p">()</span>
-<span class="n">learn</span><span class="o">.</span><span class="n">fit_one_cycle</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mf">3e-3</span><span class="p">)</span>
-</pre></div>
-
-    </div>
-</div>
-</div>
-
-<div class="output_wrapper">
-<div class="output">
-
-<div class="output_area">
-
-
-<div class="output_html rendered_html output_subarea "><table border="1" class="dataframe">
+<div class="output_html rendered_html output_subarea "><style type="text/css">
+</style>
+<table id="T_9b9f4_">
+  <caption>Simple Profiler Results</caption>
   <thead>
-    <tr style="text-align: left;">
-      <th>epoch</th>
-      <th>train_loss</th>
-      <th>valid_loss</th>
-      <th>accuracy</th>
-      <th>time</th>
+    <tr>
+      <th class="col_heading level0 col0" >Phase</th>
+      <th class="col_heading level0 col1" >Action</th>
+      <th class="col_heading level0 col2" >Step</th>
+      <th class="col_heading level0 col3" >Mean Duration</th>
+      <th class="col_heading level0 col4" >Duration Std Dev</th>
+      <th class="col_heading level0 col5" >Number of Calls</th>
+      <th class="col_heading level0 col6" >Samples/Second</th>
+      <th class="col_heading level0 col7" >Total Time</th>
+      <th class="col_heading level0 col8" >Percent of Total</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>0</td>
-      <td>1.552181</td>
-      <td>1.569250</td>
-      <td>0.480764</td>
-      <td>00:49</td>
+      <td id="T_9b9f4_row0_col0" class="data row0 col0" >fit</td>
+      <td id="T_9b9f4_row0_col1" class="data row0 col1" ></td>
+      <td id="T_9b9f4_row0_col2" class="data row0 col2" ></td>
+      <td id="T_9b9f4_row0_col3" class="data row0 col3" >-</td>
+      <td id="T_9b9f4_row0_col4" class="data row0 col4" >-</td>
+      <td id="T_9b9f4_row0_col5" class="data row0 col5" >1</td>
+      <td id="T_9b9f4_row0_col6" class="data row0 col6" >-</td>
+      <td id="T_9b9f4_row0_col7" class="data row0 col7" >330.2 s</td>
+      <td id="T_9b9f4_row0_col8" class="data row0 col8" >100%</td>
     </tr>
     <tr>
-      <td>1</td>
-      <td>1.148098</td>
-      <td>1.137456</td>
-      <td>0.638217</td>
-      <td>00:49</td>
+      <td id="T_9b9f4_row1_col0" class="data row1 col0" ></td>
+      <td id="T_9b9f4_row1_col1" class="data row1 col1" >epoch</td>
+      <td id="T_9b9f4_row1_col2" class="data row1 col2" ></td>
+      <td id="T_9b9f4_row1_col3" class="data row1 col3" >165.1 s</td>
+      <td id="T_9b9f4_row1_col4" class="data row1 col4" >1.160 s</td>
+      <td id="T_9b9f4_row1_col5" class="data row1 col5" >2</td>
+      <td id="T_9b9f4_row1_col6" class="data row1 col6" >-</td>
+      <td id="T_9b9f4_row1_col7" class="data row1 col7" >330.2 s</td>
+      <td id="T_9b9f4_row1_col8" class="data row1 col8" >100%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row2_col0" class="data row2 col0" ></td>
+      <td id="T_9b9f4_row2_col1" class="data row2 col1" ></td>
+      <td id="T_9b9f4_row2_col2" class="data row2 col2" >train</td>
+      <td id="T_9b9f4_row2_col3" class="data row2 col3" >148.6 s</td>
+      <td id="T_9b9f4_row2_col4" class="data row2 col4" >1.113 s</td>
+      <td id="T_9b9f4_row2_col5" class="data row2 col5" >2</td>
+      <td id="T_9b9f4_row2_col6" class="data row2 col6" >66</td>
+      <td id="T_9b9f4_row2_col7" class="data row2 col7" >297.1 s</td>
+      <td id="T_9b9f4_row2_col8" class="data row2 col8" >90%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row3_col0" class="data row3 col0" ></td>
+      <td id="T_9b9f4_row3_col1" class="data row3 col1" ></td>
+      <td id="T_9b9f4_row3_col2" class="data row3 col2" >valid</td>
+      <td id="T_9b9f4_row3_col3" class="data row3 col3" >16.56 s</td>
+      <td id="T_9b9f4_row3_col4" class="data row3 col4" >47.87ms</td>
+      <td id="T_9b9f4_row3_col5" class="data row3 col5" >2</td>
+      <td id="T_9b9f4_row3_col6" class="data row3 col6" >3,019</td>
+      <td id="T_9b9f4_row3_col7" class="data row3 col7" >33.11 s</td>
+      <td id="T_9b9f4_row3_col8" class="data row3 col8" >10%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row4_col0" class="data row4 col0" >train</td>
+      <td id="T_9b9f4_row4_col1" class="data row4 col1" >draw</td>
+      <td id="T_9b9f4_row4_col2" class="data row4 col2" ></td>
+      <td id="T_9b9f4_row4_col3" class="data row4 col3" >7.803ms</td>
+      <td id="T_9b9f4_row4_col4" class="data row4 col4" >54.23ms</td>
+      <td id="T_9b9f4_row4_col5" class="data row4 col5" >294</td>
+      <td id="T_9b9f4_row4_col6" class="data row4 col6" >0</td>
+      <td id="T_9b9f4_row4_col7" class="data row4 col7" >2.294 s</td>
+      <td id="T_9b9f4_row4_col8" class="data row4 col8" >1%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row5_col0" class="data row5 col0" ></td>
+      <td id="T_9b9f4_row5_col1" class="data row5 col1" >batch</td>
+      <td id="T_9b9f4_row5_col2" class="data row5 col2" ></td>
+      <td id="T_9b9f4_row5_col3" class="data row5 col3" >967.9ms</td>
+      <td id="T_9b9f4_row5_col4" class="data row5 col4" >10.47ms</td>
+      <td id="T_9b9f4_row5_col5" class="data row5 col5" >294</td>
+      <td id="T_9b9f4_row5_col6" class="data row5 col6" >66</td>
+      <td id="T_9b9f4_row5_col7" class="data row5 col7" >284.6 s</td>
+      <td id="T_9b9f4_row5_col8" class="data row5 col8" >86%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row6_col0" class="data row6 col0" ></td>
+      <td id="T_9b9f4_row6_col1" class="data row6 col1" ></td>
+      <td id="T_9b9f4_row6_col2" class="data row6 col2" >forward</td>
+      <td id="T_9b9f4_row6_col3" class="data row6 col3" >21.23ms</td>
+      <td id="T_9b9f4_row6_col4" class="data row6 col4" >19.30ms</td>
+      <td id="T_9b9f4_row6_col5" class="data row6 col5" >294</td>
+      <td id="T_9b9f4_row6_col6" class="data row6 col6" >3,290</td>
+      <td id="T_9b9f4_row6_col7" class="data row6 col7" >6.242 s</td>
+      <td id="T_9b9f4_row6_col8" class="data row6 col8" >2%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row7_col0" class="data row7 col0" ></td>
+      <td id="T_9b9f4_row7_col1" class="data row7 col1" ></td>
+      <td id="T_9b9f4_row7_col2" class="data row7 col2" >loss</td>
+      <td id="T_9b9f4_row7_col3" class="data row7 col3" >974.6µs</td>
+      <td id="T_9b9f4_row7_col4" class="data row7 col4" >204.6µs</td>
+      <td id="T_9b9f4_row7_col5" class="data row7 col5" >294</td>
+      <td id="T_9b9f4_row7_col6" class="data row7 col6" >68,140</td>
+      <td id="T_9b9f4_row7_col7" class="data row7 col7" >286.5ms</td>
+      <td id="T_9b9f4_row7_col8" class="data row7 col8" >0%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row8_col0" class="data row8 col0" ></td>
+      <td id="T_9b9f4_row8_col1" class="data row8 col1" ></td>
+      <td id="T_9b9f4_row8_col2" class="data row8 col2" >backward</td>
+      <td id="T_9b9f4_row8_col3" class="data row8 col3" >387.2ms</td>
+      <td id="T_9b9f4_row8_col4" class="data row8 col4" >18.61ms</td>
+      <td id="T_9b9f4_row8_col5" class="data row8 col5" >294</td>
+      <td id="T_9b9f4_row8_col6" class="data row8 col6" >167</td>
+      <td id="T_9b9f4_row8_col7" class="data row8 col7" >113.8 s</td>
+      <td id="T_9b9f4_row8_col8" class="data row8 col8" >34%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row9_col0" class="data row9 col0" ></td>
+      <td id="T_9b9f4_row9_col1" class="data row9 col1" ></td>
+      <td id="T_9b9f4_row9_col2" class="data row9 col2" >opt_step</td>
+      <td id="T_9b9f4_row9_col3" class="data row9 col3" >556.4ms</td>
+      <td id="T_9b9f4_row9_col4" class="data row9 col4" >6.388ms</td>
+      <td id="T_9b9f4_row9_col5" class="data row9 col5" >294</td>
+      <td id="T_9b9f4_row9_col6" class="data row9 col6" >115</td>
+      <td id="T_9b9f4_row9_col7" class="data row9 col7" >163.6 s</td>
+      <td id="T_9b9f4_row9_col8" class="data row9 col8" >50%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row10_col0" class="data row10 col0" ></td>
+      <td id="T_9b9f4_row10_col1" class="data row10 col1" ></td>
+      <td id="T_9b9f4_row10_col2" class="data row10 col2" >zero_grad</td>
+      <td id="T_9b9f4_row10_col3" class="data row10 col3" >1.968ms</td>
+      <td id="T_9b9f4_row10_col4" class="data row10 col4" >122.2µs</td>
+      <td id="T_9b9f4_row10_col5" class="data row10 col5" >294</td>
+      <td id="T_9b9f4_row10_col6" class="data row10 col6" >-</td>
+      <td id="T_9b9f4_row10_col7" class="data row10 col7" >578.7ms</td>
+      <td id="T_9b9f4_row10_col8" class="data row10 col8" >0%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row11_col0" class="data row11 col0" >valid</td>
+      <td id="T_9b9f4_row11_col1" class="data row11 col1" >draw</td>
+      <td id="T_9b9f4_row11_col2" class="data row11 col2" ></td>
+      <td id="T_9b9f4_row11_col3" class="data row11 col3" >13.44ms</td>
+      <td id="T_9b9f4_row11_col4" class="data row11 col4" >75.85ms</td>
+      <td id="T_9b9f4_row11_col5" class="data row11 col5" >124</td>
+      <td id="T_9b9f4_row11_col6" class="data row11 col6" >-680</td>
+      <td id="T_9b9f4_row11_col7" class="data row11 col7" >1.667 s</td>
+      <td id="T_9b9f4_row11_col8" class="data row11 col8" >1%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row12_col0" class="data row12 col0" ></td>
+      <td id="T_9b9f4_row12_col1" class="data row12 col1" >batch</td>
+      <td id="T_9b9f4_row12_col2" class="data row12 col2" ></td>
+      <td id="T_9b9f4_row12_col3" class="data row12 col3" >18.33ms</td>
+      <td id="T_9b9f4_row12_col4" class="data row12 col4" >5.751ms</td>
+      <td id="T_9b9f4_row12_col5" class="data row12 col5" >124</td>
+      <td id="T_9b9f4_row12_col6" class="data row12 col6" >3,699</td>
+      <td id="T_9b9f4_row12_col7" class="data row12 col7" >2.273 s</td>
+      <td id="T_9b9f4_row12_col8" class="data row12 col8" >1%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row13_col0" class="data row13 col0" ></td>
+      <td id="T_9b9f4_row13_col1" class="data row13 col1" ></td>
+      <td id="T_9b9f4_row13_col2" class="data row13 col2" >predict</td>
+      <td id="T_9b9f4_row13_col3" class="data row13 col3" >17.37ms</td>
+      <td id="T_9b9f4_row13_col4" class="data row13 col4" >5.533ms</td>
+      <td id="T_9b9f4_row13_col5" class="data row13 col5" >124</td>
+      <td id="T_9b9f4_row13_col6" class="data row13 col6" >-</td>
+      <td id="T_9b9f4_row13_col7" class="data row13 col7" >2.154 s</td>
+      <td id="T_9b9f4_row13_col8" class="data row13 col8" >1%</td>
+    </tr>
+    <tr>
+      <td id="T_9b9f4_row14_col0" class="data row14 col0" ></td>
+      <td id="T_9b9f4_row14_col1" class="data row14 col1" ></td>
+      <td id="T_9b9f4_row14_col2" class="data row14 col2" >loss</td>
+      <td id="T_9b9f4_row14_col3" class="data row14 col3" >836.1µs</td>
+      <td id="T_9b9f4_row14_col4" class="data row14 col4" >228.3µs</td>
+      <td id="T_9b9f4_row14_col5" class="data row14 col5" >124</td>
+      <td id="T_9b9f4_row14_col6" class="data row14 col6" >80,358</td>
+      <td id="T_9b9f4_row14_col7" class="data row14 col7" >103.7ms</td>
+      <td id="T_9b9f4_row14_col8" class="data row14 col8" >0%</td>
     </tr>
   </tbody>
-</table></div>
-
+</table>
 </div>
-
-<div class="output_area">
-
-
-<div class="output_html rendered_html output_subarea "><style  type="text/css" >
-</style><table id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002" class="dataframe"><caption>Simple Profiler Results</caption><thead>    <tr>        <th class="col_heading level0 col0" >Phase</th>        <th class="col_heading level0 col1" >Action</th>        <th class="col_heading level0 col2" >Mean Duration</th>        <th class="col_heading level0 col3" >Duration Std Dev</th>        <th class="col_heading level0 col4" >Number of Calls</th>        <th class="col_heading level0 col5" >Total Time</th>        <th class="col_heading level0 col6" >Percent of Total</th>    </tr></thead><tbody>
-                <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row0_col0" class="data row0 col0" >fit</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row0_col1" class="data row0 col1" >fit</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row0_col2" class="data row0 col2" >-</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row0_col3" class="data row0 col3" >-</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row0_col4" class="data row0 col4" >1</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row0_col5" class="data row0 col5" >99.46 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row0_col6" class="data row0 col6" >100%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row1_col0" class="data row1 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row1_col1" class="data row1 col1" >epoch</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row1_col2" class="data row1 col2" >49.73 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row1_col3" class="data row1 col3" >91.12ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row1_col4" class="data row1 col4" >2</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row1_col5" class="data row1 col5" >99.46 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row1_col6" class="data row1 col6" >100%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row2_col0" class="data row2 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row2_col1" class="data row2 col1" >train</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row2_col2" class="data row2 col2" >34.84 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row2_col3" class="data row2 col3" >7.996ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row2_col4" class="data row2 col4" >2</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row2_col5" class="data row2 col5" >69.68 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row2_col6" class="data row2 col6" >70%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row3_col0" class="data row3 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row3_col1" class="data row3 col1" >validate</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row3_col2" class="data row3 col2" >14.89 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row3_col3" class="data row3 col3" >82.42ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row3_col4" class="data row3 col4" >2</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row3_col5" class="data row3 col5" >29.78 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row3_col6" class="data row3 col6" >30%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row4_col0" class="data row4 col0" >train</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row4_col1" class="data row4 col1" >batch</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row4_col2" class="data row4 col2" >228.9ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row4_col3" class="data row4 col3" >102.6ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row4_col4" class="data row4 col4" >294</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row4_col5" class="data row4 col5" >67.30 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row4_col6" class="data row4 col6" >68%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row5_col0" class="data row5 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row5_col1" class="data row5 col1" >step</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row5_col2" class="data row5 col2" >130.7ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row5_col3" class="data row5 col3" >9.819ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row5_col4" class="data row5 col4" >294</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row5_col5" class="data row5 col5" >38.43 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row5_col6" class="data row5 col6" >39%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row6_col0" class="data row6 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row6_col1" class="data row6 col1" >draw</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row6_col2" class="data row6 col2" >68.27ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row6_col3" class="data row6 col3" >102.4ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row6_col4" class="data row6 col4" >294</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row6_col5" class="data row6 col5" >20.07 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row6_col6" class="data row6 col6" >20%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row7_col0" class="data row7 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row7_col1" class="data row7 col1" >pred</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row7_col2" class="data row7 col2" >16.81ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row7_col3" class="data row7 col3" >6.889ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row7_col4" class="data row7 col4" >294</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row7_col5" class="data row7 col5" >4.942 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row7_col6" class="data row7 col6" >5%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row8_col0" class="data row8 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row8_col1" class="data row8 col1" >backward</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row8_col2" class="data row8 col2" >9.573ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row8_col3" class="data row8 col3" >2.601ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row8_col4" class="data row8 col4" >294</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row8_col5" class="data row8 col5" >2.815 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row8_col6" class="data row8 col6" >3%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row9_col0" class="data row9 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row9_col1" class="data row9 col1" >zero_grad</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row9_col2" class="data row9 col2" >1.990ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row9_col3" class="data row9 col3" >2.550ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row9_col4" class="data row9 col4" >294</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row9_col5" class="data row9 col5" >585.0ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row9_col6" class="data row9 col6" >1%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row10_col0" class="data row10 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row10_col1" class="data row10 col1" >loss</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row10_col2" class="data row10 col2" >1.378ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row10_col3" class="data row10 col3" >2.065ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row10_col4" class="data row10 col4" >294</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row10_col5" class="data row10 col5" >405.0ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row10_col6" class="data row10 col6" >0%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row11_col0" class="data row11 col0" >valid</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row11_col1" class="data row11 col1" >batch</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row11_col2" class="data row11 col2" >209.4ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row11_col3" class="data row11 col3" >282.0ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row11_col4" class="data row11 col4" >124</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row11_col5" class="data row11 col5" >25.96 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row11_col6" class="data row11 col6" >26%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row12_col0" class="data row12 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row12_col1" class="data row12 col1" >draw</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row12_col2" class="data row12 col2" >192.7ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row12_col3" class="data row12 col3" >282.0ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row12_col4" class="data row12 col4" >124</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row12_col5" class="data row12 col5" >23.89 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row12_col6" class="data row12 col6" >24%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row13_col0" class="data row13 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row13_col1" class="data row13 col1" >pred</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row13_col2" class="data row13 col2" >15.27ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row13_col3" class="data row13 col3" >12.77ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row13_col4" class="data row13 col4" >124</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row13_col5" class="data row13 col5" >1.893 s</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row13_col6" class="data row13 col6" >2%</td>
-            </tr>
-            <tr>
-                                <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row14_col0" class="data row14 col0" ></td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row14_col1" class="data row14 col1" >loss</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row14_col2" class="data row14 col2" >1.269ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row14_col3" class="data row14 col3" >2.028ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row14_col4" class="data row14 col4" >124</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row14_col5" class="data row14 col5" >157.4ms</td>
-                        <td id="T_dbc85f9a_3831_11ec_a814_0242ac1c0002row14_col6" class="data row14 col6" >0%</td>
-            </tr>
-    </tbody></table></div>
 
 </div>
 
@@ -869,8 +815,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
 
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="kn">from</span> <span class="nn">fastai.test_utils</span> <span class="kn">import</span> <span class="n">synth_learner</span>
-<span class="n">learn</span> <span class="o">=</span> <span class="n">synth_learner</span><span class="p">()</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">learn</span> <span class="o">=</span> <span class="n">synth_learner</span><span class="p">()</span>
 <span class="n">learn</span><span class="o">.</span><span class="n">show_training_loop</span><span class="p">()</span>
 </pre></div>
 
@@ -892,7 +837,7 @@ Jump <a href="#Examples">here</a> for usage examples.</p>
        - before_train   : [TrainEvalCallback, Recorder, ProgressCallback]
       Start Batch Loop
          - before_draw    : []
-         - before_batch   : []
+         - before_batch   : [CastToTensor]
          - after_pred     : []
          - after_loss     : []
          - before_backward: []
@@ -930,19 +875,64 @@ End Fit
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Simple-Profiler-Wandb-Logging">Simple Profiler Wandb Logging<a class="anchor-link" href="#Simple-Profiler-Wandb-Logging"> </a></h1><blockquote><p>Automatically logs Simple Profiler Callback to wandb.</p>
-</blockquote>
-
+<h2 id="Simple-Profiler-Wandb-Logging">Simple Profiler Wandb Logging<a class="anchor-link" href="#Simple-Profiler-Wandb-Logging"> </a></h2>
 </div>
 </div>
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Logs two tables to active wandb run:</p>
+<p>Logs samples/second for draw, batch, forward, loss, backward, and opt_step steps as wandb charts.</p>
+<p>Also logs two tables to active wandb run:</p>
 <ul>
 <li><code>simple_profile_report</code>: formatted report from Simple Profiler Callback</li>
 <li><code>simple_profile_results</code>: raw results from Simple Profiler Callback</li>
 </ul>
+
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">wandb</span>
+
+    <span class="nd">@patch</span>
+    <span class="k">def</span> <span class="nf">_wandb_log_after_batch</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span><span class="n">SimpleProfilerCallback</span><span class="p">):</span>
+        <span class="n">train_vals</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s1">&#39;samples_per_second/train_</span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_samples_per_second</span><span class="p">(</span><span class="n">action</span><span class="p">)</span> <span class="k">for</span> <span class="n">action</span> <span class="ow">in</span> <span class="n">_train</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]}</span>
+        <span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">train_vals</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="n">wandb</span><span class="o">.</span><span class="n">_wandb_step</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@patch</span>
+    <span class="k">def</span> <span class="nf">_wandb_log_after_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">:</span><span class="n">SimpleProfilerCallback</span><span class="p">):</span>
+        <span class="n">report</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span><span class="n">dataframe</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="n">simple_profile_report</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Table</span><span class="p">(</span><span class="n">dataframe</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">learn</span><span class="o">.</span><span class="n">simple_profile_results</span><span class="p">)</span>
+
+        <span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="s2">&quot;simple_profile_report&quot;</span><span class="p">:</span> <span class="n">report</span><span class="p">})</span>
+        <span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({</span><span class="s2">&quot;simple_profile_results&quot;</span><span class="p">:</span> <span class="n">results</span><span class="p">})</span>
+        <span class="n">wandb</span><span class="o">.</span><span class="n">log</span><span class="p">({})</span> <span class="c1"># ensure sync</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="k">pass</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Extend-to-other-Loggers">Extend to other Loggers<a class="anchor-link" href="#Extend-to-other-Loggers"> </a></h2><p>To extend to new loggers, follow the Weights &amp; Biases code above and create patches for <a href="/callback.simpleprofiler.html#SimpleProfilerCallback"><code>SimpleProfilerCallback</code></a> to add a <code>_{Callback.name}_log_after_batch</code> and <code>_{Callback.name}_log_after_fit</code>, where <code>Callback.name</code> is the <a href="https://docs.fast.ai/callback.core.html#Callback.name">name of the logger callback</a>.</p>
+<p>Then to use, pass <code>logger_callback='{Callback.name}'</code> to <code>Learner.profile()</code>.</p>
+<p><a href="/callback.simpleprofiler.html#SimpleProfilerCallback"><code>SimpleProfilerCallback</code></a> sets its <code>_log_after_batch</code> method to <code>f'_{self.logger_callback}_log_after_batch'</code>, which should match the patched method.</p>
+<div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">_log_after_batch</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">logger_callback</span><span class="si">}</span><span class="s1">_log_after_batch&#39;</span><span class="p">,</span> <span class="n">noop</span><span class="p">)</span>
+</pre></div>
+<p><a href="/callback.simpleprofiler.html#SimpleProfilerCallback.log_after_fit"><code>SimpleProfilerCallback.log_after_fit</code></a> behaves the same way.</p>
 
 </div>
 </div>

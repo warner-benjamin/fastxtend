@@ -1,4 +1,5 @@
 from .augment import *
+from .augment.all import *
 from ..basics import *
 from ..callback.all import *
 from .data import *

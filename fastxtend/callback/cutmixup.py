@@ -24,7 +24,7 @@ from ..imports import *
 
 # Cell
 class MixUp(MixHandlerX):
-    "Implementation of https://arxiv.org/abs/1710.09412"
+    "Implementation of https://arxiv.org/abs/1710.09412. Supports `MultiLoss`"
     def __init__(self,
         alpha:float=.4, # Alpha & beta parametrization for `Beta` distribution
         interp_label:bool|None=None # Blend or stack labels. Defaults to loss' `y_int` if None
@@ -50,7 +50,7 @@ class MixUp(MixHandlerX):
 
 # Cell
 class CutMix(MixHandlerX):
-    "Implementation of https://arxiv.org/abs/1905.04899"
+    "Implementation of https://arxiv.org/abs/1905.04899. Supports `MultiLoss`"
     def __init__(self,
         alpha:float=1., # Alpha & beta parametrization for `Beta` distribution
         uniform:bool=True, # Uniform patches across batch. True matches fastai CutMix

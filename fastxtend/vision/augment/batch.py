@@ -20,6 +20,7 @@ from ...imports import *
 
 # Cell
 class GrayScaleMode(Enum):
+    "GrayScaleModes for GrayScale"
     Luma601 = 0
     Luma709 = 1
     Average = 2
@@ -27,11 +28,11 @@ class GrayScaleMode(Enum):
 
 # Cell
 class GrayScale(BatchRandTransform):
-    order = 55 # After LightingTfms
     "Convert RGB image into grayscale using luma_bt.601, luma_bt.709, averaging, or randomly selected"
+    order = 55 # After LightingTfms
     def __init__(self,
-        p:float=0.1,
-        mode:GrayScaleMode=GrayScaleMode.Random
+        p:float=0.1, # Per-item probability
+        mode:GrayScaleMode=GrayScaleMode.Random # GrayScaleMode to apply to images. Random applies all three element-wise with equal probability
     ):
         super().__init__(p=p)
         self.mode = mode
@@ -58,11 +59,11 @@ class GrayScale(BatchRandTransform):
 
 # Cell
 class ChannelDrop(BatchRandTransform):
-    order = 65
     "Drop entire channel by replacing it with random solid value [0,1)"
+    order = 65
     def __init__(self,
-        p:float=0.1,
-        replace:float|None=None
+        p:float=0.1, # Per-item probability
+        replace:float|None=None # Set constant replacement value. Defaults to element-wise random value [0,1)
     ):
         super().__init__(p=p)
         self.replace, self._view = replace, None
@@ -82,7 +83,7 @@ class RandomNoise(BatchRandTransform):
     def __init__(self,
         p:float=0.25, # Per-item probability
         stdev:float|tuple=(0.1, 0.25), # Maximum or range of the standard deviation of added noise
-        random:bool=True # Randomize standard deviation of added noise between [0, stdev) or [stdev[0], stdev[1])
+        random:bool=True # Randomize standard deviation of added noise between [`stdev[0]`, `stdev[1]`)
     ):
         super().__init__(p=p)
         self.stdev, self.random, self.dist = stdev, random, None

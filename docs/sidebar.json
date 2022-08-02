@@ -14,6 +14,7 @@
     "Channels Last": "callback.channelslast.html",
     "CutMixUp": "callback.cutmixup.html",
     "LR Finder": "callback.lr_finder.html",
+    "Progressive Resizing": "callback.progresize.html",
     "Simple Profiler": "callback.simpleprofiler.html",
     "Tracker": "callback.tracker.html"
   },
@@ -32,8 +33,13 @@
   },
   "Vision": {
     "Data": "vision.data.html",
-    "TensorImage & TensorMask item_tfms": "vision.augment.itemtensor.html",
     "": {
+      "Augmentations":{
+        "Additional Batch Augmentations": "vision.augment.batch.html",
+        "TensorImage & TensorMask item_tfms": "vision.augment.itemtensor.html"
+      }
+    },
+    "blank1": {
       "Models":{
         "Attention Modules": "vision.models.attention_modules.html",
         "Pooling": "vision.models.pooling.html",

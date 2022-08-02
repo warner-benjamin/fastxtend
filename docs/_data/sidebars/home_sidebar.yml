@@ -43,6 +43,9 @@ entries:
       title: LR Finder
       url: callback.lr_finder.html
     - output: web,pdf
+      title: Progressive Resizing
+      url: callback.progresize.html
+    - output: web,pdf
       title: Simple Profiler
       url: callback.simpleprofiler.html
     - output: web,pdf
@@ -81,9 +84,17 @@ entries:
     - output: web,pdf
       title: Data
       url: vision.data.html
-    - output: web,pdf
-      title: TensorImage & TensorMask item_tfms
-      url: vision.augment.itemtensor.html
+      subfolders:
+      - output: web
+        subfolderitems:
+        - output: web,pdf
+          title: Additional Batch Augmentations
+          url: vision.augment.batch.html
+        - output: web,pdf
+          title: TensorImage & TensorMask item_tfms
+          url: vision.augment.itemtensor.html
+        title: Augmentations
+    - output: web
       subfolders:
       - output: web
         subfolderitems:
@@ -97,6 +108,7 @@ entries:
           title: XResNet
           url: vision.models.xresnet.html
         title: Models
+      title: blank1
     output: web
     title: Vision
   - folderitems:
