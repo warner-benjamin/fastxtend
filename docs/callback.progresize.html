@@ -33,7 +33,7 @@ nb_path: "nbs/callback.progresize.ipynb"
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a href="/callback.progresize.html#ProgressiveResize"><code>ProgressiveResize</code></a> is inspired by MosaicML’s <a href="https://docs.mosaicml.com/en/stable/method_cards/progressive_resizing.html">Progressive Resizing algorithm for Composer</a> which in turn was inspired by <a href="https://github.com/fastai/fastbook/blob/780b76bef3127ce5b64f8230fce60e915a7e0735/07_sizing_and_tta.ipynb">fastai’s</a> manual progressive resizing.</p>
 <p><img src="/images/progressive_resizing.png" alt="progressive resizing illustrated"></p>
-<p>Progressive Resizing decreases model training time by training on smaller images then gradually increasing to the full image size.</p>
+<p>Progressive Resizing decreases model training time by training on smaller images then gradually increasing to the full image size. This allows training on more samples for the same compute budget, often leading to higher performance than training on full sized images.</p>
 
 </div>
 </div>
@@ -200,7 +200,7 @@ nb_path: "nbs/callback.progresize.ipynb"
 
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Progressive Resizing initially trains on downsampled images then gradually increases the image size over to the full size for the remainder of training. This can significantly reduce training time at the possible expense of lower model performance. The model must be capable of variable image sizes.
+<p>Progressive Resizing initially trains on downsampled images then gradually increases the image size over to the full size for the remainder of training. This can significantly reduce training time at the possible expense of lower model performance, but allows training on more samples in the same compute budget often leading to increased performance. The model must be capable of variable image sizes.
 {% include important.html content='<code>ProgressiveResize</code> should increase GPU throughput which may cause other parts of the training pipeline become a bottleneck. An easy way to increase fastai’s DataLoader throughput is by <a href="https://docs.fast.ai/dev/performance.html#pillow-simd">replacing pillow with pillow-simd</a>.' %}
 When testing Composer's <a href="https://docs.mosaicml.com/en/stable/method_cards/progressive_resizing.html">Progressive Resizing</a> callback MosiacML <a href="https://docs.mosaicml.com/en/stable/method_cards/progressive_resizing.html#technical-details">found</a>:</p>
 <blockquote><p>In our experiments, Progressive Resizing improves the attainable tradeoffs between training speed and the final quality of the trained model. In some cases, it leads to slightly lower quality than the original model for the same number of training steps. However, Progressive Resizing increases training speed so much (via improved throughput during the early part of training) that it is possible to train for more steps, recover accuracy, and still complete training in less time.</p>
@@ -227,34 +227,43 @@ Progressive resizing works best when the resize steps are small, 8 or less pixel
 </div>
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>In this example, a ResNet50 is trained for 20 epochs on Imagenette at an image size of 224 pixels on a SageMaker Studio Lab Tesla T4 instance. Due to the short training run, <code>start</code> and <code>final</code> are set to 0.2 and 0.8, respectively.</p>
-<p>Despite increasing the image size early relative to the default hyperparamaters, <a href="/callback.progresize.html#ProgressiveResize"><code>ProgressiveResize</code></a> yields significant training time savings compared to a training at full size.</p>
+<p>In this example, a ResNet50 is trained for 20 &amp; 25 epochs on Imagenette at an image size of 224 pixels on a SageMaker Studio Lab Tesla T4 instance. Due to the short training run, <code>start</code> and <code>final</code> are set to 0.2 and 0.8, respectively.</p>
+<p>Despite increasing the image size early relative to the default hyperparamaters, <a href="/callback.progresize.html#ProgressiveResize"><code>ProgressiveResize</code></a> yields significant training time savings compared to training at full size. At a similar compute budget of roughly 14 minutes progressive resizing results with 88.8% accuracy compared to 86.2% accuracy with full sized training.</p>
 <table>
 <thead><tr>
-<th>Mode</th>
+<th style="text-align:left">Mode</th>
+<th style="text-align:center">Epochs</th>
 <th style="text-align:center">Time (Mins)</th>
 <th style="text-align:center">Accuracy</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Full Size</td>
-<td style="text-align:center">14.0</td>
+<td style="text-align:left">Full Size</td>
+<td style="text-align:center">20</td>
+<td style="text-align:center">14.3</td>
 <td style="text-align:center">86.2%</td>
 </tr>
 <tr>
-<td>Progressive Batch</td>
-<td style="text-align:center">11.3</td>
+<td style="text-align:left">Progressive Batch</td>
+<td style="text-align:center">20</td>
+<td style="text-align:center">11.5</td>
 <td style="text-align:center">85.8%</td>
 </tr>
 <tr>
-<td>Progressive Epoch</td>
-<td style="text-align:center">10.6</td>
+<td style="text-align:left">Progressive Epoch</td>
+<td style="text-align:center">20</td>
+<td style="text-align:center">10.5</td>
 <td style="text-align:center">85.6%</td>
+</tr>
+<tr>
+<td style="text-align:left">Progressive Batch</td>
+<td style="text-align:center">25</td>
+<td style="text-align:center">13.9</td>
+<td style="text-align:center">88.8%</td>
 </tr>
 </tbody>
 </table>
-<p>This example also illustrates that smaller upsizing steps can result in higher model performance.</p>
 
 </div>
 </div>
@@ -329,14 +338,14 @@ Starting at epoch 4 and finishing at epoch 16 for a final training size of [224,
       <td>2.122014</td>
       <td>2.182029</td>
       <td>0.227516</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>1</td>
       <td>1.905108</td>
       <td>2.192691</td>
       <td>0.363057</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>2</td>
@@ -350,14 +359,14 @@ Starting at epoch 4 and finishing at epoch 16 for a final training size of [224,
       <td>1.433910</td>
       <td>1.606834</td>
       <td>0.480764</td>
-      <td>00:26</td>
+      <td>00:28</td>
     </tr>
     <tr>
       <td>4</td>
       <td>1.358350</td>
       <td>1.460259</td>
       <td>0.555669</td>
-      <td>00:26</td>
+      <td>00:28</td>
     </tr>
     <tr>
       <td>5</td>
@@ -399,7 +408,7 @@ Starting at epoch 4 and finishing at epoch 16 for a final training size of [224,
       <td>0.843020</td>
       <td>0.977987</td>
       <td>0.692994</td>
-      <td>00:32</td>
+      <td>00:33</td>
     </tr>
     <tr>
       <td>11</td>
@@ -413,14 +422,14 @@ Starting at epoch 4 and finishing at epoch 16 for a final training size of [224,
       <td>0.697043</td>
       <td>0.772750</td>
       <td>0.757962</td>
-      <td>00:37</td>
+      <td>00:38</td>
     </tr>
     <tr>
       <td>13</td>
       <td>0.609062</td>
       <td>0.762754</td>
       <td>0.765095</td>
-      <td>00:39</td>
+      <td>00:40</td>
     </tr>
     <tr>
       <td>14</td>
@@ -434,14 +443,14 @@ Starting at epoch 4 and finishing at epoch 16 for a final training size of [224,
       <td>0.482874</td>
       <td>0.562079</td>
       <td>0.822675</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>16</td>
       <td>0.428716</td>
       <td>0.499115</td>
       <td>0.837707</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>17</td>
@@ -455,14 +464,14 @@ Starting at epoch 4 and finishing at epoch 16 for a final training size of [224,
       <td>0.335535</td>
       <td>0.467523</td>
       <td>0.856306</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>19</td>
       <td>0.303651</td>
       <td>0.456422</td>
       <td>0.858344</td>
-      <td>00:41</td>
+      <td>00:42</td>
     </tr>
   </tbody>
 </table></div>
@@ -472,7 +481,7 @@ Starting at epoch 4 and finishing at epoch 16 for a final training size of [224,
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Total training time: 678.8 s
+<pre>Total training time: 687.7 s
 </pre>
 </div>
 </div>
@@ -553,77 +562,77 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>2.122014</td>
       <td>2.182029</td>
       <td>0.227516</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>1</td>
       <td>1.905108</td>
       <td>2.192691</td>
       <td>0.363057</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>2</td>
       <td>1.690208</td>
       <td>1.839630</td>
       <td>0.487389</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>3</td>
       <td>1.433910</td>
       <td>1.606834</td>
       <td>0.480764</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>4</td>
       <td>1.286285</td>
       <td>3.116283</td>
       <td>0.494522</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>5</td>
       <td>1.200042</td>
       <td>1.254510</td>
       <td>0.626242</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>6</td>
       <td>1.105527</td>
       <td>1.396334</td>
       <td>0.572484</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>7</td>
       <td>1.106385</td>
       <td>1.339236</td>
       <td>0.564586</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>8</td>
       <td>0.982895</td>
       <td>0.885877</td>
       <td>0.723822</td>
-      <td>00:26</td>
+      <td>00:25</td>
     </tr>
     <tr>
       <td>9</td>
       <td>0.953809</td>
       <td>1.116866</td>
       <td>0.637197</td>
-      <td>00:29</td>
+      <td>00:26</td>
     </tr>
     <tr>
       <td>10</td>
       <td>0.843665</td>
       <td>1.307829</td>
       <td>0.638471</td>
-      <td>00:29</td>
+      <td>00:27</td>
     </tr>
     <tr>
       <td>11</td>
@@ -644,7 +653,7 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>0.624359</td>
       <td>0.705979</td>
       <td>0.771465</td>
-      <td>00:33</td>
+      <td>00:34</td>
     </tr>
     <tr>
       <td>14</td>
@@ -658,21 +667,21 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>0.488334</td>
       <td>0.559648</td>
       <td>0.821911</td>
-      <td>00:40</td>
+      <td>00:41</td>
     </tr>
     <tr>
       <td>16</td>
       <td>0.438291</td>
       <td>0.491797</td>
       <td>0.842548</td>
-      <td>00:41</td>
+      <td>00:42</td>
     </tr>
     <tr>
       <td>17</td>
       <td>0.381706</td>
       <td>0.471103</td>
       <td>0.853503</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>18</td>
@@ -686,7 +695,7 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>0.308196</td>
       <td>0.461995</td>
       <td>0.855796</td>
-      <td>00:41</td>
+      <td>00:42</td>
     </tr>
   </tbody>
 </table></div>
@@ -696,7 +705,7 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Total training time: 636.4 s
+<pre>Total training time: 632.1 s
 </pre>
 </div>
 </div>
@@ -765,14 +774,14 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>2.016391</td>
       <td>2.256088</td>
       <td>0.241274</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>1</td>
       <td>1.769153</td>
       <td>3.686334</td>
       <td>0.311083</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>2</td>
@@ -786,7 +795,7 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>1.348534</td>
       <td>1.439297</td>
       <td>0.554650</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>4</td>
@@ -800,7 +809,7 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>1.127666</td>
       <td>1.914330</td>
       <td>0.532994</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>6</td>
@@ -849,7 +858,7 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>0.650073</td>
       <td>0.719170</td>
       <td>0.777580</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>13</td>
@@ -863,7 +872,7 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>0.527194</td>
       <td>0.652105</td>
       <td>0.806115</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>15</td>
@@ -877,21 +886,21 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
       <td>0.402692</td>
       <td>0.477356</td>
       <td>0.851465</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>17</td>
       <td>0.361319</td>
       <td>0.463299</td>
       <td>0.861146</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>18</td>
       <td>0.321333</td>
       <td>0.447778</td>
       <td>0.863949</td>
-      <td>00:42</td>
+      <td>00:43</td>
     </tr>
     <tr>
       <td>19</td>
@@ -908,7 +917,266 @@ Starting at epoch 9 and finishing at epoch 16 for a final training size of [224,
 <div class="output_area">
 
 <div class="output_subarea output_stream output_stdout output_text">
-<pre>Total training time: 844.8 s
+<pre>Total training time: 860.5 s
+</pre>
+</div>
+</div>
+
+</div>
+</div>
+
+</div>
+    {% endraw %}
+
+<div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h3 id="Progressive-Resizing-with-Normalized-Compute-Budget">Progressive Resizing with Normalized Compute Budget<a class="anchor-link" href="#Progressive-Resizing-with-Normalized-Compute-Budget"> </a></h3><p><a href="/callback.progresize.html#ProgressiveResize"><code>ProgressiveResize</code></a> with the default <code>increase_mode=IncreaseMode.Batch</code>.</p>
+
+</div>
+</div>
+</div>
+    {% raw %}
+    
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1">#|cuda</span>
+<span class="n">imagenette</span> <span class="o">=</span> <span class="n">untar_data</span><span class="p">(</span><span class="n">URLs</span><span class="o">.</span><span class="n">IMAGENETTE_320</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="n">less_random</span><span class="p">():</span>
+    <span class="n">dblock</span> <span class="o">=</span> <span class="n">DataBlock</span><span class="p">(</span><span class="n">blocks</span><span class="o">=</span><span class="p">(</span><span class="n">ImageBlock</span><span class="p">,</span> <span class="n">CategoryBlock</span><span class="p">),</span>
+                        <span class="n">splitter</span><span class="o">=</span><span class="n">GrandparentSplitter</span><span class="p">(</span><span class="n">valid_name</span><span class="o">=</span><span class="s1">&#39;val&#39;</span><span class="p">),</span>
+                        <span class="n">get_items</span><span class="o">=</span><span class="n">get_image_files</span><span class="p">,</span> <span class="n">get_y</span><span class="o">=</span><span class="n">parent_label</span><span class="p">,</span>
+                        <span class="n">item_tfms</span><span class="o">=</span><span class="n">Resize</span><span class="p">(</span><span class="mi">224</span><span class="p">),</span>
+                        <span class="n">batch_tfms</span><span class="o">=</span><span class="p">[</span><span class="o">*</span><span class="n">aug_transforms</span><span class="p">(),</span> <span class="n">Normalize</span><span class="o">.</span><span class="n">from_stats</span><span class="p">(</span><span class="o">*</span><span class="n">imagenet_stats</span><span class="p">)])</span>
+    <span class="n">dls</span> <span class="o">=</span>  <span class="n">dblock</span><span class="o">.</span><span class="n">dataloaders</span><span class="p">(</span><span class="n">imagenette</span><span class="p">,</span> <span class="n">bs</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="n">num_cpus</span><span class="p">(),</span> <span class="n">pin_memory</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># ProgressiveResizeTest is for additional testing and shouldn&#39;t be used</span>
+    <span class="n">cbs</span> <span class="o">=</span> <span class="p">[</span><span class="n">ProgressiveResize</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">finish</span><span class="o">=</span><span class="mf">0.8</span><span class="p">),</span> <span class="n">ProgressiveResizeTest</span><span class="p">]</span>
+    <span class="n">learn</span> <span class="o">=</span> <span class="n">Learner</span><span class="p">(</span><span class="n">dls</span><span class="p">,</span> <span class="n">resnet50</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">dls</span><span class="o">.</span><span class="n">c</span><span class="p">),</span> <span class="n">metrics</span><span class="o">=</span><span class="n">Accuracy</span><span class="p">(),</span> <span class="n">cbs</span><span class="o">=</span><span class="n">cbs</span><span class="p">)</span><span class="o">.</span><span class="n">to_channelslast</span><span class="p">()</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">learn</span><span class="o">.</span><span class="n">fit_one_cycle</span><span class="p">(</span><span class="mi">25</span><span class="p">,</span> <span class="mf">3e-3</span><span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Total training time: </span><span class="si">{</span><span class="n">scale_time</span><span class="p">(</span><span class="n">total</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+</pre></div>
+
+    </div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Progressively increase the initial image size of [112, 112] by 4 pixels every 0.5556 epochs for 28 resizes. 
+Starting at epoch 5 and finishing at epoch 20 for a final training size of [224, 224].
+</pre>
+</div>
+</div>
+
+<div class="output_area">
+
+
+<div class="output_html rendered_html output_subarea "><table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: left;">
+      <th>epoch</th>
+      <th>train_loss</th>
+      <th>valid_loss</th>
+      <th>accuracy</th>
+      <th>time</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>2.140554</td>
+      <td>2.323328</td>
+      <td>0.215541</td>
+      <td>00:25</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>1.924575</td>
+      <td>1.785451</td>
+      <td>0.406115</td>
+      <td>00:25</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>1.716462</td>
+      <td>2.180465</td>
+      <td>0.432357</td>
+      <td>00:25</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>1.513920</td>
+      <td>1.579820</td>
+      <td>0.514650</td>
+      <td>00:25</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>1.322239</td>
+      <td>3.293287</td>
+      <td>0.423949</td>
+      <td>00:25</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>1.261505</td>
+      <td>1.819019</td>
+      <td>0.530446</td>
+      <td>00:26</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td>1.116962</td>
+      <td>1.576113</td>
+      <td>0.546497</td>
+      <td>00:26</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td>1.065735</td>
+      <td>1.277910</td>
+      <td>0.610446</td>
+      <td>00:26</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td>1.023897</td>
+      <td>1.102415</td>
+      <td>0.662420</td>
+      <td>00:27</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td>0.937714</td>
+      <td>1.181165</td>
+      <td>0.627771</td>
+      <td>00:28</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td>0.887837</td>
+      <td>1.122100</td>
+      <td>0.672102</td>
+      <td>00:28</td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td>0.846309</td>
+      <td>1.031982</td>
+      <td>0.667771</td>
+      <td>00:30</td>
+    </tr>
+    <tr>
+      <td>12</td>
+      <td>0.786773</td>
+      <td>0.884016</td>
+      <td>0.722293</td>
+      <td>00:31</td>
+    </tr>
+    <tr>
+      <td>13</td>
+      <td>0.693110</td>
+      <td>1.067082</td>
+      <td>0.687134</td>
+      <td>00:32</td>
+    </tr>
+    <tr>
+      <td>14</td>
+      <td>0.653226</td>
+      <td>0.762704</td>
+      <td>0.766624</td>
+      <td>00:33</td>
+    </tr>
+    <tr>
+      <td>15</td>
+      <td>0.614739</td>
+      <td>0.634725</td>
+      <td>0.803312</td>
+      <td>00:35</td>
+    </tr>
+    <tr>
+      <td>16</td>
+      <td>0.551392</td>
+      <td>0.664690</td>
+      <td>0.788790</td>
+      <td>00:37</td>
+    </tr>
+    <tr>
+      <td>17</td>
+      <td>0.509965</td>
+      <td>0.587787</td>
+      <td>0.812994</td>
+      <td>00:38</td>
+    </tr>
+    <tr>
+      <td>18</td>
+      <td>0.454482</td>
+      <td>0.551515</td>
+      <td>0.826242</td>
+      <td>00:40</td>
+    </tr>
+    <tr>
+      <td>19</td>
+      <td>0.391981</td>
+      <td>0.463849</td>
+      <td>0.853248</td>
+      <td>00:42</td>
+    </tr>
+    <tr>
+      <td>20</td>
+      <td>0.354720</td>
+      <td>0.431224</td>
+      <td>0.864968</td>
+      <td>00:43</td>
+    </tr>
+    <tr>
+      <td>21</td>
+      <td>0.304196</td>
+      <td>0.443742</td>
+      <td>0.863439</td>
+      <td>00:43</td>
+    </tr>
+    <tr>
+      <td>22</td>
+      <td>0.261721</td>
+      <td>0.404501</td>
+      <td>0.880764</td>
+      <td>00:43</td>
+    </tr>
+    <tr>
+      <td>23</td>
+      <td>0.248861</td>
+      <td>0.414708</td>
+      <td>0.877962</td>
+      <td>00:43</td>
+    </tr>
+    <tr>
+      <td>24</td>
+      <td>0.242153</td>
+      <td>0.407861</td>
+      <td>0.878981</td>
+      <td>00:43</td>
+    </tr>
+  </tbody>
+</table></div>
+
+</div>
+
+<div class="output_area">
+
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Total training time: 832.8 s
 </pre>
 </div>
 </div>
