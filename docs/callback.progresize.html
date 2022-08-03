@@ -33,7 +33,7 @@ nb_path: "nbs/callback.progresize.ipynb"
 <div class="text_cell_render border-box-sizing rendered_html">
 <p><a href="/callback.progresize.html#ProgressiveResize"><code>ProgressiveResize</code></a> is inspired by MosaicML’s <a href="https://docs.mosaicml.com/en/stable/method_cards/progressive_resizing.html">Progressive Resizing algorithm for Composer</a> which in turn was inspired by <a href="https://github.com/fastai/fastbook/blob/780b76bef3127ce5b64f8230fce60e915a7e0735/07_sizing_and_tta.ipynb">fastai’s</a> manual progressive resizing.</p>
 <p><img src="/images/progressive_resizing.png" alt="progressive resizing illustrated"></p>
-<p>Progressive Resizing decreases model training time by training on smaller images then gradually increasing to the full image size. This allows training on more samples for the same compute budget, often leading to higher performance than training on full sized images.</p>
+<p>Progressive Resizing decreases model training time by training on smaller images then gradually increasing to the full image size. This allows training on more samples for the same compute budget, often leading to higher performance then training on full sized images.</p>
 
 </div>
 </div>
@@ -228,7 +228,7 @@ Progressive resizing works best when the resize steps are small, 8 or less pixel
 <div class="cell border-box-sizing text_cell rendered"><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>In this example, a ResNet50 is trained for 20 &amp; 25 epochs on Imagenette at an image size of 224 pixels on a SageMaker Studio Lab Tesla T4 instance. Due to the short training run, <code>start</code> and <code>final</code> are set to 0.2 and 0.8, respectively.</p>
-<p>Despite increasing the image size early relative to the default hyperparamaters, <a href="/callback.progresize.html#ProgressiveResize"><code>ProgressiveResize</code></a> yields significant training time savings compared to training at full size. At a similar compute budget of roughly 14 minutes progressive resizing results with 88.8% accuracy compared to 86.2% accuracy with full sized training.</p>
+<p>Despite increasing the image size early relative to the default hyperparameters, <a href="/callback.progresize.html#ProgressiveResize"><code>ProgressiveResize</code></a> yields significant training time savings compared to training at full size. At a similar compute budget of roughly 14 minutes progressive resizing results with 87.8% accuracy compared to 86.2% accuracy with full sized training.</p>
 <table>
 <thead><tr>
 <th style="text-align:left">Mode</th>
@@ -260,7 +260,7 @@ Progressive resizing works best when the resize steps are small, 8 or less pixel
 <td style="text-align:left">Progressive Batch</td>
 <td style="text-align:center">25</td>
 <td style="text-align:center">13.9</td>
-<td style="text-align:center">88.8%</td>
+<td style="text-align:center">87.8%</td>
 </tr>
 </tbody>
 </table>
