@@ -99,13 +99,11 @@ def crop_pad(x:TensorImage|TensorMask,
 # Cell
 @RandomCrop
 def encodes(self, x:TensorImage|TensorMask):
-    'Extends RandomCrop to `TensorImage` & `TensorMask`'
     return x.crop_pad(self.size, self.tl, orig_sz=self.orig_sz)
 
 # Cell
 @CropPad
 def encodes(self, x:TensorImage|TensorMask):
-    'Extends CropPad to `TensorImage` & `TensorMask`'
     orig_sz = _get_sz(x)
     tl = (orig_sz-self.size)//2
     return x.crop_pad(self.size, tl, orig_sz=orig_sz, pad_mode=self.pad_mode)
@@ -113,7 +111,6 @@ def encodes(self, x:TensorImage|TensorMask):
 # Cell
 @Resize
 def encodes(self, x:TensorImage|TensorMask):
-    'Extends Resize to `TensorImage` & `TensorMask`'
     orig_sz = _get_sz(x)
     if self.method==ResizeMethod.Squish:
         return x.crop_pad(orig_sz, fastuple(0,0), orig_sz=orig_sz, pad_mode=self.pad_mode,
@@ -130,7 +127,6 @@ def encodes(self, x:TensorImage|TensorMask):
 # Cell
 @RandomResizedCrop
 def encodes(self, x:TensorImage|TensorMask):
-    'Extends RandomResizedCrop to `TensorImage` & `TensorMask`'
     res = x.crop_pad(self.cp_size, self.tl, orig_sz=self.orig_sz,
         resize_mode=self.mode_mask if isinstance(x,TensorMask) else self.mode, resize_to=self.final_size)
     if self.final_size != self.size: res = res.crop_pad(self.size) #Validation set: one final center crop
@@ -139,7 +135,6 @@ def encodes(self, x:TensorImage|TensorMask):
 # Cell
 @RatioResize
 def encodes(self, x:TensorImage|TensorMask):
-    'Extends RatioResize to `TensorImage` & `TensorMask`'
     w,h = _get_sz(x)
     if w >= h: nw,nh = self.max_sz,h*self.max_sz/w
     else:      nw,nh = w*self.max_sz/h,self.max_sz
