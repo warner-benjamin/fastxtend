@@ -17,18 +17,18 @@ from ..imports import *
 def avg_grad(p, beta1, grad_avg=None, **kwargs):
     "Tracks average gradients (m) of `p` in `state` with `beta1`."
     if grad_avg is None:
-        grad_avg = torch.zeros_like(p.grad.data, memory_format=p.memory_format)
+        grad_avg = torch.zeros_like(p.grad.data)
     grad_avg.mul_(beta1).add_(p.grad.data, alpha=1-beta1)
     return {'grad_avg': grad_avg}
 
 avg_grad.defaults = dict(beta1=0.98)
 
 # Internal Cell
-def avg_diff_grad(p, beta2, steps, prior_grad=None, diff_avg=None, **kwargs):
+def avg_diff_grad(p, beta2, prior_grad=None, diff_avg=None, **kwargs):
     "Tracks the average difference of current and prior gradients (v) of `p` in `state` with `beta2`."
     if diff_avg is None:
-        diff_avg   = torch.zeros_like(p.grad.data, memory_format=p.memory_format)
-        prior_grad = torch.zeros_like(p.grad.data, memory_format=p.memory_format)
+        diff_avg   = torch.zeros_like(p.grad.data)
+        prior_grad = torch.zeros_like(p.grad.data)
 
     diff_avg.mul_(beta2).add_(p.grad.data-prior_grad, alpha=1-beta2)
     return {'diff_avg': diff_avg}
@@ -39,10 +39,10 @@ avg_diff_grad.defaults = dict(beta2=0.92)
 def avg_nesterov_est(p, beta2, beta3, prior_grad=None, nesterov_est=None, **kwargs):
     "Tracks the Nesterov momentum estimate of gradients (n) of `p` in `state` with `beta2` & `beta3`."
     if nesterov_est is None:
-        nesterov_est = torch.zeros_like(p.grad.data, memory_format=p.memory_format)
-        prior_grad   = torch.zeros_like(p.grad.data, memory_format=p.memory_format)
+        nesterov_est = torch.zeros_like(p.grad.data)
+        prior_grad   = torch.zeros_like(p.grad.data)
 
-    nesterov_est.mul_(beta3).add_(torch.square(p.grad.data, torch.sub(p.grad.data, prior_grad), alpha=beta2), alpha=1-beta3)
+    nesterov_est.mul_(beta3).add_(torch.square(torch.add(p.grad.data, torch.sub(p.grad.data, prior_grad), alpha=beta2)), alpha=1-beta3)
     return {'nesterov_est': nesterov_est}
 
 avg_nesterov_est.defaults = dict(beta2=0.92, beta3=0.99)
@@ -53,7 +53,7 @@ def prior_grad(p, **kwargs):
     return {'prior_grad' : p.grad.data.clone()}
 
 # Internal Cell
-def adan_step(p, lr, eps, wd, beta2, grad_avg, diff_avg, nesterov_est):
+def adan_step(p, lr, eps, wd, beta2, grad_avg, diff_avg, nesterov_est, **kwargs):
     "Performs the Adan step with `lr` on `p`"
     wd = (1+lr*wd) if wd!=0 else 1
     lr = lr/torch.sqrt(nesterov_est+eps)
@@ -68,5 +68,5 @@ def Adan(params, lr, beta1=0.98, beta2=0.92, beta3=0.99, eps=1e-8, wd=0.02):
 
 # Cell
 def AdanLargeBatchLR(bs):
-    "Suare root rule for scaling Adan learning rate for large-batch training"
+    "Square root rule for scaling Adan learning rate for large-batch training"
     return math.sqrt(bs/256)*6.25e-3
