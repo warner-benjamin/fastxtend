@@ -257,7 +257,7 @@ class SimpleProfilerCallback(Callback):
 
         self.learn.simple_profile_results = self.report.copy()
         for c in ['Mean Duration', 'Duration Std Dev', 'Total Time']:
-            self.report[c] = self.report[c].apply(self.scale_time)
+            self.report[c] = self.report[c].apply(scale_time)
         self.report[['Phase', 'Action']] = self.report[['Phase', 'Action']].where(~self.report[['Phase', 'Action']].duplicated(), '')
         self.report['Phase']  = self.report['Phase'].where(~self.report['Phase'].duplicated(), '')
         self.report['Step']   = self.report['Step'].where(self.report['Step'] != self.report['Action']).fillna('')
