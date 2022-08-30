@@ -67,7 +67,7 @@ def adan_step(p, lr, eps, wd, beta1, beta2, beta3, step, grad_avg, diff_avg, nes
     return p
 
 # Cell
-def Adan(params, lr, beta1=0.98, beta2=0.92, beta3=0.99, eps=1e-8, wd=0.02, less_steps=True):
+def Adan(params, lr, beta1=0.98, beta2=0.92, beta3=0.99, eps=1e-8, wd=0.02):
     "A `Optimizer` for Adan with `lr`, `beta`s, `eps` and `params`"
     cbs = [adan_setup, adan_avgs, adan_step]
     return Optimizer(params, cbs, lr=lr, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd)
