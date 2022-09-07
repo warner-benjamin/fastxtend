@@ -163,7 +163,7 @@ class XResNet(nn.Sequential):
               for i in range(blocks)])
 
     def _make_head(self, ni, head_pool, ndim, p, n_out):
-        return [head_pool(sz=1, ndim=ndim), Flatten(), nn.Dropout(p), nn.Linear(ni, n_out)]
+        return [head_pool(sz=1, ndim=ndim), nn.Flatten(), nn.Dropout(p), nn.Linear(ni, n_out)]
 
 # Cell
 @delegates(XResNet)
