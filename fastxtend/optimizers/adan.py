@@ -19,13 +19,16 @@ def debias(beta, step):
     return 1-beta**step
 
 # Internal Cell
-def adan_setup(p, step=0, grad_avg=None, diff_avg=None, nesterov_est=None, prior_grad=None, **kwargs):
+def adan_setup(p, step=0, grad_avg=None, diff_avg=None, nesterov_est=None, prior_grad=None, paper_init=False, **kwargs):
     "Handles Adan setup and keeps track of steps"
     if step == 0:
         grad_avg     = torch.zeros_like(p, memory_format=torch.preserve_format)
         diff_avg     = torch.zeros_like(p, memory_format=torch.preserve_format)
         nesterov_est = torch.zeros_like(p, memory_format=torch.preserve_format)
-        prior_grad   = torch.zeros_like(p, memory_format=torch.preserve_format)
+        if paper_init:
+            prior_grad = p.grad.clone()
+        else:
+            prior_grad = torch.zeros_like(p, memory_format=torch.preserve_format)
         step += 1
         return {'grad_avg':grad_avg, 'diff_avg':diff_avg, 'nesterov_est':nesterov_est, 'prior_grad':prior_grad, 'step':step}
     else:
@@ -67,9 +70,9 @@ def adan_step(p, lr, eps, wd, beta1, beta2, beta3, step, grad_avg, diff_avg, nes
     return p
 
 # Cell
-def Adan(params, lr, beta1=0.98, beta2=0.92, beta3=0.99, eps=1e-8, wd=0.02):
+def Adan(params, lr, beta1=0.98, beta2=0.92, beta3=0.99, eps=1e-8, wd=0.02, paper_init=False):
     "A `Optimizer` for Adan with `lr`, `beta`s, `eps` and `params`"
-    cbs = [adan_setup, adan_avgs, adan_step]
+    cbs = [partial(adan_setup, paper_init=paper_init), adan_avgs, adan_step]
     return Optimizer(params, cbs, lr=lr, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd)
 
 # Cell
