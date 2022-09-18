@@ -131,7 +131,7 @@ class XResNet(nn.Sequential):
         stem_szs = [c_in, *stem_szs]
         stem = [stem_layer(stem_szs[i], stem_szs[i+1], ks=ks, stride=stride if i==0 else 1,
                            act_cls=act_cls, ndim=ndim)
-                for i in range(3)]
+                for i in range(len(stem_szs)-1)]
 
         assert len(layers) == len(block_szs), 'Length of `layers` must match `block_szs`'
         block_szs = [int(o*widen) for o in block_szs]
@@ -167,7 +167,7 @@ class XResNet(nn.Sequential):
 
 # Cell
 @delegates(XResNet)
-def xresnet18(n_out=1000, c_in=3, p=0.0, act_cls=defaults.activation, **kwargs):
+def xresnet18(n_out=1000, **kwargs):
     return XResNet(ResBlock, 1, [2, 2, 2, 2], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
