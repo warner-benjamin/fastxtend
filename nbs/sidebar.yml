@@ -1,0 +1,53 @@
+website:
+  sidebar:
+    contents:
+      - section: Overview
+        contents:
+        - index.ipynb
+      - section: Audio
+        contents:
+        - audio.01_core.ipynb
+        - audio.02_data.ipynb
+        - audio.03_augment.ipynb
+        - audio.04_learner.ipynb
+        - audio.05_mixup.ipynb
+      - section: Callbacks
+        contents:
+        - callback.casttotensor.ipynb
+        - callback.channelslast.ipynb
+        - callback.cutmixup.ipynb
+        - callback.ema.ipynb
+        - callback.lr_finder.ipynb
+        - callback.progresize.ipynb
+        - callback.simpleprofiler.ipynb
+        - callback.tracker.ipynb
+      - section: Data
+        contents:
+        - data.transforms.ipynb
+      - section: Losses
+        contents:
+        - losses.ipynb
+        - multiloss.ipynb
+      - section: Metrics
+        contents:
+        - metrics.ipynb
+      - section: Schedulers
+        contents:
+        - schedulers.fit_flat_varied.ipynb
+      - section: Vision
+        contents:
+        - section: Augmentations
+          contents:
+          - vision.augment.batch.ipynb
+          - vision.augment.itemtensor.ipynb
+        - vision.data.ipynb
+        - section: Models
+          contents:
+          - vision.models.attention_modules.ipynb
+          - vision.models.pooling.ipynb
+          - vision.models.xresnet.ipynb
+      - section: Utils
+        contents:
+        - 0_basics.ipynb
+        - utils.ipynb
+        - transform.ipynb

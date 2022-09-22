@@ -1,0 +1,267 @@
+
+/*-- scss:defaults --*/
+
+@import url(https://ghp-cdn.benjaminwarner.dev/fonts/fonts.scss);
+
+$font-family-sans-serif: Inter, "Source Sans Pro", Helvetica, sans-serif !default;
+
+// Base document colors
+$black: rgb(24, 24, 24);
+$white: rgb(254, 254, 254);
+$gray: rgb(231, 235, 235);
+$purple: rgb(154, 63, 228);
+$blue: #009DDB;
+$yellow: #fec92e;
+$red: #DC3918;
+$green: #28ac00;
+
+$primary: $purple !default;
+$secondary: rgba(154, 63, 228, 0.75) !default;
+
+$link-color: $purple !default;
+$link-color-underline: rgba(154, 63, 228, 0.75) !default;
+$link-color-hover: rgba(154, 63, 228, 0.6) !default;
+$link-color-hover-code: rgba(154, 63, 228, 0.65) !default;
+
+$navbar-padding-y: 0.3rem !default;
+$footer-border: $black !default;
+
+$code-bg: $gray !default;
+$code-color: $purple !default;
+$code-block-bg: rgb(44, 44, 44) !default;
+
+$table-border-color: rgba(0, 0, 0, .3) !default;
+
+$callout-border-width: 8px;
+$callout-border-color: rgba(0, 0, 0, .05) !default;
+
+$hr-margin-y: 1.5rem !default;
+
+$blockquote-border-color: $gray !default;
+
+/*-- scss:mixins --*/
+
+// Navbar
+$navbar-dark-bg: $white;  // Background color for navbarPage(inverse = TRUE)
+$navbar-light-bg: $purple;  // Background color for navbarPage(inverse = FALSE)
+$navbar-dark-color: $black;
+$navbar-dark-hover-color: $purple;
+$navbar-dark-brand-color: $purple;
+$navbar-dark-brand-hover-color: $black;
+$navbar-brand-font-size: 1.75rem;
+$nav-link-font-size: 1.25rem;
+$nav-link-padding-y: 0;
+
+// Sidebar
+$sidebar-bg: $white;
+$sidebar-hover-color: $link-color-underline;
+$sidebar-active-color: $purple;
+
+// Fix callout colors
+$callout-color-warning: $red;
+$callout-color-important: $yellow;
+
+// Modify the body width
+$grid-screen-inset-padding: 1.5em;
+$grid-body-minsize: 600px;
+$grid-body-minsize-slim: 500px;
+$grid-body-maxsize-mid: calc(800px - #{2 * $grid-screen-inset-padding});
+$grid-body-maxsize-float-wide: calc(1000px - #{2 * $grid-screen-inset-padding});
+$grid-body-maxsize-docked-wide: calc(1200px - #{2 * $grid-screen-inset-padding});
+$grid-body-maxsize-plain-wide: calc(1400px - #{2 * $grid-screen-inset-padding});
+$grid-body-maxsize-listing: calc(1200px - #{2 * $grid-screen-inset-padding});
+
+@mixin page-columns-float-wide {
+  @include page-columns();
+  grid-template-columns:
+    [screen-start] $grid-screen-inset-padding
+    [screen-start-inset] 5fr
+    [page-start] minmax(25px, 100px)
+    [page-start-inset] minmax(50px, 175px)
+    [body-start-outset] minmax(25px, 50px)
+    [body-start] 2em
+    [body-content-start] minmax(
+      $grid-body-minsize,
+      $grid-body-maxsize-float-wide
+    )
+    [body-content-end] 2em
+    [body-end] minmax(25px, 50px)
+    [body-end-outset] minmax(50px, 150px)
+    [page-end-inset] minmax(25px, 50px)
+    [page-end] 5fr
+    [screen-end-inset] $grid-screen-inset-padding
+    [screen-end];
+}
+
+// Footer color
+$footer-bg: $white;
+$footer-border: $black !default;
+$footer-border-color: $black;
+
+// code
+$border-radius: 3px;
+
+// Navbar colors
+.navbar {
+  .aa-DetachedSearchButton {
+    .aa-DetachedSearchButtonIcon {
+      .aa-SubmitIcon {
+        color: $black !important;
+        &:hover { color: $purple !important;}
+      }
+    }
+  }
+}
+
+.nav-link {
+  display: block;
+  padding-top: 0.25rem !important;
+}
+
+.nav-footer .nav-link {
+  font-size: 1em !important;
+}
+
+.headroom { border-bottom: 2px solid; border-color: $black; }
+
+.nav-footer {
+  border-top: 1px solid $footer-border-color;
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+  min-height: 1.75em !important;
+}
+
+// Sidebar text size
+.sidebar .nav-link {
+  font-size: 0.875rem !important;
+}
+
+/*-- scss:rules --*/
+
+// Modify the sidebar
+$sidebar-items-gap-spacing: 0.2em;
+$sidebar-section-indent: 1em;
+$sidebar-section-bottom-margin: 0.2em;
+
+.sidebar-section {
+  margin-top: $sidebar-items-gap-spacing;
+  padding-left: $sidebar-section-indent;
+  padding-bottom: $sidebar-section-bottom-margin;
+}
+
+
+// Override hyperlink css
+a {
+  color: $body-color;
+}
+
+.content { 
+  a { box-shadow: inset 0 -0.15rem 0 $link-color-underline;
+      text-decoration: none;
+      transition: all .15s cubic-bezier(.33,.66,.66,1);
+
+    &:hover { box-shadow: inset 0 -2rem 0 $link-color-hover;
+              color: $body-color }
+  }
+}
+
+.anchorjs-link {
+  color: $body-color !important;
+  box-shadow: None !important; 
+
+  &:hover { color: $link-color !important; 
+            box-shadow: None !important; }
+}
+
+// Code
+code {
+  border-radius: $border-radius !important; 
+  padding: $spacer/8 $spacer/8 !important; 
+}
+
+a code { box-shadow: inset 0 -0.15rem 0 $link-color-underline;
+         text-decoration: none;
+         transition: all .15s cubic-bezier(.33,.66,.66,1);
+         z-index: 10;
+         border-bottom-left-radius: 0 !important; 
+         border-bottom-right-radius: 0 !important; 
+
+  &:hover { box-shadow: inset 0 -2rem 0 $link-color-hover-code;
+            color: $body-color }
+}
+
+// Callout
+.callout.callout-style-simple {
+  padding: 0.4em 0.7em;
+  border-left: $callout-border-width solid;
+  border-right: 1px solid $callout-border-color;
+  border-top: 1px solid $callout-border-color;
+  border-bottom: 1px solid $callout-border-color;
+}
+
+.callout.callout-style-default {
+  border-left: $callout-border-width solid;
+  border-right: 1px solid $callout-border-color;
+  border-top: 1px solid $callout-border-color;
+  border-bottom: 1px solid $callout-border-color;
+}
+
+@each $name, $info in $callouts {
+  div.callout-#{$name}.callout {
+    border-left-color: shift-color(
+      quarto-map.get($info, "color"),
+      $callout-border-scale
+    );
+  }
+
+  div.callout-#{$name}.callout-style-default > .callout-header {
+    @if (quarto-color.blackness($body-bg) > $code-block-theme-dark-threshhold) {
+      background-color: shift-color(quarto-map.get($info, "color"), 70%);
+    } @else {
+      background-color: shift-color(quarto-map.get($info, "color"), -75%);
+    }
+  }
+
+  $shifted-color: #{shift-color(
+      quarto-map.get($info, "color"),
+      $callout-icon-scale
+    )};
+  $shifted-color-svg: str-replace($shifted-color, "#", "%23");
+
+  div.callout-#{$name}:not(.callout-captioned) .callout-icon::before {
+    background-image: #{"url('data:image/svg+xml," +
+      str-replace(
+        quarto-map.get($info, "icon"),
+        'fill="currentColor"',
+        'style="fill: #{$shifted-color-svg}"'
+      ) +
+      "');"};
+  }
+
+  div.callout-#{$name}.callout-captioned .callout-icon::before {
+    background-image: #{"url('data:image/svg+xml," +
+      str-replace(
+        quarto-map.get($info, "icon"),
+        'fill="currentColor"',
+        'style="fill: #{$shifted-color-svg}"'
+      ) +
+      "');"};
+  }
+
+  div.callout-#{$name} .callout-toggle::before {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#{colorToRGB($body-color)}" class="bi bi-chevron-down" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/></svg>');
+  }
+}
+
+// nbdev css
+.cell {
+  margin-bottom: 1rem;
+}
+
+div.description {
+  padding-left: 2px;
+  padding-top: 5px;
+  font-size: 135%;
+  border-bottom: 1px solid rgba(0,0,0,.3);
+  padding-bottom: .5rem;
+}
