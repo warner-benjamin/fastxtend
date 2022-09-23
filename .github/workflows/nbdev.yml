@@ -1,14 +1,5 @@
 name: nbdev-ci
 on: [workflow_dispatch, push, pull_request]
-  inputs:
-    pre:
-      description: 'Install prerelease nbdev/execnb from master?'
-      required: false
-      default: ''
-    version:
-      description: 'Version of python to use'
-      required: false
-      default: '3.7'
 
 jobs:
   build:
@@ -18,7 +9,7 @@ jobs:
     - name: Set up python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ inputs.version }}
+        python-version: '3.7'
         architecture: 'x64'
   
     - name: Activate python cache
@@ -35,12 +26,6 @@ jobs:
       run: |
         sudo apt-get install libsndfile1-dev
         pip install --upgrade pip
-        if [ $USE_PRE ]; then
-          pip install -U git+https://github.com/fastai/fastcore.git
-          pip install -U git+https://github.com/fastai/ghapi.git
-          pip install -U git+https://github.com/fastai/execnb.git
-          pip install -U git+https://github.com/fastai/nbdev.git
-        fi
         pip install -e .[dev]
 
     - name: Check that notebooks are clean
