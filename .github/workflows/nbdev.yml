@@ -1,8 +1,7 @@
 
-name: nbdev CI
-on: [push, pull_request]
+name: 'nbdev CI'
 description: 'Test with nbdev'
-
+on: [workflow_dispatch, push, pull_request]
 inputs:
   pre:
     description: 'Install prerelease nbdev/execnb from master?'
