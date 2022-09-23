@@ -1,4 +1,4 @@
-name: 'nbdev CI'
+name: nbdev-ci
 on: [workflow_dispatch, push, pull_request]
   inputs:
     pre:
