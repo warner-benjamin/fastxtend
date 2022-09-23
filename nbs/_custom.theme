@@ -1,0 +1,141 @@
+{
+    "metadata": {
+        "copyright": [
+            "SPDX-FileCopyrightText: 2016 Dracula Theme",
+            "SPDX-FileCopyrightText: 2020 Christoph Cullmann <cullmann@kde.org>"
+        ],
+        "license": "SPDX-License-Identifier: MIT",
+        "name": "Dracula",
+        "revision": 7
+    },
+    "text-styles": {
+        "Alert": {
+            "bold": true,
+            "selected-text-color": "#f56565",
+            "text-color": "#f56565"
+        },
+        "Annotation": {
+            "selected-text-color": "#f56565",
+            "text-color": "#f56565"
+        },
+        "Attribute": {
+            "selected-text-color": "#68d391",
+            "text-color": "#68d391"
+        },
+        "BaseN": {
+            "selected-text-color": "#c813ff",
+            "text-color": "#f56565"
+        },
+        "BuiltIn": {
+            "selected-text-color": "#00b5d9",
+            "text-color": "#00b5d9"
+        },
+        "Char": {
+            "selected-text-color": "#dbbc49",
+            "text-color": "#dbbc49"
+        },
+        "Comment": {
+            "selected-text-color": "#9aa2ad",
+            "text-color": "#9aa2ad"
+        },
+        "CommentVar": {
+            "selected-text-color": "#00b5d9",
+            "text-color": "#00b5d9"
+        },
+        "Constant": {
+            "bold": true,
+            "selected-text-color": "#c813ff",
+            "text-color": "#f56565"
+        },
+        "ControlFlow": {
+            "selected-text-color": "#f56565",
+            "text-color": "#f56565"
+        },
+        "DataType": {
+            "italic": true,
+            "selected-text-color": "#00b5d9",
+            "text-color": "#00b5d9"
+        },
+        "DecVal": {
+            "selected-text-color": "#c813ff",
+            "text-color": "#db2ad2"
+        },
+        "Documentation": {
+            "selected-text-color": "#ff6f00",
+            "text-color": "#ff6f00"
+        },
+        "Error": {
+            "selected-text-color": "#f56565",
+            "text-color": "#f56565",
+            "underline": true
+        },
+        "Extension": {
+            "selected-text-color": "#00b5d9",
+            "text-color": "#00b5d9"
+        },
+        "Float": {
+            "selected-text-color": "#c813ff",
+            "text-color": "#db2ad2"
+        },
+        "Function": {
+            "selected-text-color": "#68d391",
+            "text-color": "#68d391"
+        },
+        "Import": {
+            "selected-text-color": "#c813ff",
+            "text-color": "#c813ff"
+        },
+        "Information": {
+            "selected-text-color": "#dbbc49",
+            "text-color": "#dbbc49"
+        },
+        "Keyword": {
+            "selected-text-color": "#f56565",
+            "text-color": "#f56565"
+        },
+        "Normal": {
+            "selected-text-color": "#2c2c2c",
+            "text-color": "#f8f8f2"
+        },
+        "Operator": {
+            "selected-text-color": "#2c2c2c",
+            "text-color": "#f8f8f2"
+        },
+        "Others": {
+            "selected-text-color": "#68d391",
+            "text-color": "#68d391"
+        },
+        "Preprocessor": {
+            "selected-text-color": "#4fd1c5",
+            "text-color": "#4fd1c5"
+        },
+        "RegionMarker": {
+            "selected-text-color": "#00b5d9",
+            "text-color": "#00b5d9"
+        },
+        "SpecialChar": {
+            "selected-text-color": "#f56565",
+            "text-color": "#f56565"
+        },
+        "SpecialString": {
+            "selected-text-color": "#dbbc49",
+            "text-color": "#dbbc49"
+        },
+        "String": {
+            "selected-text-color": "#dbbc49",
+            "text-color": "#dbbc49"
+        },
+        "Variable": {
+            "selected-text-color": "#00b5d9",
+            "text-color": "#00b5d9"
+        },
+        "VerbatimString": {
+            "selected-text-color": "#dbbc49",
+            "text-color": "#dbbc49"
+        },
+        "Warning": {
+            "selected-text-color": "#ff6f00",
+            "text-color": "#ff6f00"
+        }
+    }
+}
