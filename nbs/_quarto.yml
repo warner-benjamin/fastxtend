@@ -8,10 +8,10 @@ format:
   html:
     theme: 
       - pulse
-      - _custom.scss
+      - custom.scss
     toc: true
     toc-depth: 4
-    highlight-style: _custom.theme
+    highlight-style: custom.theme
 
 website:
   favicon: favicon.ico
