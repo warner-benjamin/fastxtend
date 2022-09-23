@@ -4,4 +4,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps: [uses: fastai/workflows/quarto-ghp@master]
+    steps: 
+    - name: Install Prerequisite
+      run: |
+        sudo apt-get install libsndfile1-dev
+    - name: Deploy Docs to GitHub Pages
+      uses: fastai/workflows/quarto-ghp@master
