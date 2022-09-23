@@ -1,16 +1,15 @@
 
 name: 'nbdev CI'
-description: 'Test with nbdev'
 on: [workflow_dispatch, push, pull_request]
-inputs:
-  pre:
-    description: 'Install prerelease nbdev/execnb from master?'
-    required: false
-    default: ''
-  version:
-    description: 'Version of python to use'
-    required: false
-    default: '3.7'
+  inputs:
+    pre:
+      description: 'Install prerelease nbdev/execnb from master?'
+      required: false
+      default: ''
+    version:
+      description: 'Version of python to use'
+      required: false
+      default: '3.7'
 
 jobs:
   build:
