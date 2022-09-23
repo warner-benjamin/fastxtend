@@ -8,4 +8,5 @@ jobs:
     - name: Install libsndfile1
       run: |
         sudo apt-get install libsndfile1-dev
-    uses: fastai/workflows/quarto-ghp@master
+    - name: Run Quarto to GitHu Pages
+      uses: fastai/workflows/quarto-ghp@master
