@@ -8,7 +8,45 @@ import torch.nn.modules.loss as TL
 from .imports import *
 
 # %% auto 0
-__all__ = ['ClassBalancedCrossEntropyLoss', 'ClassBalancedBCEWithLogitsLoss']
+__all__ = ['BCEWithLogitsLoss', 'ClassBalancedCrossEntropyLoss', 'ClassBalancedBCEWithLogitsLoss']
+
+# %% ../nbs/losses.ipynb 5
+class BCEWithLogitsLoss(TL._Loss):
+    """
+    Like `nn.BCEWithLogitsLoss`, but with 'batchmean' reduction from MosiacML. `batchmean` scales 
+    loss by the batch size which results in larger loss values more similar to `nn.CrossEntropy` 
+    then `mean` reduction.
+    """
+    def __init__(self, 
+        weight:Tensor|None=None, # Rescaling weieght for each class
+        reduction:str='mean', # Reduction to apply to loss output. Also supports 'batchmean'.
+        pos_weight:Tensor|None=None # Weight of positive examples
+    ) -> None:
+        super().__init__(None, None, reduction)
+        self.register_buffer('weight', weight)
+        self.register_buffer('pos_weight', pos_weight)
+        self.weight:Tensor|None
+        self.pos_weight:Tensor|None
+
+    def forward(self, input: Tensor, target: Tensor) -> Tensor:
+        if self.reduction == 'batchmean':
+            return F.binary_cross_entropy_with_logits(input, target,
+                                                      self.weight,
+                                                      pos_weight=self.pos_weight,
+                                                      reduction='sum')/torch.tensor(input.shape[0])
+        else:
+            return F.binary_cross_entropy_with_logits(input, target,
+                                                      self.weight,
+                                                      pos_weight=self.pos_weight,
+                                                      reduction=self.reduction)
+
+    def decodes(self, x:Tensor) -> Tensor:
+        "Converts model output to target format"
+        return x>self.thresh
+    
+    def activation(self, x:Tensor) -> Tensor:
+        "`nn.BCEWithLogitsLoss`'s fused activation function applied to model output"
+        return torch.sigmoid(x)
 
 # %% ../nbs/losses.ipynb 7
 class ClassBalanced(TL._WeightedLoss):
