@@ -3,7 +3,7 @@
 d = { 'settings': { 'branch': 'main',
                 'doc_baseurl': '/',
                 'doc_host': 'https://fastxtend.benjaminwarner.dev',
-                'git_url': 'https://github.com/warner-benjamin/fastxtend/tree/main/',
+                'git_url': 'https://github.com/warner-benjamin/fastxtend',
                 'lib_path': 'fastxtend'},
   'syms': { 'fastxtend.audio.all': {},
             'fastxtend.audio.augment': { 'fastxtend.audio.augment.AmplitudeToDB': ( 'audio.augment.html#amplitudetodb',
