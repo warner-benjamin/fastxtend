@@ -32,21 +32,21 @@ from .imports import *
 
 # %% ../nbs/metrics.ipynb 9
 class LogMetric(Enum):
-    "All possible logging types for `MetricX`",
+    "All logging types for `MetricX`"
     Train = 1
     Valid = 2
     Both = 3
 
 # %% ../nbs/metrics.ipynb 10
 class MetricType(Enum):
-    "All possible types of `MetricX`",
+    "All types of `MetricX`"
     Avg = 1
     Accum = 2
     Smooth = 3
 
 # %% ../nbs/metrics.ipynb 11
 class ActivationType(Enum):
-    "All possible activation classes for `MetricX",
+    "All activation classes for `MetricX"
     No = 1
     Sigmoid = 2
     Softmax = 3
@@ -324,7 +324,7 @@ def valid_mets(self:Recorder):
     if getattr(self, 'cancel_valid', False): return L()
     return L(self.loss) + self._valid_metsX
 
-# %% ../nbs/metrics.ipynb 59
+# %% ../nbs/metrics.ipynb 60
 @delegates(MetricX)
 def func_to_metric(func, metric_type, is_class, thresh=None, axis=-1, activation=None, log_metric=LogMetric.Valid, **kwargs):
     "Convert `func` metric to a fastai metric"
@@ -348,113 +348,113 @@ def func_to_metric(func, metric_type, is_class, thresh=None, axis=-1, activation
         name = func.func.__name__ if hasattr(func, 'func') else  func.__name__
         raise ValueError(f"Unsupported `metric_type` {metric_type} for metric {name}.")
 
-# %% ../nbs/metrics.ipynb 61
+# %% ../nbs/metrics.ipynb 62
 @delegates(MetricX)
 def skm_to_fastxtend(func, is_class=True, thresh=None, axis=-1, activation=None, log_metric=LogMetric.Valid, **kwargs):
     "Convert `func` from sklearn.metrics to a fastai metric"
     return func_to_metric(func, MetricType.Accum, is_class, thresh, axis, activation, 
                           log_metric, to_np=True, invert_arg=True, **kwargs)
 
-# %% ../nbs/metrics.ipynb 70
+# %% ../nbs/metrics.ipynb 71
 def accuracy(inp, targ):
     "Compute accuracy with `targ` when `pred` is bs * n_classes"
     pred,targ = flatten_check(inp, targ)
     return (pred == targ).float().mean()
 
-# %% ../nbs/metrics.ipynb 71
+# %% ../nbs/metrics.ipynb 72
 def Accuracy(axis=-1, metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
     "Compute accuracy with `targ` when `pred` is bs * n_classes"
     return func_to_metric(accuracy, metric_type, True, axis=axis, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 75
+# %% ../nbs/metrics.ipynb 76
 def error_rate(inp, targ):
     "1 - `accuracy`"
     return 1 - accuracy(inp, targ)
 
-# %% ../nbs/metrics.ipynb 76
+# %% ../nbs/metrics.ipynb 77
 def ErrorRate(axis=-1, metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
     "Compute 1 - accuracy with `targ` when `pred` is bs * n_classes"
     return func_to_metric(error_rate, metric_type, True, axis=axis, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 78
+# %% ../nbs/metrics.ipynb 79
 def top_k_accuracy(inp, targ, k=5, axis=-1):
     "Computes the Top-k accuracy (`targ` is in the top `k` predictions of `inp`)"
     inp = inp.topk(k=k, dim=axis)[1]
     targ = targ.unsqueeze(dim=axis).expand_as(inp)
     return (inp == targ).sum(dim=-1).float().mean()
 
-# %% ../nbs/metrics.ipynb 79
+# %% ../nbs/metrics.ipynb 80
 def TopKAccuracy(k=5, axis=-1, metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
     "Computes the Top-k accuracy (`targ` is in the top `k` predictions of `inp`)"
     return func_to_metric(partial(top_k_accuracy, k=k, axis=axis), metric_type, False, 
                           log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 81
+# %% ../nbs/metrics.ipynb 82
 def APScoreBinary(axis=-1, average='macro', pos_label=1, sample_weight=None, log_metric=LogMetric.Valid, **kwargs):
     "Average Precision for single-label binary classification problems"
     return skm_to_fastxtend(skm.average_precision_score, axis=axis, activation=ActivationType.BinarySoftmax,
                          average=average, pos_label=pos_label, sample_weight=sample_weight, log_metric=log_metric, 
                          **kwargs)
 
-# %% ../nbs/metrics.ipynb 83
+# %% ../nbs/metrics.ipynb 84
 def BalancedAccuracy(axis=-1, sample_weight=None, adjusted=False, log_metric=LogMetric.Valid, **kwargs):
     "Balanced Accuracy for single-label binary classification problems"
     return skm_to_fastxtend(skm.balanced_accuracy_score, axis=axis,
                          sample_weight=sample_weight, adjusted=adjusted, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 85
+# %% ../nbs/metrics.ipynb 86
 def BrierScore(axis=-1, sample_weight=None, pos_label=None, log_metric=LogMetric.Valid, **kwargs):
     "Brier score for single-label classification problems"
     return skm_to_fastxtend(skm.brier_score_loss, axis=axis,
                          sample_weight=sample_weight, pos_label=pos_label, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 87
+# %% ../nbs/metrics.ipynb 88
 def CohenKappa(axis=-1, labels=None, weights=None, sample_weight=None, log_metric=LogMetric.Valid, **kwargs):
     "Cohen kappa for single-label classification problems"
     return skm_to_fastxtend(skm.cohen_kappa_score, axis=axis, labels=labels, weights=weights,
                          sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 89
+# %% ../nbs/metrics.ipynb 90
 def F1Score(axis=-1, labels=None, pos_label=1, average='binary', sample_weight=None, log_metric=LogMetric.Valid, **kwargs):
     "F1 score for single-label classification problems"
     return skm_to_fastxtend(skm.f1_score, axis=axis, labels=labels, pos_label=pos_label, 
                          average=average, sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 91
+# %% ../nbs/metrics.ipynb 92
 def FBeta(beta, axis=-1, labels=None, pos_label=1, average='binary', sample_weight=None, 
           log_metric=LogMetric.Valid, **kwargs):
     "FBeta score with `beta` for single-label classification problems"
     return skm_to_fastxtend(skm.fbeta_score, axis=axis, beta=beta, labels=labels, pos_label=pos_label, 
                          average=average, sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 93
+# %% ../nbs/metrics.ipynb 94
 def HammingLoss(axis=-1, sample_weight=None, log_metric=LogMetric.Valid, **kwargs):
     "Hamming loss for single-label classification problems"
     return skm_to_fastxtend(skm.hamming_loss, axis=axis,
                          sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 95
+# %% ../nbs/metrics.ipynb 96
 def Jaccard(axis=-1, labels=None, pos_label=1, average='binary', sample_weight=None, 
             log_metric=LogMetric.Valid, **kwargs):
     "Jaccard score for single-label classification problems"
     return skm_to_fastxtend(skm.jaccard_score, axis=axis, labels=labels, pos_label=pos_label, 
                          average=average, sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 97
+# %% ../nbs/metrics.ipynb 98
 def Precision(axis=-1, labels=None, pos_label=1, average='binary', sample_weight=None, 
               log_metric=LogMetric.Valid, **kwargs):
     "Precision for single-label classification problems"
     return skm_to_fastxtend(skm.precision_score, axis=axis, labels=labels, pos_label=pos_label, 
                          average=average, sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 99
+# %% ../nbs/metrics.ipynb 100
 def Recall(axis=-1, labels=None, pos_label=1, average='binary', sample_weight=None, 
            log_metric=LogMetric.Valid, **kwargs):
     "Recall for single-label classification problems"
     return skm_to_fastxtend(skm.recall_score, axis=axis, labels=labels, pos_label=pos_label, 
                          average=average, sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 101
+# %% ../nbs/metrics.ipynb 102
 def RocAuc(axis=-1, average='macro', sample_weight=None, max_fpr=None, multi_class='ovr', 
            log_metric=LogMetric.Valid, **kwargs):
     "Area Under the Receiver Operating Characteristic Curve for single-label multiclass classification problems"
@@ -463,7 +463,7 @@ def RocAuc(axis=-1, average='macro', sample_weight=None, max_fpr=None, multi_cla
                          average=average, sample_weight=sample_weight, max_fpr=max_fpr, multi_class=multi_class, 
                          log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 103
+# %% ../nbs/metrics.ipynb 104
 def RocAucBinary(axis=-1, average='macro', sample_weight=None, max_fpr=None, multi_class='raise', 
                  log_metric=LogMetric.Valid, **kwargs):
     "Area Under the Receiver Operating Characteristic Curve for single-label binary classification problems"
@@ -471,25 +471,25 @@ def RocAucBinary(axis=-1, average='macro', sample_weight=None, max_fpr=None, mul
                          average=average, sample_weight=sample_weight, max_fpr=max_fpr, multi_class=multi_class, 
                          log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 105
+# %% ../nbs/metrics.ipynb 106
 def MatthewsCorrCoef(sample_weight=None, log_metric=LogMetric.Valid, **kwargs):
     "Matthews correlation coefficient for single-label classification problems"
     return skm_to_fastxtend(skm.matthews_corrcoef, sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 108
+# %% ../nbs/metrics.ipynb 109
 def accuracy_multi(inp, targ):
     "Compute accuracy when `inp` and `targ` are the same size."
     inp,targ = flatten_check(inp,targ)
     return (inp==targ.bool()).float().mean()
 
-# %% ../nbs/metrics.ipynb 109
+# %% ../nbs/metrics.ipynb 110
 def AccuracyMulti(thresh=0.5, sigmoid=True, metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
     "Compute accuracy when `inp` and `targ` are the same size."
     activation = ActivationType.Sigmoid if sigmoid else ActivationType.No
     return func_to_metric(accuracy_multi, metric_type, False, thresh=thresh, activation=activation, 
                           log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 112
+# %% ../nbs/metrics.ipynb 113
 def APScoreMulti(sigmoid=True, average='macro', pos_label=1, sample_weight=None, 
                  log_metric=LogMetric.Valid, **kwargs):
     "Average Precision for multi-label classification problems"
@@ -498,7 +498,7 @@ def APScoreMulti(sigmoid=True, average='macro', pos_label=1, sample_weight=None,
                          average=average, pos_label=pos_label, sample_weight=sample_weight, 
                          log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 114
+# %% ../nbs/metrics.ipynb 115
 def BrierScoreMulti(thresh=0.5, sigmoid=True, sample_weight=None, pos_label=None, 
                     log_metric=LogMetric.Valid, **kwargs):
     "Brier score for multi-label classification problems"
@@ -506,7 +506,7 @@ def BrierScoreMulti(thresh=0.5, sigmoid=True, sample_weight=None, pos_label=None
     return skm_to_fastxtend(skm.brier_score_loss, thresh=thresh, activation=activation, flatten=False,
                          sample_weight=sample_weight, pos_label=pos_label, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 116
+# %% ../nbs/metrics.ipynb 117
 def F1ScoreMulti(thresh=0.5, sigmoid=True, labels=None, pos_label=1, average='macro', sample_weight=None, 
                  log_metric=LogMetric.Valid, **kwargs):
     "F1 score for multi-label classification problems"
@@ -515,7 +515,7 @@ def F1ScoreMulti(thresh=0.5, sigmoid=True, labels=None, pos_label=1, average='ma
                          labels=labels, pos_label=pos_label, average=average, sample_weight=sample_weight, 
                          log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 118
+# %% ../nbs/metrics.ipynb 119
 def FBetaMulti(beta, thresh=0.5, sigmoid=True, labels=None, pos_label=1, average='macro', sample_weight=None, 
                log_metric=LogMetric.Valid, **kwargs):
     "FBeta score with `beta` for multi-label classification problems"
@@ -524,7 +524,7 @@ def FBetaMulti(beta, thresh=0.5, sigmoid=True, labels=None, pos_label=1, average
                 beta=beta, labels=labels, pos_label=pos_label, average=average, sample_weight=sample_weight, 
                 log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 120
+# %% ../nbs/metrics.ipynb 121
 def HammingLossMulti(thresh=0.5, sigmoid=True, labels=None, sample_weight=None, 
                      log_metric=LogMetric.Valid, **kwargs):
     "Hamming loss for multi-label classification problems"
@@ -532,7 +532,7 @@ def HammingLossMulti(thresh=0.5, sigmoid=True, labels=None, sample_weight=None,
     return skm_to_fastxtend(skm.hamming_loss, thresh=thresh, activation=activation, flatten=False,
                          sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 122
+# %% ../nbs/metrics.ipynb 123
 def JaccardMulti(thresh=0.5, sigmoid=True, labels=None, pos_label=1, average='macro', sample_weight=None, 
                  log_metric=LogMetric.Valid, **kwargs):
     "Jaccard score for multi-label classification problems"
@@ -541,14 +541,14 @@ def JaccardMulti(thresh=0.5, sigmoid=True, labels=None, pos_label=1, average='ma
                          labels=labels, pos_label=pos_label, average=average, sample_weight=sample_weight, 
                          log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 124
+# %% ../nbs/metrics.ipynb 125
 def MatthewsCorrCoefMulti(thresh=0.5, sigmoid=True, sample_weight=None, log_metric=LogMetric.Valid, **kwargs):
     "Matthews correlation coefficient for multi-label classification problems"
     activation = ActivationType.Sigmoid if sigmoid else ActivationType.No
     return skm_to_fastxtend(skm.matthews_corrcoef, thresh=thresh, activation=activation, flatten=False, 
                          sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 126
+# %% ../nbs/metrics.ipynb 127
 def PrecisionMulti(thresh=0.5, sigmoid=True, labels=None, pos_label=1, average='macro', sample_weight=None, 
                    log_metric=LogMetric.Valid, **kwargs):
     "Precision for multi-label classification problems"
@@ -557,7 +557,7 @@ def PrecisionMulti(thresh=0.5, sigmoid=True, labels=None, pos_label=1, average='
                          labels=labels, pos_label=pos_label, average=average, sample_weight=sample_weight, 
                          log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 128
+# %% ../nbs/metrics.ipynb 129
 def RecallMulti(thresh=0.5, sigmoid=True, labels=None, pos_label=1, average='macro', sample_weight=None, 
                 log_metric=LogMetric.Valid, **kwargs):
     "Recall for multi-label classification problems"
@@ -566,104 +566,104 @@ def RecallMulti(thresh=0.5, sigmoid=True, labels=None, pos_label=1, average='mac
                          labels=labels, pos_label=pos_label, average=average, sample_weight=sample_weight, 
                          log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 130
+# %% ../nbs/metrics.ipynb 131
 def RocAucMulti(sigmoid=True, average='macro', sample_weight=None, max_fpr=None, log_metric=LogMetric.Valid, **kwargs):
     "Area Under the Receiver Operating Characteristic Curve for multi-label binary classification problems"
     activation = ActivationType.Sigmoid if sigmoid else ActivationType.No
     return skm_to_fastxtend(skm.roc_auc_score, activation=activation, flatten=False,
                          average=average, sample_weight=sample_weight, max_fpr=max_fpr, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 134
+# %% ../nbs/metrics.ipynb 135
 def mse(inp,targ):
     "Mean squared error between `inp` and `targ`."
     return F.mse_loss(*flatten_check(inp,targ))
 
-# %% ../nbs/metrics.ipynb 135
+# %% ../nbs/metrics.ipynb 136
 def MSE(metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
     "Mean squared error between `inp` and `targ`."
     return func_to_metric(mse, metric_type, False, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 137
+# %% ../nbs/metrics.ipynb 138
 def rmse(inp, targ): 
     return torch.sqrt(F.mse_loss(inp, targ))
 
-# %% ../nbs/metrics.ipynb 138
+# %% ../nbs/metrics.ipynb 139
 def RMSE(log_metric=LogMetric.Valid, **kwargs):
     "Mean squared error between `inp` and `targ`."
     return func_to_metric(rmse, MetricType.Accum, False, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 140
+# %% ../nbs/metrics.ipynb 141
 def mae(inp,targ):
     "Mean absolute error between `inp` and `targ`."
     inp,targ = flatten_check(inp,targ)
     return torch.abs(inp - targ).mean()
 
-# %% ../nbs/metrics.ipynb 141
+# %% ../nbs/metrics.ipynb 142
 def MAE(metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
     "Mean absolute error between `inp` and `targ`."
     return func_to_metric(mae, metric_type, False, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 143
+# %% ../nbs/metrics.ipynb 144
 def msle(inp, targ):
     "Mean squared logarithmic error between `inp` and `targ`."
     inp,targ = flatten_check(inp,targ)
     return F.mse_loss(torch.log(1 + inp), torch.log(1 + targ))
 
-# %% ../nbs/metrics.ipynb 144
+# %% ../nbs/metrics.ipynb 145
 def MSLE(metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
     "Mean squared logarithmic error between `inp` and `targ`."
     return func_to_metric(msle, metric_type, False, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 146
+# %% ../nbs/metrics.ipynb 147
 def exp_rmspe(inp,targ):
     inp,targ = torch.exp(inp),torch.exp(targ)
     return torch.sqrt(((targ - inp)/targ).pow(2).mean())
 
-# %% ../nbs/metrics.ipynb 147
+# %% ../nbs/metrics.ipynb 148
 def ExpRMSE(log_metric=LogMetric.Valid, **kwargs):
     "Root mean square percentage error of the exponential of  predictions and targets"
     return func_to_metric(exp_rmspe, MetricType.Accum, False, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 149
+# %% ../nbs/metrics.ipynb 150
 def ExplainedVariance(sample_weight=None, log_metric=LogMetric.Valid, **kwargs):
     "Explained variance between predictions and targets"
     return skm_to_fastxtend(skm.explained_variance_score, is_class=False, 
                          sample_weight=sample_weight, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 151
+# %% ../nbs/metrics.ipynb 152
 def R2Score(sample_weight=None, log_metric=LogMetric.Valid, **kwargs):
     "R2 score between predictions and targets"
     return skm_to_fastxtend(skm.r2_score, is_class=False, sample_weight=sample_weight, 
                          log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 153
+# %% ../nbs/metrics.ipynb 154
 def PearsonCorrCoef(dim_argmax=None, log_metric=LogMetric.Valid, **kwargs):
     "Pearson correlation coefficient for regression problem"
     def pearsonr(x,y): return scs.pearsonr(x,y)[0]
     return AccumMetricX(pearsonr, invert_arg=False, dim_argmax=dim_argmax, 
                         log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 156
+# %% ../nbs/metrics.ipynb 157
 def SpearmanCorrCoef(dim_argmax=None, axis=0, nan_policy='propagate', log_metric=LogMetric.Valid, **kwargs):
     "Spearman correlation coefficient for regression problem"
     def spearmanr(a,b=None,**kwargs): return scs.spearmanr(a,b,**kwargs)[0]
     return AccumMetricX(partial(spearmanr, axis=axis, nan_policy=nan_policy),
                         invert_arg=False, dim_argmax=dim_argmax, log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 162
+# %% ../nbs/metrics.ipynb 163
 def foreground_acc(inp, targ, bkg_idx=0, axis=1):
     "Computes non-background accuracy for multiclass segmentation"
     targ = cast(targ.squeeze(1), TensorBase)
     mask = targ != bkg_idx
     return (inp[mask]==targ[mask]).float().mean()
 
-# %% ../nbs/metrics.ipynb 163
+# %% ../nbs/metrics.ipynb 164
 def ForegroundAcc(bkg_idx=0, axis=1, metric_type=MetricType.Avg, log_metric=LogMetric.Valid, **kwargs):
     "Computes non-background accuracy for multiclass segmentation"
     return func_to_metric(foreground_acc, metric_type, True, bkg_idx=bkg_idx, axis=axis, 
                           log_metric=log_metric, **kwargs)
 
-# %% ../nbs/metrics.ipynb 165
+# %% ../nbs/metrics.ipynb 166
 class Dice(MetricX):
     "Dice coefficient metric for binary target in segmentation"
     def __init__(self, axis=1, log_metric=LogMetric.Valid, **kwargs):
@@ -678,7 +678,7 @@ class Dice(MetricX):
     @property
     def value(self): return 2. * self.inter/self.union if self.union > 0 else None
 
-# %% ../nbs/metrics.ipynb 167
+# %% ../nbs/metrics.ipynb 168
 class DiceMulti(MetricX):
     "Averaged Dice metric (Macro F1) for multiclass target in segmentation"
     def __init__(self, axis=1, log_metric=LogMetric.Valid, **kwargs):
@@ -706,13 +706,13 @@ class DiceMulti(MetricX):
             binary_dice_scores = np.append(binary_dice_scores, 2.*self.inter[c]/self.union[c] if self.union[c] > 0 else np.nan)
         return np.nanmean(binary_dice_scores)
 
-# %% ../nbs/metrics.ipynb 170
+# %% ../nbs/metrics.ipynb 171
 class JaccardCoeff(Dice):
     "Implementation of the Jaccard coefficient that is lighter in RAM"
     @property
     def value(self): return self.inter/(self.union-self.inter) if self.union > 0 else None
 
-# %% ../nbs/metrics.ipynb 173
+# %% ../nbs/metrics.ipynb 174
 class CorpusBLEUMetric(MetricX):
     "BLEU Metric calculated over the validation corpus"
     def __init__(self, vocab_sz=5000, axis=-1, log_metric=LogMetric.Valid, name='CorpusBLEU', **kwargs):
@@ -764,7 +764,7 @@ class CorpusBLEUMetric(MetricX):
             len_penalty = math.exp(1 - self.targ_len/self.pred_len) if self.pred_len < self.targ_len else 1
             return len_penalty * ((precs[0]*precs[1]*precs[2]*precs[3]) ** 0.25)
 
-# %% ../nbs/metrics.ipynb 176
+# %% ../nbs/metrics.ipynb 177
 class Perplexity(AvgLossX):
     "Perplexity (exponential of cross-entropy loss) for Language Models"
     @property
@@ -774,7 +774,7 @@ class Perplexity(AvgLossX):
 
 perplexity = Perplexity()
 
-# %% ../nbs/metrics.ipynb 179
+# %% ../nbs/metrics.ipynb 180
 class LossMetric(AvgMetricX):
     "Create a metric from `loss_func.attr` named `nm`"
     def __init__(self, attr, nm=None, log_metric=LogMetric.Valid, **kwargs):
@@ -788,18 +788,17 @@ class LossMetric(AvgMetricX):
     @property
     def name(self): return self.attr if self.nm is None else self.nm
 
-# %% ../nbs/metrics.ipynb 180
+# %% ../nbs/metrics.ipynb 181
 def LossMetrics(attrs, nms=None):
     "List of `LossMetric` for each of `attrs` and `nms`"
     if isinstance(attrs, str): attrs = attrs.split(',')
     nms = attrs if nms is None else nms.split(',') if isinstance(nms, str) else nms
     return [LossMetric(a, n) for a,n in zip(attrs,nms)]
 
-# %% ../nbs/metrics.ipynb 184
+# %% ../nbs/metrics.ipynb 186
 try:
     import wandb
     from fastai.callback.wandb import WandbCallback
-    from fastai.callback.training import FetchPredsCallback
 
     if not hasattr(WandbCallback,'_metrics_before_fit'): WandbCallback._metrics_before_fit = WandbCallback.before_fit
 
@@ -824,20 +823,14 @@ try:
         "Log validation loss and custom metrics & log prediction samples"
         # Correct any epoch rounding error and overwrite value
         self._wandb_epoch = round(self._wandb_epoch)
+        if self.log_preds and self.log_preds_every_epoch:
+            self.log_predictions()
         wandb.log({'epoch': self._wandb_epoch}, step=self._wandb_step)
-        # Log sample predictions
-        if self.log_preds:
-            try:
-                self.log_predictions(self.learn.fetch_preds.preds)
-            except Exception as e:
-                self.log_preds = False
-                self.remove_cb(FetchPredsCallback)
-                print(f'WandbCallback was not able to get prediction samples -> {e}')
         wandb.log({n:s for n,s in zip(self.recorder.metric_names, self.recorder.log) if n not in ['train_loss', 'epoch', 'time']+self.recorder.smooth_names}, step=self._wandb_step)
 except:
     pass
 
-# %% ../nbs/metrics.ipynb 185
+# %% ../nbs/metrics.ipynb 187
 try:
     import tensorboard
     from fastai.callback.tensorboard import TensorBoardCallback, tensorboard_log
