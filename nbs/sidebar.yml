@@ -1,9 +1,7 @@
 website:
   sidebar:
     contents:
-      - section: Overview
-        contents:
-        - index.ipynb
+      - index.ipynb
       - section: Audio
         contents:
         - audio.01_core.ipynb
@@ -21,19 +19,15 @@ website:
         - callback.progresize.ipynb
         - callback.simpleprofiler.ipynb
         - callback.tracker.ipynb
-      - section: Data
-        contents:
-        - data.transforms.ipynb
       - section: Losses
         contents:
         - losses.ipynb
         - multiloss.ipynb
-      - section: Metrics
-        contents:
-        - metrics.ipynb
-      - section: Schedulers
-        contents:
-        - schedulers.fit_flat_varied.ipynb
+      - metrics.ipynb
+      - text: Schedulers
+        file: schedulers.fit_flat_varied.ipynb
+      - text: Splitters
+        file: data.transforms.ipynb
       - section: Vision
         contents:
         - section: Augmentations
@@ -49,5 +43,5 @@ website:
       - section: Utils
         contents:
         - 0_basics.ipynb
-        - utils.ipynb
         - transform.ipynb
+        - utils.ipynb

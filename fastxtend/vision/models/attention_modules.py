@@ -10,7 +10,7 @@ from fastai.torch_core import Module
 from fastai.layers import ConvLayer
 from torch.nn.parameter import Parameter
 
-# %% ../../../nbs/vision.models.attention_modules.ipynb 6
+# %% ../../../nbs/vision.models.attention_modules.ipynb 5
 class ECA(Module):
     "Efficient Channel Attention, from https://arxiv.org/abs/1910.03151."
     def __init__(self, 
@@ -91,12 +91,12 @@ class ShuffleAttention(Module):
         x = x.permute(0, 2, 1, 3, 4)
         return x.reshape(b, c, h, w)
 
-# %% ../../../nbs/vision.models.attention_modules.ipynb 11
+# %% ../../../nbs/vision.models.attention_modules.ipynb 10
 class ZPool(Module):
     def forward(self, x):
         return torch.cat((torch.max(x, 1)[0].unsqueeze(1), torch.mean(x, 1).unsqueeze(1)), dim=1)
 
-# %% ../../../nbs/vision.models.attention_modules.ipynb 12
+# %% ../../../nbs/vision.models.attention_modules.ipynb 11
 class AttentionGate(Module):
     def __init__(self, 
         ks:int=7 # kernel size for Conv2D
@@ -110,7 +110,7 @@ class AttentionGate(Module):
         scale = torch.sigmoid_(x_out)
         return x * scale
 
-# %% ../../../nbs/vision.models.attention_modules.ipynb 13
+# %% ../../../nbs/vision.models.attention_modules.ipynb 12
 class TripletAttention(Module):
     "Lightly modified implementation of Triplet Attention, from http://arxiv.org/abs/2010.03045"
     def __init__(self, 

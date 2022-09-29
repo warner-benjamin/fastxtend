@@ -18,12 +18,12 @@ from .imports import *
 # %% auto 0
 __all__ = ['MultiLoss', 'MultiTargetLoss', 'MixHandlerX', 'MultiLossCallback']
 
-# %% ../nbs/multiloss.ipynb 4
+# %% ../nbs/multiloss.ipynb 5
 def init_loss(l, **kwargs):
     "Initiatize loss class or partial loss function"
     return partialler(l, reduction='none') if isinstance(l, FunctionType) else l(reduction='none', **kwargs)
 
-# %% ../nbs/multiloss.ipynb 5
+# %% ../nbs/multiloss.ipynb 6
 class MultiLoss(Module):
     """
     Combine multiple `loss_funcs` on one prediction & target via `reduction`, with optional weighting. 
@@ -102,7 +102,7 @@ class MultiLoss(Module):
         "Returns first `loss_funcs` `decodes`"
         return getattr(self.loss_funcs[0], 'decodes', noop)(pred)
 
-# %% ../nbs/multiloss.ipynb 10
+# %% ../nbs/multiloss.ipynb 11
 class MultiTargetLoss(MultiLoss):
     """
     Combine `loss_funcs` from multiple predictions & targets via `reduction`, with optional weighting.
@@ -138,7 +138,7 @@ class MultiTargetLoss(MultiLoss):
         "Returns list of `decodes`"
         return [getattr(self.loss_funcs[i], 'decodes', noop)(pred) for i, pred in enumerate(preds)]
 
-# %% ../nbs/multiloss.ipynb 15
+# %% ../nbs/multiloss.ipynb 16
 class MultiAvgLoss(AvgLossX):
     "Average the MultiLoss losses taking into account potential different batch sizes"
     def __init__(self, 
@@ -156,7 +156,7 @@ class MultiAvgLoss(AvgLossX):
         self.total += learn.to_detach(loss)*bs
         self.count += bs
 
-# %% ../nbs/multiloss.ipynb 16
+# %% ../nbs/multiloss.ipynb 17
 class MultiAvgSmoothLoss(AvgSmoothLossX):
     "Smooth average of the MultiLoss losses (exponentially weighted with `beta`)"
     def __init__(self, 
@@ -175,7 +175,7 @@ class MultiAvgSmoothLoss(AvgSmoothLossX):
         loss = loss.mean() if self.reduction=='mean' else loss.sum() if self.reduction=='sum' else loss
         self.val = torch.lerp(to_detach(loss, gather=False), self.val, self.beta)
 
-# %% ../nbs/multiloss.ipynb 17
+# %% ../nbs/multiloss.ipynb 18
 class MultiAvgSmoothLossMixup(AvgSmoothLossX):
     "Smooth average of the MultiLoss losses (exponentially weighted with `beta`)"
     def __init__(self, 
@@ -194,7 +194,7 @@ class MultiAvgSmoothLossMixup(AvgSmoothLossX):
         loss = loss.mean() if self.reduction=='mean' else loss.sum() if self.reduction=='sum' else loss
         self.val = torch.lerp(to_detach(loss, gather=False), self.val, self.beta)
 
-# %% ../nbs/multiloss.ipynb 19
+# %% ../nbs/multiloss.ipynb 20
 class MixHandlerX(Callback):
     "A handler class for implementing `MixUp` style scheduling. Like fastai's `MixHandler` but supports `MultiLoss`."
     run_valid = False
@@ -252,7 +252,7 @@ class MixHandlerX(Callback):
         else:
             return self.learn.loss_func_mixup.forward_mixup(pred, *self.yb1, *yb, self.lam)
 
-# %% ../nbs/multiloss.ipynb 22
+# %% ../nbs/multiloss.ipynb 23
 class MultiLossCallback(Callback):
     "Callback to automatically log and name `MultiLoss` losses as fastxtend metrics"
     run_valid,order = False,Recorder.order-1
