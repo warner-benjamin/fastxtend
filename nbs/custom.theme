@@ -23,7 +23,7 @@
             "text-color": "#68d391"
         },
         "BaseN": {
-            "selected-text-color": "#c813ff",
+            "selected-text-color": "#bc2ce8",
             "text-color": "#f56565"
         },
         "BuiltIn": {
@@ -44,7 +44,7 @@
         },
         "Constant": {
             "bold": true,
-            "selected-text-color": "#c813ff",
+            "selected-text-color": "#bc2ce8",
             "text-color": "#f56565"
         },
         "ControlFlow": {
@@ -57,7 +57,7 @@
             "text-color": "#00b5d9"
         },
         "DecVal": {
-            "selected-text-color": "#c813ff",
+            "selected-text-color": "#bc2ce8",
             "text-color": "#db2ad2"
         },
         "Documentation": {
@@ -74,7 +74,7 @@
             "text-color": "#00b5d9"
         },
         "Float": {
-            "selected-text-color": "#c813ff",
+            "selected-text-color": "#bc2ce8",
             "text-color": "#db2ad2"
         },
         "Function": {
@@ -82,8 +82,8 @@
             "text-color": "#68d391"
         },
         "Import": {
-            "selected-text-color": "#c813ff",
-            "text-color": "#c813ff"
+            "selected-text-color": "#bc2ce8",
+            "text-color": "#bc2ce8"
         },
         "Information": {
             "selected-text-color": "#dbbc49",
