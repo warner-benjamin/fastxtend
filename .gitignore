@@ -131,7 +131,9 @@ dmypy.json
 # vscode
 .vscode
 
+# pre-commit
+.pre-commit-config.yaml
+
 # fastxtend
 scratch/
 _proc/
-_docs/

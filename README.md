@@ -5,7 +5,7 @@ fastxtend
 
 ## Documentation
 
-https://fastxtend.benjaminwarner.dev
+<https://fastxtend.benjaminwarner.dev>
 
 ## Feature overview
 
