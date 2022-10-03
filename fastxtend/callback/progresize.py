@@ -76,26 +76,25 @@ class ProgressiveResize(Callback):
 
     def before_fit(self):
         "Sets up Progressive Resizing"
-        if hasattr(self.learn, 'lr_finder') and not hasattr(self, "gather_preds"):
+        if hasattr(self.learn, 'lr_finder') or hasattr(self.learn, "gather_preds"):
             self.run = False
             return
 
         self._resize, self.remove_resize, self.null_resize, self.remove_cutmix = [], True, True, False
-        self._log_after_resize = getattr(self, f'_{self.logger_callback}_log_after_resize', noop)
-        self.has_logger = hasattr(self.learn, self.logger_callback) and self._log_after_resize != noop
+        self._log_size = getattr(self, f'_{self.logger_callback}_log_size', noop)
+        self.has_logger = hasattr(self.learn, self.logger_callback) and self._log_size != noop
         self.increase_by = tensor(self.increase_by)
         self.resize_batch = self.increase_mode == IncreaseMode.Batch
 
         # Dry run at full resolution to pre-allocate memory
         # See https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#pre-allocate-memory-in-case-of-variable-input-length
+        states = get_random_states()
+        path = self.path/self.model_dir
+        path.mkdir(parents=True, exist_ok=True)
+        tmp_d = TemporaryDirectory(dir=path)
+        tmp_p = Path(tmp_d.name).stem
+        self.learn.save(f'{tmp_p}/_tmp')
         try:
-            states = get_random_states()
-            path = self.path/self.model_dir
-            path.mkdir(parents=True, exist_ok=True)
-            tmp_d = TemporaryDirectory(dir=path)
-            tmp_p = Path(tmp_d.name).stem
-            self.learn.save(f'{tmp_p}/_tmp')
-
             b = self.dls.valid.one_batch()
             i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
             self.learn.xb, self.learn.yb = b[:i],b[i:]
@@ -141,19 +140,20 @@ class ProgressiveResize(Callback):
         elif isinstance(self.initial_size, tuple): 
             self.current_size = tensor(self.initial_size)
 
-        start_epoch  = int(self.n_epoch*self.start)  if self.start < 1  else self.start
-        finish_epoch = int(self.n_epoch*self.finish) if self.finish < 1 else self.finish
-        max_steps = finish_epoch - start_epoch 
-
         if self.resize_batch:
             # Set when the progressive resizing step is applied in training percent
+            self.start  = self.start/self.n_epoch  if isinstance(self.start, int)  else self.start
+            self.finish = self.finish/self.n_epoch if isinstance(self.finish, int) else self.finish
             n_steps = ((self.final_size-self.current_size) / self.increase_by).int()
             if sum(n_steps.shape)==2:
                 n_steps = n_steps[0].item()
             pct = (self.finish - self.start) / (n_steps-1)
             self.step_pcts = [self.start + pct*i for i in range(n_steps)]
         else:
-            # Automatically determine the number of steps, increasing `increase_by` as needed
+                # Automatically determine the number of steps, increasing `increase_by` as needed
+            start_epoch  = int(self.n_epoch*self.start)  if isinstance(self.start, float)  else self.start
+            finish_epoch = int(self.n_epoch*self.finish) if isinstance(self.finish, float) else self.finish
+            max_steps = finish_epoch - start_epoch 
             count = 10000 # prevent infinite loop
             steps = _num_steps(self.final_size, self.current_size, self.increase_by)
             while ((steps > max_steps) or not _evenly_divisible(self.final_size, self.current_size, self.increase_by, steps)) and count > 0:
@@ -231,7 +231,7 @@ class ProgressiveResize(Callback):
 
     def before_batch(self):
         "Increases the image size before a batch if set to ProgSizeMode.Batch and applies optional additional resize"
-        if self.resize_batch and len(self.step_pcts) > 0 and self.pct_train >= self.step_pcts[0]:
+        if self.training and self.resize_batch and len(self.step_pcts) > 0 and self.pct_train >= self.step_pcts[0]:
             _ = self.step_pcts.pop(0)
             self._increase_size()
         if self.add_resize:
@@ -241,6 +241,9 @@ class ProgressiveResize(Callback):
         
     def before_train(self):
         "Increases the image size before the training epoch if set to ProgSizeMode.Epoch"
+        if self.epoch==0 and self.has_logger: 
+            self._log_size(False)
+            
         if not self.resize_batch and len(self.step_epochs) > 0 and self.epoch >= self.step_epochs[0]:
             _ = self.step_epochs.pop(0)
             self._increase_size()
@@ -252,10 +255,14 @@ class ProgressiveResize(Callback):
             del self.learn.yb
             del self.learn.pred
             torch.cuda.empty_cache()
+        
+        if self.epoch+1==self.n_epoch and self.has_logger: 
+            self._log_size(False)
 
     def _increase_size(self):
         "Increase the input size"
-        if self.has_logger: self._log_after_resize(step=0)
+        if self.has_logger: 
+            self._log_size(False)
 
         self.current_size += self.increase_by
         for i, resize in enumerate(self._resize):
@@ -279,7 +286,8 @@ class ProgressiveResize(Callback):
                 self.learn.cut_mix_up_augment._cutmixaugs_pipe = Pipeline([])
                 self.learn.cut_mix_up_augment._docutmixaug = False
                     
-        if self.has_logger: self._log_after_resize()
+        if self.has_logger: 
+            self._log_size()
 
     def _process_pipeline(self, pipe, remove_resize=False, null_resize=None):
         'Helper method for processing augmentation pipelines'
@@ -297,8 +305,8 @@ try:
     import wandb
 
     @patch
-    def _wandb_log_after_resize(self:ProgressiveResize):
-        size = _to_size(self.current_size, step=1)
-        wandb.log({'progressive_resize_size': size[0]}, self.learn.wandb._wandb_step+step)
+    def _wandb_log_size(self:ProgressiveResize, next_step=True):
+        size = _to_size(self.current_size)
+        wandb.log({'progressive_resize_size': size[0]}, self.learn.wandb._wandb_step+int(next_step))
 except:
     pass
