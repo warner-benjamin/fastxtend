@@ -32,6 +32,10 @@ class EMACallback(Callback):
 
     @torch.no_grad()
     def before_fit(self):
+        if hasattr(self.learn, 'lr_finder') or hasattr(self.learn, "gather_preds"):
+            self.run = False
+            return
+
         self.ema_model = ModelEmaV2(self.learn.model, self.decay, self.ema_device)
         self.validate_ema = self.learn.model.device == self.ema_model.device if self.validate_ema else False
 
