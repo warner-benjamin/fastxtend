@@ -484,13 +484,16 @@ def ranger_jit_step(p:Tensor, grad:Tensor, lr:float, wd:float, mom:float, sqr_mo
         dp = torch.add(dp, grad_avg, alpha=-lr / debias1)
 
     # lookahead step
-    if count % k != 0:
+    if step == 1:
         p.set_(dp)
+        return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg': grad_avg, 'sqr_avg': sqr_avg, 'step': step, 'slow_p': slow_p})
+    elif count % k != 0:
+        p.set_(dp)
+        return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg': grad_avg, 'sqr_avg': sqr_avg, 'step': step})
     else:
         slow_p = torch.add(slow_p, torch.sub(dp, slow_p), alpha=alpha)
         p.set_(slow_p)
-    
-    return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg': grad_avg, 'sqr_avg': sqr_avg, 'step': step, 'slow_p': slow_p})
+        return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg': grad_avg, 'sqr_avg': sqr_avg, 'step': step, 'slow_p': slow_p})
 
 # %% ../../nbs/optimizer.torchscript.ipynb 54
 def ranger(params, lr, mom=0.95, sqr_mom=0.99, eps=1e-6, wd=0.01, beta=0., k=6, alpha=0.5, decouple_wd=True, jit=False):
