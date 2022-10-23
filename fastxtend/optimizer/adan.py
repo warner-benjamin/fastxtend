@@ -4,6 +4,9 @@
 from __future__ import annotations
 from typing import Optional, Dict
 
+import numpy as np
+
+from fastai.basics import notmax_torch
 from fastai.optimizer import Optimizer, step_stat
 
 from .torchscript import JitOptimizer
@@ -66,14 +69,15 @@ def adan_step(p, lr, eps, wd, beta1, beta2, beta3, step, grad_avg, diff_avg, nes
 
     # perform Adan step and apply to parameter `p`
     p.data.sub_(torch.add(grad_avg/db1, diff_avg/db2, alpha=beta2).mul_(lr)).div_(wd)
-    return p
 
 # %% ../../nbs/optimizer.adan.ipynb 10
 @torch.jit.script
-def adan_jit_step(p:Tensor, grad:Tensor, lr:float, wd:float, beta1:float, beta2:float, beta3:float, eps:float, paper_init:bool,
-                  grad_avg:Optional[Tensor]=None, diff_avg:Optional[Tensor]=None, nesterov_est:Optional[Tensor]=None, 
-                  prior_grad:Optional[Tensor]=None, do_wd:bool=True, step:int=0, force_train:Optional[bool]=None, mom:Optional[float]=None):
+def adan_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, beta1:float, beta2:float, beta3:float, eps:float,
+                  paper_init:bool, grad_avg:Optional[Tensor]=None, diff_avg:Optional[Tensor]=None, 
+                  nesterov_est:Optional[Tensor]=None, prior_grad:Optional[Tensor]=None, do_wd:bool=True, step:int=0, 
+                  force_train:Optional[bool]=None, mom:Optional[float]=None, decouple_wd:bool=False):
     dp = p
+    grad = g
     step += 1
 
     if grad_avg is None: 
@@ -89,16 +93,13 @@ def adan_jit_step(p:Tensor, grad:Tensor, lr:float, wd:float, beta1:float, beta2:
             prior_grad = torch.zeros_like(dp, memory_format=torch.preserve_format)
 
     # update m_k
-    grad_avg = torch.mul(grad_avg, beta1)
-    grad_avg = torch.add(grad_avg, grad, alpha=1-beta1)
+    grad_avg = grad_avg.mul(beta1).add(grad, alpha=1-beta1)
 
     # update v_k
-    diff_avg = torch.mul(diff_avg, beta2)
-    diff_avg = torch.add(diff_avg, grad-prior_grad, alpha=1-beta2)
+    diff_avg = diff_avg.mul(beta2).add(grad-prior_grad, alpha=1-beta2)
     
     # update n_k
-    nesterov_est = torch.mul(nesterov_est, beta3)
-    nesterov_est = torch.add(nesterov_est, torch.square(torch.add(grad, torch.sub(grad, prior_grad), alpha=beta2)), alpha=1-beta3)
+    nesterov_est = nesterov_est.mul(beta3).add(torch.square(grad.add(grad.sub(prior_grad), alpha=beta2)), alpha=1-beta3)
 
     # calculate debias terms
     db1 = debias(beta1, step)
@@ -123,20 +124,118 @@ def adan_jit_step(p:Tensor, grad:Tensor, lr:float, wd:float, beta1:float, beta2:
 
     # apply results to parameter p
     p.set_(dp)
+    g.set_(grad)
 
     return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg':grad_avg, 'diff_avg':diff_avg, 'nesterov_est':nesterov_est, 'prior_grad':prior_grad, 'step':step})
 
 # %% ../../nbs/optimizer.adan.ipynb 12
-def Adan(params, lr, beta1=0.98, beta2=0.92, beta3=0.99, eps=1e-8, wd=0.02, paper_init=False, jit=False):
-    "A `Optimizer` for Adan with `lr`, `beta`s, `eps` and `params`"
-    if jit:
+def adan_foreach_step(p:Tensor, grad:Tensor, grad_avg:list[Tensor], diff_avg:list[Tensor], nesterov_est:list[Tensor], 
+                      prior_grad:list[Tensor], steps:np.ndarray[Any, int], do_wd:np.ndarray[Any, bool], lr:float, 
+                      wd:float, beta1:float, beta2:float, beta3:float, eps:float, **kwargs):
+
+    # update m_k
+    torch._foreach_mul_(grad_avg, beta1)
+    torch._foreach_add_(grad_avg, grad, alpha=1-beta1)
+
+    # update v_k
+    torch._foreach_mul_(diff_avg, beta2)
+    torch._foreach_add_(diff_avg, torch._foreach_sub(grad, prior_grad), alpha=1-beta2)
+    
+    # update n_k
+    torch._foreach_mul_(nesterov_est, beta3)
+    adjust_grad = torch._foreach_add(grad, torch._foreach_sub(grad, prior_grad), alpha=beta2)
+    torch._foreach_add_(nesterov_est, torch._foreach_mul(adjust_grad, adjust_grad), alpha=1-beta3)
+    # currently there's no foreach_pow, so use _foreach_mul on itself
+
+    # calculate debias terms
+    db1 = 1 - beta1**steps
+    db2 = 1 - beta2**steps
+    db3 = 1 - beta3**steps
+
+    # calculate η_k
+    db3 = torch._foreach_div(nesterov_est, scalars=db3.tolist())
+    torch._foreach_add_(db3, eps)
+    torch._foreach_sqrt_(db3)
+    p_lrs = torch._foreach_div(db3, lr)
+    torch._foreach_reciprocal_(p_lrs)
+    # currently foreach_div doesn't allow a scalar as the first arg
+
+    # perform Adan step
+    db1 = torch._foreach_div(grad_avg, scalars=db1.tolist())
+    db2 = torch._foreach_div(diff_avg, scalars=db2.tolist())
+    torch._foreach_sub_(p, torch._foreach_mul(torch._foreach_add(db1, db2, alpha=beta2), p_lrs))
+    
+    # calculate and apply λ
+    if wd != 0:
+        wd = np.where(do_wd, 1+lr*wd, 1.)
+        torch._foreach_div_(p, scalars=wd.tolist())
+
+    # set current grad as next step's prior_grad, currently no foreach_set method
+    [pg.set_(gd.clone()) for pg, gd in zip(prior_grad, grad)]
+
+# %% ../../nbs/optimizer.adan.ipynb 13
+class AdanForEachOptimizer(Optimizer):
+    "An `Optimizer` with a modified step for Adan ForEach"
+    def __init__(self,
+        params:listified[Tensor], # Model parameters
+        opt_step:Callable, # `ForEachOptimizer` optimizer step
+        train_bn:bool=True, # Train normalization layers if parameter group is frozen
+        paper_init:bool=False, # Initialize first prior_grad to grad following paper or zeros
+        **defaults # Optimizer specific hyper parameters
+    ):
+        super().__init__(params, [None], train_bn, **defaults)
+        self.opt_step = opt_step
+        self.paper_init = paper_init
+
+    @torch.no_grad()
+    def step(self, closure=None):
+        if closure is not None: raise NotImplementedError("fastai optimizers currently do not support closure")
+        for pg, hyper in zip(self.param_lists, self.hypers):
+            pl, gl, grad_avg, diff_avg, nesterov_est, prior_grad, steps, do_wd = [], [], [], [], [], [], [], []
+
+            for p in pg:
+                if hasattr(p, 'grad') and p.grad is not None:
+                    state = self.state[p]
+
+                    if 'step' not in state:
+                        state['grad_avg']     = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        state['diff_avg']     = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        state['nesterov_est'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        if self.paper_init:
+                            state['prior_grad'] = p.grad.clone()
+                        else:
+                            state['prior_grad'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        state['step'] = 0
+
+                    state['step'] += 1
+                    pl.append(p)
+                    gl.append(p.grad)
+                    grad_avg.append(state['grad_avg'])
+                    diff_avg.append(state['diff_avg'])
+                    nesterov_est.append(state['nesterov_est'])
+                    prior_grad.append(state['prior_grad'])
+                    do_wd.append(state.get('do_wd', True))
+                    steps.append(state['step'])
+
+            self.opt_step(p=pl, grad=gl, grad_avg=grad_avg, diff_avg=diff_avg, nesterov_est=nesterov_est, 
+                          prior_grad=prior_grad, steps=np.array(steps, dtype=np.int32), do_wd=np.array(do_wd, dtype=bool), **hyper)
+
+# %% ../../nbs/optimizer.adan.ipynb 15
+def Adan(params, lr, beta1=0.98, beta2=0.92, beta3=0.99, eps=1e-8, wd=0.02, paper_init=False, foreach=False, jit=False):
+    "A `Optimizer` for Adan with `lr`, `beta`s, `eps` and `params` and support for `foreach` and `jit` implementations"
+    if (foreach or jit) and notmax_torch('1.12'):
+        warn(f'ForEach and TorchScript optimizers are untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
+    if foreach:
+        return AdanForEachOptimizer(params, adan_foreach_step, lr=lr, beta1=beta1, beta2=beta2, 
+                                    beta3=beta3, eps=eps, wd=wd, paper_init=paper_init)
+    elif jit:
         cb = partial(adan_jit_step, paper_init=paper_init)
         return JitOptimizer(params, cb, lr=lr, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd)
     else:
         cbs = [partial(adan_setup, paper_init=paper_init), adan_avgs, adan_step]
         return Optimizer(params, cbs, lr=lr, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd)
 
-# %% ../../nbs/optimizer.adan.ipynb 14
+# %% ../../nbs/optimizer.adan.ipynb 17
 def AdanLargeBatchLR(bs):
     "Square root rule for scaling `Adan` learning rate for large-batch training"
     return math.sqrt(bs/256)*6.25e-3
