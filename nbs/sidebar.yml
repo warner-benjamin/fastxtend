@@ -28,6 +28,15 @@ website:
         file: schedulers.fit_flat_varied.ipynb
       - text: Splitters
         file: data.transforms.ipynb
+      - section: Optimizers
+        contents:
+        - optimizer.ipynb
+        - text: Adan Optimizer
+          file: optimizer.adan.ipynb
+        - section: Fused Details
+          contents:
+          - optimizer.foreach.ipynb
+          - optimizer.torchscript.ipynb
       - section: Vision
         contents:
         - section: Augmentations

@@ -9,8 +9,7 @@ from fastai.optimizer import Optimizer, _update, Lookahead
 from ..imports import *
 
 # %% auto 0
-__all__ = ['JitOptimizer', 'sgd_jit_step', 'rmsprop_jit_step', 'adam_jit_step', 'radam_jit_step', 'qhadam_jit_step',
-           'larc_jit_step', 'lamb_jit_step', 'JitLookahead', 'ranger_jit_step']
+__all__ = []
 
 # %% ../../nbs/optimizer.torchscript.ipynb 7
 def _update(
@@ -24,11 +23,13 @@ class JitOptimizer(Optimizer):
     "An `Optimizer` with a modified step for TorchScript optimizers"
     def __init__(self,
         params:listified[Tensor], # Model parameters
-        opt_step:Callable, # `ForEachOptimizer` optimizer step
+        opt_step:Callable, # `JitOptimizer` optimizer step
         train_bn:bool=True, # Train normalization layers if parameter group is frozen
         decouple_wd:bool=False, # Use decoupled weight decay or L2 regularization, if applicable
-        **defaults # Optimizer specific hyper parameters
+        **defaults
     ):
+        if notmax_torch('1.12'):
+            warn(f'TorchScript optimizers are untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
         super().__init__(params, [None], train_bn, **defaults)
         self.opt_step = opt_step
         self.decouple_wd = decouple_wd
@@ -42,10 +43,11 @@ class JitOptimizer(Optimizer):
                     state = self.state[p]
                     _update(state, self.opt_step(p=p, g=p.grad, decouple_wd=self.decouple_wd, **{**state, **hyper}))
 
-# %% ../../nbs/optimizer.torchscript.ipynb 10
+# %% ../../nbs/optimizer.torchscript.ipynb 11
 @torch.jit.script
 def sgd_jit_step(p:Tensor, g:Tensor, decouple_wd:bool, lr:float, wd:float, mom:float, 
                  grad_avg:Optional[Tensor]=None, do_wd:bool=True, force_train:Optional[bool]=None):
+    "SGD TorchScript compiled `JitOptimizer` step"
     param = p
     grad = g
     if do_wd and wd != 0:
@@ -75,10 +77,11 @@ def sgd_jit_step(p:Tensor, g:Tensor, decouple_wd:bool, lr:float, wd:float, mom:f
         g.set_(grad)
         return None
 
-# %% ../../nbs/optimizer.torchscript.ipynb 17
+# %% ../../nbs/optimizer.torchscript.ipynb 19
 @torch.jit.script
 def rmsprop_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:float, eps:float, decouple_wd:bool, 
                      grad_avg:Optional[Tensor]=None, sqr_avg:Optional[Tensor]=None, do_wd:bool=True, force_train:Optional[bool]=None):
+    "SGD TorchScript compiled `JitOptimizer` step"
     param = p
     grad = g
     if do_wd and wd != 0:
@@ -117,11 +120,12 @@ def rmsprop_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:
         g.set_(grad)
         return {'sqr_avg': sqr_avg}
 
-# %% ../../nbs/optimizer.torchscript.ipynb 22
+# %% ../../nbs/optimizer.torchscript.ipynb 25
 @torch.jit.script
 def adam_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:float, eps:float, 
                   decouple_wd:bool, grad_avg:Optional[Tensor]=None, sqr_avg:Optional[Tensor]=None, 
                   do_wd:bool=True, step:int=0, force_train:Optional[bool]=None):
+    "Adam TorchScript compiled `JitOptimizer` step"
     param = p
     grad = g
     step += 1
@@ -153,11 +157,12 @@ def adam_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:flo
 
     return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg': grad_avg, 'sqr_avg': sqr_avg, 'step': step})
 
-# %% ../../nbs/optimizer.torchscript.ipynb 28
+# %% ../../nbs/optimizer.torchscript.ipynb 32
 @torch.jit.script
 def radam_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:float, eps:float,
                    decouple_wd:bool, grad_avg:Optional[Tensor]=None, sqr_avg:Optional[Tensor]=None,
                    do_wd:bool=True, step:int=0, force_train:Optional[bool]=None):
+    "RAdam TorchScript compiled `JitOptimizer` step"
     param = p
     grad = g
     step += 1
@@ -197,11 +202,12 @@ def radam_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:fl
 
     return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg': grad_avg, 'sqr_avg': sqr_avg, 'step': step})
 
-# %% ../../nbs/optimizer.torchscript.ipynb 33
+# %% ../../nbs/optimizer.torchscript.ipynb 38
 @torch.jit.script
 def qhadam_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:float, eps:float,
                     nu_1:float, nu_2:float, decouple_wd:bool, grad_avg:Optional[Tensor]=None, 
                     sqr_avg:Optional[Tensor]=None, do_wd:bool=True, step:int=0, force_train:Optional[bool]=None):
+    "QHAdam TorchScript compiled `JitOptimizer` step"
     param = p
     grad = g
     step += 1
@@ -235,10 +241,11 @@ def qhadam_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:f
 
     return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg': grad_avg, 'sqr_avg': sqr_avg, 'step': step})
 
-# %% ../../nbs/optimizer.torchscript.ipynb 38
+# %% ../../nbs/optimizer.torchscript.ipynb 44
 @torch.jit.script
 def larc_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, eps:float, trust_coeff:float, decouple_wd:bool,
                   clip:bool, grad_avg:Optional[Tensor]=None, do_wd:bool=True, dampening:bool=False, force_train:Optional[bool]=None):
+    "LARC TorchScript compiled `JitOptimizer` step"
     param = p
     grad = g
     if do_wd and wd != 0:
@@ -275,11 +282,12 @@ def larc_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, eps:float, 
     g.set_(grad)
     return {'grad_avg': grad_avg}
 
-# %% ../../nbs/optimizer.torchscript.ipynb 44
+# %% ../../nbs/optimizer.torchscript.ipynb 51
 @torch.jit.script
 def lamb_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:float, eps:float, 
                   decouple_wd:bool, grad_avg:Optional[Tensor]=None, sqr_avg:Optional[Tensor]=None, 
                   do_wd:bool=True, step:int=0, force_train:Optional[bool]=None):
+    "LAMB TorchScript compiled `JitOptimizer` step"
     param = p
     grad = g
     step += 1
@@ -321,11 +329,17 @@ def lamb_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:flo
 
     return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg': grad_avg, 'sqr_avg': sqr_avg, 'step': step})
 
-# %% ../../nbs/optimizer.torchscript.ipynb 49
-class JitLookahead(Optimizer):
-    "An `Optimizer` with a modified step for Lookahead TorchScript optimizers"
-    def __init__(self, params:Tensor, cbs:list, train_bn:bool=True, **defaults):
-        super().__init__(params, cbs, train_bn, **defaults)
+# %% ../../nbs/optimizer.torchscript.ipynb 57
+class JitLookahead(JitOptimizer):
+    "An `JitOptimizer` with a modified step for Lookahead TorchScript optimizers"
+    def __init__(self,
+        params:listified[Tensor], # Model parameters
+        opt_step:Callable, # `JitLookahead` optimizer step
+        train_bn:bool=True, # Train normalization layers if parameter group is frozen
+        decouple_wd:bool=False, # Use decoupled weight decay or L2 regularization, if applicable
+        **defaults
+    ):
+        super().__init__(params, opt_step, train_bn, decouple_wd, **defaults)
         self._init_state()
 
     @torch.no_grad()
@@ -335,7 +349,7 @@ class JitLookahead(Optimizer):
         for pg, hyper in zip(self.param_lists, self.hypers):
             for p in pg:
                 if hasattr(p, 'grad') and p.grad is not None:
-                    _update(self.state[p], self.cbs[0](p, p.grad, **{**self.state[p], **hyper}, count=self.count))
+                    _update(self.state[p], self.opt_step(p, p.grad, decouple_wd=self.decouple_wd, **{**self.state[p], **hyper}, count=self.count))
 
     def clear_state(self):
         super().clear_state()
@@ -353,11 +367,12 @@ class JitLookahead(Optimizer):
     def _init_state(self): 
         self.count = 0
 
-# %% ../../nbs/optimizer.torchscript.ipynb 51
+# %% ../../nbs/optimizer.torchscript.ipynb 60
 @torch.jit.script
 def ranger_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:float, eps:float, decouple_wd:bool, 
                     count:int, k:int, alpha:float, grad_avg:Optional[Tensor]=None, sqr_avg:Optional[Tensor]=None,
                     slow_p:Optional[Tensor]=None, do_wd:bool=True, step:int=0, force_train:Optional[bool]=None):
+    "ranger TorchScript compiled `JitOptimizer` step"
     param = p
     grad = g
     step += 1
