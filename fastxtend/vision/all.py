@@ -6,7 +6,7 @@ from .data import *
 from ..data.all import *
 from ..losses import *
 from ..metrics import *
-from . import models
 from .models.all import *
 from ..multiloss import *
+from ..optimizer.all import *
 from ..utils import *
