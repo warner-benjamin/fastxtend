@@ -4,6 +4,8 @@
 from __future__ import annotations
 from typing import Optional, Dict
 
+from fastcore.basics import partialler
+
 from fastai.optimizer import (Optimizer, _update, weight_decay, l2_reg, average_grad, sgd_step, 
                               momentum_step, average_sqr_grad, rms_prop_step, step_stat, adam_step, 
                               radam_step, qhadam_step, larc_layer_lr, larc_step, lamb_step, Lookahead)
@@ -20,14 +22,15 @@ from .optimizer.foreach import (SGDForEachOptimizer, sgd_foreach_step, AdamForEa
 from .imports import *
 
 # %% auto 0
-__all__ = ['SGD', 'RMSProp', 'Adam', 'RAdam', 'QHAdam', 'Larc', 'Lamb', 'ranger']
+__all__ = ['SGD', 'sgd', 'RMSProp', 'rmsprop', 'Adam', 'adam', 'RAdam', 'radam', 'QHAdam', 'qhadam', 'Larc', 'larc', 'Lamb',
+           'lamb', 'Ranger', 'ranger']
 
 # %% ../nbs/optimizer.ipynb 8
 def SGD(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
-    mom:float=0., # Gradient moving average (β1) coefficent
-    wd:float=0., # Weight decay (true or L2)
+    mom:float=0., # Gradient moving average (β1) coefficient
+    wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (SGDW) or L2 regularization (SGD)
     foreach:bool=False, # Use fused ForEach implementation
     jit:bool=False # Use fused TorchScript implementation
@@ -43,14 +46,25 @@ def SGD(
         cbs.append(sgd_step if mom==0 else momentum_step)
         return Optimizer(params, cbs, lr=lr, mom=mom, wd=wd)
 
-# %% ../nbs/optimizer.ipynb 12
+# %% ../nbs/optimizer.ipynb 9
+def sgd(
+    mom:float=0., # Gradient moving average (β1) coefficient
+    wd:float=0., # Optional weight decay (true or L2)
+    decouple_wd:bool=True, # Apply true weight decay (SGDW) or L2 regularization (SGD)
+    foreach:bool=False, # Use fused ForEach implementation
+    jit:bool=False # Use fused TorchScript implementation
+) -> Optimizer|SGDForEachOptimizer|JitOptimizer:
+    "Partial function for the SGD/SGDW optimizer with fused ForEach and TorchScript implementations"
+    return partialler(SGD, mom=mom, wd=wd, decouple_wd=decouple_wd, jit=jit, foreach=foreach)
+
+# %% ../nbs/optimizer.ipynb 13
 def RMSProp(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
-    mom:float=0., # Gradient moving average (β1) coefficent
-    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficent
+    mom:float=0., # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-8, # Added for numerical stability
-    wd:float=0., # Weight decay (true or L2)
+    wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|JitOptimizer:
@@ -64,21 +78,31 @@ def RMSProp(
         cbs.append(rms_prop_step)
         return Optimizer(params, cbs, lr=lr, mom=mom, sqr_mom=sqr_mom, wd=wd, eps=eps)
 
-# %% ../nbs/optimizer.ipynb 16
+# %% ../nbs/optimizer.ipynb 14
+def rmsprop(
+    mom:float=0., # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
+    eps:float=1e-8, # Added for numerical stability
+    wd:float=0., # Optional weight decay (true or L2)
+    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    jit:bool=False # Use fused TorchScript implementation
+) -> Optimizer|JitOptimizer:
+    "Partial function for the RMSProp/RMSPropW optimizer with a fused TorchScript implementation"
+    return partialler(RMSProp, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, decouple_wd=decouple_wd, jit=jit)
+
+# %% ../nbs/optimizer.ipynb 18
 def Adam(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
-    mom:float=0.9, # Gradient moving average (β1) coefficent
-    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficent
+    mom:float=0.9, # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-5, # Added for numerical stability
-    wd:float=0.01, # Weight decay (true or L2)
+    wd:float=0.01, # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (AdamW) or L2 regularization (Adam)
     foreach:bool=False, # Use fused ForEach implementation
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|AdamForEachOptimizer|JitOptimizer:
     "A fastai Adam/AdamW optimizer with fused ForEach and TorchScript implementations"
-    if (foreach or jit) and notmax_torch('1.12'):
-        warn(f'ForEach and TorchScript optimizers are untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
     if foreach:
         return AdamForEachOptimizer(params, adam_foreach_step, lr=lr, mom=mom, 
                                     sqr_mom=sqr_mom, eps=eps, wd=wd, decouple_wd=decouple_wd)
@@ -90,14 +114,28 @@ def Adam(
         cbs += [partial(average_grad, dampening=True), average_sqr_grad, step_stat, adam_step]
         return Optimizer(params, cbs, lr=lr, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd)
 
-# %% ../nbs/optimizer.ipynb 20
+# %% ../nbs/optimizer.ipynb 19
+def adam(
+    mom:float=0., # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
+    eps:float=1e-8, # Added for numerical stability
+    wd:float=0., # Optional weight decay (true or L2)
+    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    foreach:bool=False, # Use fused ForEach implementation
+    jit:bool=False # Use fused TorchScript implementation
+) -> Optimizer|AdamForEachOptimizer|JitOptimizer:
+    "Partial function for the Adam/AdamW optimizer with fused ForEach and TorchScript implementations"
+    return partialler(Adam, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, 
+                      decouple_wd=decouple_wd, foreach=foreach, jit=jit)
+
+# %% ../nbs/optimizer.ipynb 23
 def RAdam(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
-    mom:float=0.9, # Gradient moving average (β1) coefficent
-    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficent
+    mom:float=0.9, # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-5, # Added for numerical stability
-    wd:float=0., # Weight decay (true or L2)
+    wd:float=0., # Optional weight decay (true or L2)
     beta:float=0., # Set to enable SAdam with native fastai RAdam
     decouple_wd:bool=True, # Apply true weight decay (RAdamW) or L2 regularization (RAdam)
     foreach:bool=False, # Use fused ForEach implementation
@@ -118,15 +156,30 @@ def RAdam(
         return Optimizer(params, cbs, lr=lr, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, beta=beta)
 
 # %% ../nbs/optimizer.ipynb 24
+def radam(
+    mom:float=0., # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
+    eps:float=1e-8, # Added for numerical stability
+    wd:float=0., # Optional weight decay (true or L2)
+    beta:float=0., # Set to enable SAdam with native fastai RAdam
+    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    foreach:bool=False, # Use fused ForEach implementation
+    jit:bool=False # Use fused TorchScript implementation
+) -> Optimizer|RAdamForEachOptimizer|JitOptimizer:
+    "Partial function for the RAdam/RAdamW optimizer with fused ForEach and TorchScript implementations"
+    return partialler(RAdam, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, beta=beta,
+                      decouple_wd=decouple_wd, foreach=foreach, jit=jit)
+
+# %% ../nbs/optimizer.ipynb 28
 def QHAdam(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
-    mom:float=0.999, # Gradient moving average (β1) coefficent
-    sqr_mom:float=0.999, # Gradient squared moving average (β2) coefficent
+    mom:float=0.999, # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.999, # Gradient squared moving average (β2) coefficient
     nu_1:float=0.7, # QH immediate discount factor
     nu_2:float=1.0, # QH momentum discount factor
     eps:float=1e-8, # Added for numerical stability
-    wd:float=0., # Weight decay (true or L2)
+    wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (QHAdamW) or L2 regularization (QHAdam)
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|JitOptimizer:
@@ -139,15 +192,30 @@ def QHAdam(
         cbs += [partial(average_grad, dampening=True), average_sqr_grad, step_stat, qhadam_step]
         return Optimizer(params, cbs, lr=lr, nu_1=nu_1, nu_2=nu_2, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd)
 
-# %% ../nbs/optimizer.ipynb 28
+# %% ../nbs/optimizer.ipynb 29
+def qhadam(
+    mom:float=0., # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
+    nu_1:float=0.7, # QH immediate discount factor
+    nu_2:float=1.0, # QH momentum discount factor
+    eps:float=1e-8, # Added for numerical stability
+    wd:float=0., # Optional weight decay (true or L2)
+    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    jit:bool=False # Use fused TorchScript implementation
+) -> Optimizer|JitOptimizer:
+    "Partial function for the QHAdam/QHAdamW optimizer with a fused TorchScript implementation"
+    return partialler(QHAdam, mom=mom, sqr_mom=sqr_mom, nu_1=nu_1, nu_2=nu_2, eps=eps, 
+                      wd=wd, decouple_wd=decouple_wd, jit=jit)
+
+# %% ../nbs/optimizer.ipynb 33
 def Larc(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
-    mom:float=0.9, # Gradient moving average (β1) coefficent
+    mom:float=0.9, # Gradient moving average (β1) coefficient
     clip:bool=True, # LARC if clip=True, LARS if clip=False
     trust_coeff:float=0.02, # Trust coeffiecnet for calculating layerwise LR
     eps:float=1e-8, # Added for numerical stability
-    wd:float=0., # Weight decay (true or L2)
+    wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay or L2 regularization
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|JitOptimizer:
@@ -162,14 +230,28 @@ def Larc(
         cbs += [partial(larc_layer_lr, clip=clip), larc_step]
         return Optimizer(params, cbs, lr=lr, mom=mom, trust_coeff=trust_coeff, eps=eps, wd=wd)
 
-# %% ../nbs/optimizer.ipynb 32
+# %% ../nbs/optimizer.ipynb 34
+def larc(
+    mom:float=0., # Gradient moving average (β1) coefficient
+    clip:bool=True, # LARC if clip=True, LARS if clip=False
+    trust_coeff:float=0.02, # Trust coeffiecnet for calculating layerwise LR
+    eps:float=1e-8, # Added for numerical stability
+    wd:float=0., # Optional weight decay (true or L2)
+    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    jit:bool=False # Use fused TorchScript implementation
+) -> Optimizer|JitOptimizer:
+    "Partial function for the LARC/LARS optimizer with a fused TorchScript implementation"
+    return partialler(Larc, mom=mom, clip=clip, eps=eps, trust_coeff=trust_coeff, 
+                      wd=wd, decouple_wd=decouple_wd, jit=jit)
+
+# %% ../nbs/optimizer.ipynb 38
 def Lamb(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
-    mom:float=0.9, # Gradient moving average (β1) coefficent
-    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficent
+    mom:float=0.9, # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-5, # Added for numerical stability
-    wd:float=0.01, # Weight decay (true or L2). Paper default, fastai's is 0.
+    wd:float=0.01, # Optional weight decay (true or L2). Paper default, fastai's is 0.
     decouple_wd:bool=True, # Apply true weight decay or L2 regularization
     foreach:bool=False, # Use fused ForEach implementation
     jit:bool=False # Use fused TorchScript implementation
@@ -186,16 +268,30 @@ def Lamb(
         cbs += [partial(average_grad, dampening=True), average_sqr_grad, step_stat, lamb_step]
         return Optimizer(params, cbs, lr=lr, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd)
 
-# %% ../nbs/optimizer.ipynb 36
-def ranger(
+# %% ../nbs/optimizer.ipynb 39
+def lamb(
+    mom:float=0., # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
+    eps:float=1e-8, # Added for numerical stability
+    wd:float=0., # Optional weight decay (true or L2)
+    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    foreach:bool=False, # Use fused ForEach implementation
+    jit:bool=False # Use fused TorchScript implementation
+) -> Optimizer|LambForEachOptimizer|JitOptimizer:
+    "Partial function for the LAMB optimizer with fused ForEach and TorchScript implementations"
+    return partialler(Lamb, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, 
+                      decouple_wd=decouple_wd, foreach=foreach, jit=jit)
+
+# %% ../nbs/optimizer.ipynb 43
+def Ranger(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
-    mom:float=0.95, # Gradient moving average (β1) coefficent
-    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficent
+    mom:float=0.95, # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-6, # Added for numerical stability
-    wd:float=0.01, # Weight decay (true or L2)
+    wd:float=0.01, # Optional weight decay (true or L2)
     k:int=6, # How often to conduct Lookahead step
-    alpha:float=0.5, # Slow weight moving average coefficent
+    alpha:float=0.5, # Slow weight moving average coefficient
     decouple_wd:bool=True, # Apply true weight decay (RAdamW) or L2 regularization (RAdam)
     foreach:bool=False, # Use fused ForEach implementation
     jit:bool=False # Use fused TorchScript implementation
@@ -211,3 +307,19 @@ def ranger(
         return Lookahead(RAdam(params, lr=lr, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, 
                                decouple_wd=decouple_wd),
                          k=k, alpha=alpha)
+
+# %% ../nbs/optimizer.ipynb 44
+def ranger(
+    mom:float=0.95, # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
+    eps:float=1e-6, # Added for numerical stability
+    wd:float=0.01, # Optional weight decay (true or L2)
+    k:int=6, # How often to conduct Lookahead step
+    alpha:float=0.5, # Slow weight moving average coefficient
+    decouple_wd:bool=True, # Apply true weight decay (RAdamW) or L2 regularization (RAdam)
+    foreach:bool=False, # Use fused ForEach implementation
+    jit:bool=False # Use fused TorchScript implementation
+) -> Lookahead|RangerForEachOptimizer|JitLookahead:
+    "Partial function of the onvenience method for `Lookahead` with `RAdam` fused ForEach and TorchScript implementations"
+    return partialler(Ranger, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, k=k, 
+                      alpha=alpha, decouple_wd=decouple_wd, foreach=foreach, jit=jit)
