@@ -30,7 +30,7 @@ website:
         file: data.transforms.ipynb
       - section: Optimizers
         contents:
-        - optimizer.ipynb
+        - optimizer.fused.ipynb
         - text: Adan Optimizer
           file: optimizer.adan.ipynb
       - section: Vision

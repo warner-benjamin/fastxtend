@@ -19,7 +19,7 @@ class ForEachOptimizer(Optimizer):
         params:listified[Tensor], # Model parameters
         opt_step:Callable, # `ForEachOptimizer` optimizer step
         train_bn:bool=True, # Train normalization layers if parameter group is frozen
-        decouple_wd:bool=True, # Use decoupled weight decay or L2 regularization, if applicable
+        decouple_wd:bool=True, # Use true weight decay or L2 regularization, if applicable
         **defaults # Optimizer specific hyper parameters
     ):
         if notmax_torch('1.12'):
@@ -298,7 +298,7 @@ class RangerForEachOptimizer(ForEachOptimizer):
         params:listified[Tensor], # Model parameters
         opt_step:Callable, # `ForEachOptimizer` optimizer step
         train_bn:bool=True, # Train normalization layers if parameter group is frozen
-        decouple_wd:bool=True, # Use decoupled weight decay or L2 regularization, if applicable
+        decouple_wd:bool=True, # Use true weight decay or L2 regularization, if applicable
         **defaults # Optimizer specific hyper parameters default values
     ):
         super().__init__(params, opt_step, train_bn, decouple_wd, **defaults)
