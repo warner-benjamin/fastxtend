@@ -6,12 +6,13 @@ project:
 
 format:
   html:
-    theme: 
+    theme:
       - pulse
       - custom.scss
     toc: true
     toc-depth: 4
     highlight-style: custom.theme
+    html-math-method: katex
 
 website:
   favicon: favicon.ico
@@ -44,12 +45,12 @@ website:
   sidebar:
     style: floating
     collapse-level: 3
-  page-footer: 
-    left: "Copyright © 2022 Benjamin Warner, MIT License" 
-    right: 
+  page-footer:
+    left: "Copyright © 2022 Benjamin Warner, MIT License"
+    right:
       - icon: github
         href: https://github.com/warner-benjamin/fastxtend/
-      - icon: twitter 
+      - icon: twitter
         href: https://twitter.com/benjamin_warner
   body-header: |
     <script src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{'token': '62f27bdcb8964407a52676798db9edfa'}" defer="defer"></script>
