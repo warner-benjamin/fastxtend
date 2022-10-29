@@ -18,7 +18,7 @@ website:
   favicon: favicon.ico
   twitter-card: true
   open-graph: true
-  repo-actions: [issue]
+  repo-actions: [issue, source]
   navbar:
     search: true
     left:
@@ -32,6 +32,9 @@ website:
           - text: fastcore
             icon: link
             href: https://fastcore.fast.ai
+          - text: nbdev
+            icon: link
+            href: https://nbdev.fast.ai
           - text: "Report an Issue"
             icon: bug
             href: https://github.com/warner-benjamin/fastxtend/issues
@@ -53,8 +56,7 @@ website:
       - icon: twitter
         href: https://twitter.com/benjamin_warner
   body-header: |
-    <script src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon="{'token': '62f27bdcb8964407a52676798db9edfa'}" defer="defer"></script>
-
+    <script src="https://static.cloudflareinsights.com/beacon.min.js?token=62f27bdcb8964407a52676798db9edfa" defer></script>
 
 link-external-newwindow: true
 
