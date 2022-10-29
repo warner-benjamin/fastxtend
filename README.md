@@ -11,11 +11,14 @@ fastxtend
 
 **General Features**
 
-- Flexible metrics which can log on train, valid, or both. Backwards
-  compatible with fastai metrics.
-- Easily use multiple losses and log each individual loss on train and
-  valid.
-- A simple profiler for profiling fastai training.
+- [Fused optimizers](optimizer.fused.html) which are 21 to 293 percent
+  faster relative to fastai native optimizers.
+- Flexible [metrics](metrics.html) which can log on train, valid, or
+  both. Backwards compatible with fastai metrics.
+- Easily use [multiple losses](multiloss.html) and log each individual
+  loss on train and valid.
+- A [simple profiler](callback.simpleprofiler.html) for profiling fastai
+  training.
 
 **Vision**
 
@@ -29,10 +32,13 @@ fastxtend
   [`CutMixUp`](https://fastxtend.benjaminwarner.dev/callback.cutmixup.html#cutmixup)
   or
   [`CutMixUpAugment`](https://fastxtend.benjaminwarner.dev/callback.cutmixup.html#cutmixupaugment).
-- Additional image augmentations
-- Support for running fastai batch transforms on CPU.
-- More attention modules
-- A flexible implementation of fastai’s xresnet.
+- Additional [image augmentations](vision.augment.batch.html).
+- Support for running fastai [batch transforms on
+  CPU](vision.data.html).
+- More [attention](vision.models.attention_modules.html) and
+  [pooling](vision.models.pooling.html) modules
+- A flexible implementation of fastai’s
+  [`XResNet`](https://fastxtend.benjaminwarner.dev/vision.models.xresnet.html#xresnet).
 
 **Audio**
 
@@ -41,8 +47,8 @@ fastxtend
   [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
   objects which maintain metadata and support plotting themselves using
   librosa.
-- A selection of performant audio augmentations inspired by fastaudio
-  and torch-audiomentations.
+- A selection of performant [audio augmentations](audio.augment.html)
+  inspired by fastaudio and torch-audiomentations.
 - Uses TorchAudio to quickly convert
   [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensoraudio)
   waveforms into
@@ -57,7 +63,7 @@ fastxtend
   or
   [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
   objects from the Datablock api.
-- Audio MixUp and CutMix Callbacks.
+- Audio [MixUp and CutMix](audio.mixup.html) Callbacks.
 - [`audio_learner`](https://fastxtend.benjaminwarner.dev/audio.learner.html#audio_learner)
   which merges multiple
   [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensorspec)
@@ -109,6 +115,12 @@ modifies fastai. Any method modified by fastxtend is backwards
 compatible with the original fastai code.
 
 ## Examples
+
+Use a fused ForEach optimizer:
+
+``` python
+Learner(..., opt_func=adam(fused=True))
+```
 
 Log an accuracy metric on the training set as a smoothed metric and
 validation set like normal:
