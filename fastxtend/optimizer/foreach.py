@@ -18,13 +18,12 @@ class ForEachOptimizer(Optimizer):
     def __init__(self,
         params:listified[Tensor], # Model parameters
         opt_step:Callable, # `ForEachOptimizer` optimizer step
-        train_bn:bool=True, # Train normalization layers if parameter group is frozen
         decouple_wd:bool=True, # Use true weight decay or L2 regularization, if applicable
         **defaults # Optimizer specific hyper parameters
     ):
         if notmax_torch('1.12'):
             warn(f'ForEach optimizers are untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
-        super().__init__(params, [None], train_bn, **defaults)
+        super().__init__(params, [None], True, **defaults)
         self.opt_step = opt_step
         self.decouple_wd = decouple_wd
 
@@ -297,11 +296,10 @@ class RangerForEachOptimizer(ForEachOptimizer):
     def __init__(self, 
         params:listified[Tensor], # Model parameters
         opt_step:Callable, # `ForEachOptimizer` optimizer step
-        train_bn:bool=True, # Train normalization layers if parameter group is frozen
         decouple_wd:bool=True, # Use true weight decay or L2 regularization, if applicable
         **defaults # Optimizer specific hyper parameters default values
     ):
-        super().__init__(params, opt_step, train_bn, decouple_wd, **defaults)
+        super().__init__(params, opt_step, decouple_wd, **defaults)
         self._init_state()
 
     @torch.no_grad()

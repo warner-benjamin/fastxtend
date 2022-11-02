@@ -6,9 +6,9 @@ from typing import Optional, Dict
 
 from fastcore.basics import partialler
 
-from fastai.optimizer import (Optimizer, _update, weight_decay, l2_reg, average_grad, sgd_step, 
-                              momentum_step, average_sqr_grad, rms_prop_step, step_stat, adam_step, 
-                              radam_step, qhadam_step, larc_layer_lr, larc_step, lamb_step, Lookahead)
+from fastai.optimizer import (Optimizer, weight_decay, l2_reg, average_grad, sgd_step, momentum_step, 
+                              average_sqr_grad, rms_prop_step, step_stat, adam_step, radam_step, 
+                              qhadam_step, larc_layer_lr, larc_step, lamb_step, Lookahead)
 
 from .torchscript import (JitOptimizer, radam_jit_step, sgd_jit_step, rmsprop_jit_step, 
                                              adam_jit_step, radam_jit_step, qhadam_jit_step, larc_jit_step,
@@ -57,7 +57,7 @@ def sgd(
     "Partial function for the SGD/SGDW optimizer with fused ForEach and TorchScript implementations"
     return partialler(SGD, mom=mom, wd=wd, decouple_wd=decouple_wd, jit=jit, foreach=foreach)
 
-# %% ../../nbs/optimizer.fused.ipynb 13
+# %% ../../nbs/optimizer.fused.ipynb 12
 def RMSProp(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
@@ -78,7 +78,7 @@ def RMSProp(
         cbs.append(rms_prop_step)
         return Optimizer(params, cbs, lr=lr, mom=mom, sqr_mom=sqr_mom, wd=wd, eps=eps)
 
-# %% ../../nbs/optimizer.fused.ipynb 14
+# %% ../../nbs/optimizer.fused.ipynb 13
 def rmsprop(
     mom:float=0., # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
@@ -90,7 +90,7 @@ def rmsprop(
     "Partial function for the RMSProp/RMSPropW optimizer with a fused TorchScript implementation"
     return partialler(RMSProp, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, decouple_wd=decouple_wd, jit=jit)
 
-# %% ../../nbs/optimizer.fused.ipynb 18
+# %% ../../nbs/optimizer.fused.ipynb 16
 def Adam(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
@@ -114,7 +114,7 @@ def Adam(
         cbs += [partial(average_grad, dampening=True), average_sqr_grad, step_stat, adam_step]
         return Optimizer(params, cbs, lr=lr, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd)
 
-# %% ../../nbs/optimizer.fused.ipynb 19
+# %% ../../nbs/optimizer.fused.ipynb 17
 def adam(
     mom:float=0., # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
@@ -128,7 +128,7 @@ def adam(
     return partialler(Adam, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, 
                       decouple_wd=decouple_wd, foreach=foreach, jit=jit)
 
-# %% ../../nbs/optimizer.fused.ipynb 23
+# %% ../../nbs/optimizer.fused.ipynb 20
 def RAdam(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
@@ -155,7 +155,7 @@ def RAdam(
         cbs += [partial(average_grad, dampening=True), average_sqr_grad, step_stat, radam_step]
         return Optimizer(params, cbs, lr=lr, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, beta=beta)
 
-# %% ../../nbs/optimizer.fused.ipynb 24
+# %% ../../nbs/optimizer.fused.ipynb 21
 def radam(
     mom:float=0., # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
@@ -170,7 +170,7 @@ def radam(
     return partialler(RAdam, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, beta=beta,
                       decouple_wd=decouple_wd, foreach=foreach, jit=jit)
 
-# %% ../../nbs/optimizer.fused.ipynb 28
+# %% ../../nbs/optimizer.fused.ipynb 24
 def QHAdam(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
@@ -192,7 +192,7 @@ def QHAdam(
         cbs += [partial(average_grad, dampening=True), average_sqr_grad, step_stat, qhadam_step]
         return Optimizer(params, cbs, lr=lr, nu_1=nu_1, nu_2=nu_2, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd)
 
-# %% ../../nbs/optimizer.fused.ipynb 29
+# %% ../../nbs/optimizer.fused.ipynb 25
 def qhadam(
     mom:float=0., # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
@@ -207,7 +207,7 @@ def qhadam(
     return partialler(QHAdam, mom=mom, sqr_mom=sqr_mom, nu_1=nu_1, nu_2=nu_2, eps=eps, 
                       wd=wd, decouple_wd=decouple_wd, jit=jit)
 
-# %% ../../nbs/optimizer.fused.ipynb 33
+# %% ../../nbs/optimizer.fused.ipynb 28
 def Larc(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
@@ -230,7 +230,7 @@ def Larc(
         cbs += [partial(larc_layer_lr, clip=clip), larc_step]
         return Optimizer(params, cbs, lr=lr, mom=mom, trust_coeff=trust_coeff, eps=eps, wd=wd)
 
-# %% ../../nbs/optimizer.fused.ipynb 34
+# %% ../../nbs/optimizer.fused.ipynb 29
 def larc(
     mom:float=0., # Gradient moving average (β1) coefficient
     clip:bool=True, # LARC if clip=True, LARS if clip=False
@@ -244,7 +244,7 @@ def larc(
     return partialler(Larc, mom=mom, clip=clip, eps=eps, trust_coeff=trust_coeff, 
                       wd=wd, decouple_wd=decouple_wd, jit=jit)
 
-# %% ../../nbs/optimizer.fused.ipynb 38
+# %% ../../nbs/optimizer.fused.ipynb 32
 def Lamb(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
@@ -268,7 +268,7 @@ def Lamb(
         cbs += [partial(average_grad, dampening=True), average_sqr_grad, step_stat, lamb_step]
         return Optimizer(params, cbs, lr=lr, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd)
 
-# %% ../../nbs/optimizer.fused.ipynb 39
+# %% ../../nbs/optimizer.fused.ipynb 33
 def lamb(
     mom:float=0., # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
@@ -282,7 +282,7 @@ def lamb(
     return partialler(Lamb, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, 
                       decouple_wd=decouple_wd, foreach=foreach, jit=jit)
 
-# %% ../../nbs/optimizer.fused.ipynb 43
+# %% ../../nbs/optimizer.fused.ipynb 36
 def Ranger(
     params:listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
@@ -308,7 +308,7 @@ def Ranger(
                                decouple_wd=decouple_wd),
                          k=k, alpha=alpha)
 
-# %% ../../nbs/optimizer.fused.ipynb 44
+# %% ../../nbs/optimizer.fused.ipynb 37
 def ranger(
     mom:float=0.95, # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient

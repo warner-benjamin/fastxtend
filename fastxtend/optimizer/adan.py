@@ -6,8 +6,7 @@ from typing import Optional, Dict
 
 import numpy as np
 
-from fastai.basics import notmax_torch
-from fastai.optimizer import Optimizer, step_stat
+from fastai.optimizer import Optimizer
 
 from .foreach import ForEachOptimizer
 from .torchscript import JitOptimizer
@@ -190,11 +189,10 @@ class AdanForEachOptimizer(ForEachOptimizer):
     def __init__(self,
         params:listified[Tensor], # Model parameters
         opt_step:Callable, # `ForEachOptimizer` optimizer step
-        train_bn:bool=True, # Train normalization layers if parameter group is frozen
         paper_init:bool=False, # Initialize first prior_grad to grad following paper or zeros
         **defaults # Optimizer specific hyper parameters
     ):
-        super().__init__(params, opt_step, train_bn, **defaults)
+        super().__init__(params, opt_step, **defaults)
         self.paper_init = paper_init
 
     @torch.no_grad()
@@ -208,9 +206,9 @@ class AdanForEachOptimizer(ForEachOptimizer):
                     state = self.state[p]
 
                     if 'step' not in state:
-                        state['grad_avg']     = torch.zeros_like(p, memory_format=torch.preserve_format)
-                        state['diff_avg']     = torch.zeros_like(p, memory_format=torch.preserve_format)
-                        state['sqr_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        state['grad_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        state['diff_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
+                        state['sqr_avg']  = torch.zeros_like(p, memory_format=torch.preserve_format)
                         if self.paper_init:
                             state['prior_grad'] = p.grad.clone()
                         else:
@@ -269,7 +267,7 @@ def adan(
     return partialler(Adan, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd, 
                       paper_init=paper_init, foreach=foreach, jit=jit)
 
-# %% ../../nbs/optimizer.adan.ipynb 20
+# %% ../../nbs/optimizer.adan.ipynb 19
 def AdanLargeBatchLR(bs:int) -> float:
     "Square root rule for scaling `Adan` learning rate for large-batch training"
     return math.sqrt(bs/256)*6.25e-3
