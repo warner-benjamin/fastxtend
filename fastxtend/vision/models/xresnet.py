@@ -48,7 +48,7 @@ class ResBlock(Module):
         if stride!=1:
             idpath.insert((1,0)[pool_first], block_pool(stride, ndim=ndim, ceil_mode=True))
         self.idpath = nn.Sequential(*idpath)
-        self.act = act_cls(inplace=True) if act_cls is defaults.activation else act_cls()
+        self.act = act_cls()
         self.depth = nn.Identity() if stoch_depth==0 else StochasticDepth(stoch_depth, 'batch')
 
     def forward(self, x): return self.act(self.depth(self.convpath(x)) + self.idpath(x))
