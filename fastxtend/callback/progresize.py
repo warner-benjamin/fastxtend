@@ -150,7 +150,7 @@ class ProgressiveResize(Callback):
             pct = (self.finish - self.start) / (n_steps-1)
             self.step_pcts = [self.start + pct*i for i in range(n_steps)]
         else:
-                # Automatically determine the number of steps, increasing `increase_by` as needed
+            # Automatically determine the number of steps, increasing `increase_by` as needed
             start_epoch  = int(self.n_epoch*self.start)  if isinstance(self.start, float)  else self.start
             finish_epoch = int(self.n_epoch*self.finish) if isinstance(self.finish, float) else self.finish
             max_steps = finish_epoch - start_epoch 
@@ -189,12 +189,8 @@ class ProgressiveResize(Callback):
                       f'{(self.current_size+(len(self.step_epochs))*self.increase_by).tolist()}.'
                 print(msg)
 
-
-        # If `add_resize`, add a seperate resize
-        if self.add_resize:
-            self._added_resize = partial(F.interpolate, mode=self.resize_mode, recompute_scale_factor=True)
-            self.remove_resize = True
-        else:
+        # If not `add_resize`, check for fastai Augmentation resizes to use
+        if not self.add_resize:
             if hasattr(self.learn, 'cut_mix_up_augment'):
                 self._has_cutmixupaug = True
                 # Modify the `CutMixUpAugment` augmentation pipeline 
@@ -221,6 +217,11 @@ class ProgressiveResize(Callback):
             # If `resize_valid` check the valid dataloader pipeline for Affine Transforms
             if self.resize_valid:
                 self._process_pipeline(self.dls.valid.after_batch.fs, False)
+        
+        # If `add_resize` or missing a fastai Augmentation resize add a seperate resize
+        if self.add_resize or len(self._resize) == 0:
+            self._added_resize = partial(F.interpolate, mode=self.resize_mode, recompute_scale_factor=True)
+            self.add_resize, self.remove_resize = True, True
 
         # Set created or detected resize to the first size and store original interpolation
         self._orig_modes = []
