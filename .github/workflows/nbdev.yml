@@ -2,52 +2,37 @@ name: nbdev-ci
 on: [workflow_dispatch, push, pull_request]
 
 jobs:
-  build:
+  nbdev-sync:
     runs-on: ubuntu-latest
     steps:
+      - uses: fastai/workflows/nbdev-ci@master
+        with:
+          skip_test: true
+
+  nbdev-tests:
+    needs: nbdev-sync
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        py: ['3.7', '3.8', '3.9']
+    steps:
+    - name: Checkout Code
     - uses: actions/checkout@v3
-    - name: Set up python
+
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.7'
+        python-version: ${{ matrix.py }}
         architecture: 'x64'
-  
-    - name: Activate python cache
-      uses: actions/cache@v3
-      env:
-        cache-name: pip-packages
-      with:
-        path: |
-          ${{ env.pythonLocation }}
-          ${{ env.pip-packages }}
-        key: ${{ env.pythonLocation }}-${{ hashFiles('setup.py') }}
+        cache: "pip"
+        cache-dependency-path: settings.ini
 
-    - name: Install the library
+    - name: Install Library
       run: |
         sudo apt-get install libsndfile1-dev
         pip install --upgrade pip
         pip install -e .[dev]
 
-    - name: Check that notebooks are clean
-      run: |
-        nbdev_clean
-        git status -s # display the status to see which nbs need cleaning up
-        if [[ `git status --porcelain -uno` ]]; then
-          git status -uno
-          echo -e "!!! Detected unstripped out notebooks\n!!!Remember to run nbdev_install_hooks"
-          false
-        fi
-
-    - name: Check that notebooks and library are in sync
-      run: |
-        nbdev_export
-        if [[ `git status --porcelain -uno` ]]; then
-          echo "::error::Notebooks and library are not in sync.  Please run nbdev_export."
-          git status -uno
-          git diff
-          exit 1;
-        fi
-
-    - name: Run tests
+    - name: Run Tests
       run: |
         nbdev_test
