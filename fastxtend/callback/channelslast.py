@@ -5,13 +5,9 @@ from __future__ import annotations
 
 from torch.cuda.amp import GradScaler
 
-from fastcore.transform import DisplayedTransform, _is_tuple
-
-from fastai.torch_core import TensorImageBase, TensorMask
 from fastai.learner import Learner
 from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
-from fastai.basics import Pipeline
 
 from ..imports import *
 
