@@ -24,7 +24,7 @@ website:
         - multiloss.ipynb
       - metrics.ipynb
       - text: Schedulers
-        file: schedulers.fit_flat_varied.ipynb
+        file: schedulers.ipynb
       - text: Splitters
         file: data.transforms.ipynb
       - section: Optimizers
