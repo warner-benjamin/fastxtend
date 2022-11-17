@@ -19,7 +19,7 @@ __all__ = []
 
 # %% ../nbs/schedulers.ipynb 5
 @patch
-def fit_flat_warmup(self:Learner,
+def fit_flat_warmup(self:Learner, 
     n_epoch:int, # Number of epochs
     lr:float|None=None, # Maximum learning rate
     div:Number=25., # Initial learning rate: `lr/div`
@@ -34,7 +34,7 @@ def fit_flat_warmup(self:Learner,
     reset_opt:bool=False # Reset `Optimizer` before fit
 ):
     "Fit `self.model` for `n_epoch` at flat `lr` with a warmup and ending with cosine annealing."
-    if self.opt is None:
+    if self.opt is None: 
         self.create_opt()
     self.opt.set_hyper('lr', self.lr if lr is None else lr)
 
@@ -51,7 +51,7 @@ def fit_flat_warmup(self:Learner,
 
 # %% ../nbs/schedulers.ipynb 10
 @patch
-def fit_cos_anneal(self:Learner,
+def fit_cos_anneal(self:Learner, 
     n_epoch:int, # Number of epochs
     lr:float|None=None, # Maximum learning rate
     div:Number=25., # Initial learning rate: `lr/div`
@@ -75,10 +75,10 @@ def fit_cos_anneal(self:Learner,
         warm_pct = warm_epoch/n_epoch
 
     if warm_pct > 0:
-        pcts = [warm_pct, 1-warm_pct]
+        pcts = [warm_pct, 1-warm_pct] 
         scheds = [warm_sched(lr/div, lr), SchedCos(lr, lr/div_final)]
     else:
-        pcts = [1]
+        pcts = [1] 
         scheds = [SchedCos(lr, lr/div_final)]
     scheds = {'lr': combine_scheds(pcts, scheds)}
 
@@ -86,7 +86,7 @@ def fit_cos_anneal(self:Learner,
 
 # %% ../nbs/schedulers.ipynb 18
 @patch
-def fit_flat_varied(self:Learner,
+def fit_flat_varied(self:Learner, 
     n_epoch:int, # Number of epochs
     start_lr:float|None=None, # Initial learning rate
     div_final:Number=1e5, # Final learning rate: `lr/div_final`
@@ -100,32 +100,32 @@ def fit_flat_varied(self:Learner,
     reset_opt:bool=False # Reset `Optimizer` before fit
 ):
     """
-    Fit `self.model` for `n_epoch` at flat `start_lr`, then change to flat `next_lr` at `change_by`,
+    Fit `self.model` for `n_epoch` at flat `start_lr`, then change to flat `next_lr` at `change_by`, 
     optionally with cosine annealing or custom `change_sched` over `change_time`. Final cosine annealing at `pct_start`.
     """
     assert isinstance(next_lr, (float, slice)) or (is_listish(next_lr) and len(next_lr)>=1), '`next_lr` must be float, slice, or list of float or slice'
     assert isinstance(change_by, (int, float, slice)) or (is_listish(change_by) and len(change_by)>=1), '`change_by` must be int, float, slice, or list of int, float, or slice'
 
-    if self.opt is None:
+    if self.opt is None: 
         self.create_opt()
     self.opt.set_hyper('lr', self.lr if start_lr is None else start_lr)
     start_lr = np.array([h['lr'] for h in self.opt.hypers])
     params_len = len(start_lr)
 
-    if not is_listish(next_lr):
+    if not is_listish(next_lr): 
         next_lr = [next_lr]
-    if not is_listish(change_by):
+    if not is_listish(change_by): 
         change_by = [change_by]
     change_by = [i/n_epoch if i>=1 else i for i in change_by]
     assert len(change_by)==len(next_lr), '`next_lr` & `change_by` need to be same length'
 
-    if not is_listish(change_time):
+    if not is_listish(change_time): 
         change_time = [change_time]*len(change_by)
     else: assert len(change_by)==len(change_time), '`change_time` list needs to be same length as `next_lr` & `change_by`'
     change_time = [i/n_epoch if i>=1 else i for i in change_time]
 
-    if change_sched is not None:
-        if not is_listish(change_sched):
+    if change_sched is not None: 
+        if not is_listish(change_sched): 
             change_sched = [change_sched]
         assert len(change_by)==len(change_sched), '`next_lr` & `change_sched` need to be same length'
 
@@ -151,7 +151,7 @@ def fit_flat_varied(self:Learner,
 
             last_lr = nlr
             last_pct = change_pct
-        else:
+        else: 
             warn(f'change_by: {change_by[i]} is after pct_start={pct_start} and ignored.')
 
     pcts += [pct_start - sum(pcts), 1-pct_start]

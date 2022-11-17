@@ -56,16 +56,16 @@ class ProgressiveResize(Callback):
         initial_size:float|tuple[int,int]=0.5, # Staring size to increase from. Image shape must be square
         start:Number=0.5, # Earliest upsizing epoch in percent of training time or epoch (index 0)
         finish:Number=0.75, # Last upsizing epoch in percent of training time or epoch (index 0)
-        increase_by:int=4, # Progressivly increase image size by `increase_by`, or minimum increase per upsizing epoch
+        increase_by:int=4, # Progressively increase image size by `increase_by`, or minimum increase per upsizing epoch
         increase_mode:IncreaseMode=IncreaseMode.Batch, # Increase image size by training percent or before an epoch starts
         resize_mode:str='bilinear', # PyTorch interpolate mode string for upsizing. Resets to existing fastai DataLoader mode at `final_size`.
         resize_valid:bool=True, # Apply progressive resizing to valid dataset
         final_size:tuple[int,int]|None=None, # Final image size. Set if using a non-fastai DataLoaders, automatically detected from fastai DataLoader with batch_tfms
-        add_resize:bool=False, # Add a seperate resize step. Use for non-fastai DataLoaders or fastai DataLoader without batch_tfms
-        resize_targ:bool=False, # Applies the seperate resize step to targets
-        empty_cache:bool=False, # Call `torch.cuda.empty_cache()` before a resizing epoch. May prevent cuda & magma errors. Don't use with multiple GPUs
+        add_resize:bool=False, # Add a separate resize step. Use for non-fastai DataLoaders or fastai DataLoader without batch_tfms
+        resize_targ:bool=False, # Applies the separate resize step to targets
+        empty_cache:bool=False, # Call `torch.cuda.empty_cache()` before a resizing epoch. May prevent Cuda & Magma errors. Don't use with multiple GPUs
         verbose:str=True, # Print a summary of the progressive resizing schedule
-        logger_callback:str='wandb', # Log image size to `logger_callback` using `Callback.name` if avalible
+        logger_callback:str='wandb', # Log image size to `logger_callback` using `Callback.name` if available
     ):
         store_attr()
         self.run_valid = resize_valid
