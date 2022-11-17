@@ -241,9 +241,12 @@ class MixHandlerX(Callback):
 
     def solo_lf(self, pred, *yb):
         "Interpolates losses on stacked labels by `self.lam` during training"
-        if not self.training: return self.old_lf(pred, *yb)
+        if not self.training: 
+            return self.old_lf(pred, *yb)
+        
         with NoneReduce(self.old_lf) as lf:
             loss = torch.lerp(lf(pred,*self.yb1), lf(pred,*yb), self.lam)
+
         return reduce_loss(loss, getattr(self.old_lf, 'reduction', 'mean'))
 
     def multi_lf(self, pred, *yb):
