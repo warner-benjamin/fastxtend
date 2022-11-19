@@ -124,6 +124,16 @@ $border-radius: 3px;
 
 .headroom { border-bottom: 2px solid; border-color: $black; }
 
+.navbar-dark .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path stroke='rgb(24, 24, 24)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/></svg>") !important
+}
+
+@media (max-width: 992px) {
+  .navbar-expand-lg {
+    border-bottom: 0.5px solid; border-color: $purple;
+  }
+}
+
 .nav-footer {
   border-top: 1px solid $footer-border-color;
   padding-top: 0.35rem !important;
@@ -155,7 +165,7 @@ a {
   color: $body-color;
 }
 
-.content { 
+.content {
   a { box-shadow: inset 0 -0.15rem 0 $link-color-underline;
       text-decoration: none;
       transition: all .15s cubic-bezier(.33,.66,.66,1);
@@ -167,16 +177,16 @@ a {
 
 .anchorjs-link {
   color: $body-color !important;
-  box-shadow: None !important; 
+  box-shadow: None !important;
 
-  &:hover { color: $link-color !important; 
+  &:hover { color: $link-color !important;
             box-shadow: None !important; }
 }
 
 // Code
 code {
-  border-radius: $border-radius !important; 
-  padding: $spacer/8 $spacer/8 !important; 
+  border-radius: $border-radius !important;
+  padding: $spacer/8 $spacer/8 !important;
 }
 
 a code { color: $purple;
@@ -184,8 +194,8 @@ a code { color: $purple;
          text-decoration: none;
          transition: all .15s cubic-bezier(.33,.66,.66,1);
          z-index: 10;
-         border-bottom-left-radius: 0 !important; 
-         border-bottom-right-radius: 0 !important; 
+         border-bottom-left-radius: 0 !important;
+         border-bottom-right-radius: 0 !important;
 
   &:hover { box-shadow: inset 0 -2rem 0 $link-color-hover-code;
             color: $body-color }
@@ -265,7 +275,7 @@ a code { color: $purple;
   background: rgb(180, 180, 180);
 }
 
-.sidebar::-webkit-scrollbar-thumb:hover, .sourceCode::-webkit-scrollbar-thumb:hover, pre::-webkit-scrollbar-thumb:hover, 
+.sidebar::-webkit-scrollbar-thumb:hover, .sourceCode::-webkit-scrollbar-thumb:hover, pre::-webkit-scrollbar-thumb:hover,
 .sidebar::-webkit-scrollbar-thumb:active, .sourceCode::-webkit-scrollbar-thumb:active, pre::-webkit-scrollbar-thumb:active {
   background: rgb(130, 130, 130);
 }
