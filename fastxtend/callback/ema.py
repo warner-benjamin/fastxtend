@@ -32,11 +32,11 @@ class EMACallback(Callback):
     ):
         store_attr()
         self._do_ema = False
+        self.inverse_decay = 1-decay
         if self.foreach is None and ema_device is None:
             self.foreach = ismin_torch('1.12') and torch.cuda.is_available()
 
         if self.foreach:
-            self.foreach_decay = 1-self.decay
             if notmax_torch('1.12'):
                 warn('EMACallback with foreach=True is untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
 
@@ -81,11 +81,11 @@ class EMACallback(Callback):
     def after_batch(self):
         if self._do_ema:
             if self.foreach:
-                torch._foreach_sub_(self.ema_tensors, self.ema_tensors, alpha=self.foreach_decay)
-                torch._foreach_add_(self.ema_tensors, self.model_tensors, alpha=self.foreach_decay)
+                torch._foreach_mul_(self.ema_tensors, scalar=self.decay)
+                torch._foreach_add_(self.ema_tensors, self.model_tensors, alpha=self.inverse_decay)
             else:
                 for mt, et in zip(self.model_tensors, self.ema_tensors):
-                    et.copy_(self.decay * et + (1. - self.decay) * mt)
+                    et.copy_(self.decay * et + self.inverse_decay * mt)
 
     @torch.no_grad()
     def before_validate(self):
@@ -151,8 +151,7 @@ class EMAWarmupCallback(EMACallback):
                 else:
                     self.decay = self.schedule(self.warmup_pct)
                     self.warmup_pct += 1./(self.learn.n_iter*self.warmup_epochs)
-                if self.foreach: 
-                    self.foreach_decay = 1-self.decay
+                self.inverse_decay = 1-self.decay
 
             super().after_batch()
 
