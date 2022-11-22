@@ -183,6 +183,14 @@ a {
             box-shadow: None !important; }
 }
 
+.footnote-ref {
+  color: $link-color !important;
+  box-shadow: None !important;
+
+  &:hover { color: $purple !important;
+            box-shadow: None !important; }
+}
+
 // Code
 code {
   border-radius: $border-radius !important;
@@ -258,7 +266,6 @@ a code { color: $purple;
       ) +
       "');"};
   }
-
 }
 
 // scrollbar
