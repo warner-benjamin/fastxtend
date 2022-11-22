@@ -7,14 +7,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from fastcore.basics import detuplify
-from fastcore.transform import Pipeline, Transform
+from fastcore.transform import Pipeline
 
 from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
 from fastai.learner import _cast_tensor
 from fastai.vision.augment import AffineCoordTfm, RandomResizedCropGPU
 
-from .cutmixup import CutMixUpAugment
 from ..imports import *
 
 # %% auto 0
