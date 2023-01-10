@@ -10,7 +10,7 @@ from ...imports import *
 # %% auto 0
 __all__ = ['BlurPool', 'MaxBlurPool']
 
-# %% ../../../nbs/vision.models.pooling.ipynb 5
+# %% ../../../nbs/vision.models.pooling.ipynb 4
 def BlurPool(
     stride:int=2, # The stride size for pooling
     ks:int=3, # The kernel size for pooling
@@ -22,7 +22,7 @@ def BlurPool(
     assert ndim==2, "BlurPool is only implemented for 2D"
     return BlurPool2D(kernel_size=ks, stride=stride)
 
-# %% ../../../nbs/vision.models.pooling.ipynb 8
+# %% ../../../nbs/vision.models.pooling.ipynb 7
 def MaxBlurPool(
     stride:int=2, # The stride size for blur pooling
     ks:int=3, # The kernel size for blur pooling

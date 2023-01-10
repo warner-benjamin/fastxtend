@@ -16,7 +16,7 @@ __all__ = []
 class ForEachOptimizer(Optimizer):
     "Base foreach optimizer class, updating `params` with `opt_step` instead of `Optimizer.cbs`"
     def __init__(self,
-        params:listified[Tensor], # Model parameters
+        params:Listified[Tensor], # Model parameters
         opt_step:Callable, # `ForEachOptimizer` optimizer step
         decouple_wd:bool=True, # Use true weight decay or L2 regularization, if applicable
         **defaults # Optimizer specific hyper parameters
@@ -58,7 +58,8 @@ class SGDForEachOptimizer(ForEachOptimizer):
     "A `ForEachOptimizer` with a modified step for `sgd_foreach_step`"
     @torch.no_grad()
     def step(self, closure=None):
-        if closure is not None: raise NotImplementedError("fastai optimizers currently do not support closure")
+        if closure is not None:
+            raise NotImplementedError("fastai optimizers currently do not support closure")
         for pg, hyper in zip(self.param_lists, self.hypers):
             pl, gl, grad_avg, ones, do_wd = [], [], [], [], []
 
@@ -72,19 +73,19 @@ class SGDForEachOptimizer(ForEachOptimizer):
                         if not self.decouple_wd:
                             state['ones'] = torch.ones_like(p, memory_format=torch.preserve_format)
                         state['setup'] = True
-                    
+
                     pl.append(p)
                     gl.append(p.grad)
                     grad_avg.append(state.get('grad_avg', None))
                     ones.append(state.get('ones', None))
                     do_wd.append(state.get('do_wd', True))
 
-            self.opt_step(p=pl, g=gl, grad_avg=grad_avg, ones=ones, do_wd=np.array(do_wd, dtype=bool), 
+            self.opt_step(p=pl, g=gl, grad_avg=grad_avg, ones=ones, do_wd=np.array(do_wd, dtype=bool),
                           decouple_wd=self.decouple_wd, **hyper)
 
 # %% ../../nbs/optimizer.foreach.ipynb 20
-def adam_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], sqr_avg:list[Tensor], ones:list[Tensor|None], 
-                      steps:np.ndarray[Any, int], do_wd:np.ndarray[Any, bool], lr:float, wd:float, mom:float, sqr_mom:float, 
+def adam_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], sqr_avg:list[Tensor], ones:list[Tensor|None],
+                      steps:np.ndarray[Any, int], do_wd:np.ndarray[Any, bool], lr:float, wd:float, mom:float, sqr_mom:float,
                       eps:float, decouple_wd:bool, **kwargs):
 
     if wd != 0:
@@ -121,7 +122,8 @@ class AdamForEachOptimizer(ForEachOptimizer):
     "An `ForEachOptimizer` with a modified step for `adam_foreach_step`"
     @torch.no_grad()
     def step(self, closure=None):
-        if closure is not None: raise NotImplementedError("fastai optimizers currently do not support closure")
+        if closure is not None:
+            raise NotImplementedError("fastai optimizers currently do not support closure")
         for pg, hyper in zip(self.param_lists, self.hypers):
             pl, gl, grad_avg, sqr_avg, ones, steps, do_wd = [], [], [], [], [], [], []
 
@@ -145,8 +147,8 @@ class AdamForEachOptimizer(ForEachOptimizer):
                     steps.append(state['step'])
                     do_wd.append(state.get('do_wd', True))
 
-            self.opt_step(p=pl, g=gl, grad_avg=grad_avg, sqr_avg=sqr_avg, ones=ones, 
-                          steps=np.array(steps, dtype=np.int32), do_wd=np.array(do_wd, dtype=bool), 
+            self.opt_step(p=pl, g=gl, grad_avg=grad_avg, sqr_avg=sqr_avg, ones=ones,
+                          steps=np.array(steps, dtype=np.int32), do_wd=np.array(do_wd, dtype=bool),
                           decouple_wd=self.decouple_wd, **hyper)
 
 # %% ../../nbs/optimizer.foreach.ipynb 28
@@ -176,7 +178,7 @@ def radam_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], sq
     # radam_step
     debias1 = -lr / (1 - mom**steps)
     debias2 = np.sqrt(1 - sqr_mom**steps)
-    
+
     r_inf = 2/(1-sqr_mom) - 1
     r = r_inf - 2*steps*sqr_mom**steps/(1-sqr_mom**steps)
 
@@ -197,7 +199,8 @@ class RAdamForEachOptimizer(ForEachOptimizer):
     "An `ForEachOptimizer` with a modified step for `radam_foreach_step`"
     @torch.no_grad()
     def step(self, closure=None):
-        if closure is not None: raise NotImplementedError("fastai optimizers currently do not support closure")
+        if closure is not None:
+            raise NotImplementedError("fastai optimizers currently do not support closure")
         for pg, hyper in zip(self.param_lists, self.hypers):
             pl, gl, grad_avg, sqr_avg, steps, ones, do_wd = [], [], [], [], [], [], []
 
@@ -220,8 +223,8 @@ class RAdamForEachOptimizer(ForEachOptimizer):
                     steps.append(state['step'])
                     do_wd.append(state.get('do_wd', True))
 
-            self.opt_step(p=pl, g=gl, grad_avg=grad_avg, sqr_avg=sqr_avg, ones=ones, 
-                          steps=np.array(steps, dtype=np.int32), do_wd=np.array(do_wd, dtype=bool), 
+            self.opt_step(p=pl, g=gl, grad_avg=grad_avg, sqr_avg=sqr_avg, ones=ones,
+                          steps=np.array(steps, dtype=np.int32), do_wd=np.array(do_wd, dtype=bool),
                           decouple_wd=self.decouple_wd, **hyper)
 
 # %% ../../nbs/optimizer.foreach.ipynb 35
@@ -235,8 +238,8 @@ def lamb_jit_substep(p:Tensor, lstep:Tensor, lr:float):
         return -lr*min(r1/r2, 10.)
 
 # %% ../../nbs/optimizer.foreach.ipynb 36
-def lamb_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], sqr_avg:list[Tensor], ones:list[Tensor], 
-                      steps:np.ndarray[Any, int], do_wd:np.ndarray[Any, bool], lr:float, wd:float, mom:float, sqr_mom:float, 
+def lamb_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], sqr_avg:list[Tensor], ones:list[Tensor],
+                      steps:np.ndarray[Any, int], do_wd:np.ndarray[Any, bool], lr:float, wd:float, mom:float, sqr_mom:float,
                       eps:float, decouple_wd:bool, **kwargs):
 
     if wd != 0:
@@ -278,11 +281,11 @@ class LambForEachOptimizer(RAdamForEachOptimizer):
     "An `ForEachOptimizer` with a modified step for `lamb_foreach_step`"
 
 # %% ../../nbs/optimizer.foreach.ipynb 43
-def ranger_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], sqr_avg:list[Tensor], slow_p:list[Tensor], 
-                        ones:list[Tensor], steps:np.ndarray[Any, int], do_wd:np.ndarray[Any, bool], lr:float, wd:float, 
+def ranger_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], sqr_avg:list[Tensor], slow_p:list[Tensor],
+                        ones:list[Tensor], steps:np.ndarray[Any, int], do_wd:np.ndarray[Any, bool], lr:float, wd:float,
                         mom:float, sqr_mom:float, eps:float, decouple_wd:bool, count:int, k:int, alpha:float, **kwargs):
 
-    radam_foreach_step(p=p, g=g, grad_avg=grad_avg, sqr_avg=sqr_avg, ones=ones, steps=steps, do_wd=do_wd, 
+    radam_foreach_step(p=p, g=g, grad_avg=grad_avg, sqr_avg=sqr_avg, ones=ones, steps=steps, do_wd=do_wd,
                        lr=lr, wd=wd, mom=mom, sqr_mom=sqr_mom, eps=eps, decouple_wd=decouple_wd)
 
     if count % k == 0:
@@ -293,8 +296,8 @@ def ranger_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], s
 # %% ../../nbs/optimizer.foreach.ipynb 44
 class RangerForEachOptimizer(ForEachOptimizer):
     "An `ForEachOptimizer` with a modified `LookAhead` step for `ranger_foreach_step`"
-    def __init__(self, 
-        params:listified[Tensor], # Model parameters
+    def __init__(self,
+        params:Listified[Tensor], # Model parameters
         opt_step:Callable, # `ForEachOptimizer` optimizer step
         decouple_wd:bool=True, # Use true weight decay or L2 regularization, if applicable
         **defaults # Optimizer specific hyper parameters default values
@@ -305,7 +308,8 @@ class RangerForEachOptimizer(ForEachOptimizer):
     @torch.no_grad()
     def step(self, closure=None):
         self.count += 1
-        if closure is not None: raise NotImplementedError("fastai optimizers currently do not support closure")
+        if closure is not None:
+            raise NotImplementedError("fastai optimizers currently do not support closure")
         for pg, hyper in zip(self.param_lists, self.hypers):
             pl, gl, grad_avg, sqr_avg, slow_p, steps, ones, do_wd = [], [], [], [], [], [], [], []
             for p in pg:
@@ -329,8 +333,8 @@ class RangerForEachOptimizer(ForEachOptimizer):
                     steps.append(state['step'])
                     do_wd.append(state.get('do_wd', True))
 
-            self.opt_step(p=pl, g=gl, grad_avg=grad_avg, sqr_avg=sqr_avg, slow_p=slow_p, ones=ones, 
-                          steps=np.array(steps, dtype=np.int32), do_wd=np.array(do_wd, dtype=bool), 
+            self.opt_step(p=pl, g=gl, grad_avg=grad_avg, sqr_avg=sqr_avg, slow_p=slow_p, ones=ones,
+                          steps=np.array(steps, dtype=np.int32), do_wd=np.array(do_wd, dtype=bool),
                           decouple_wd=self.decouple_wd, count=self.count, **hyper)
 
     def clear_state(self):
@@ -346,5 +350,5 @@ class RangerForEachOptimizer(ForEachOptimizer):
         self.count = sd.pop('count')
         super().load_state_dict(sd)
 
-    def _init_state(self): 
+    def _init_state(self):
         self.count = 0

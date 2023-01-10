@@ -3,6 +3,10 @@
 # %% auto 0
 __all__ = ['free_gpu_memory', 'less_random', 'scale_time']
 
+# %% ../../nbs/utils.ipynb 1
+# Contains code from:
+# fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
+
 # %% ../../nbs/utils.ipynb 3
 import torch, random, gc
 import numpy as np
@@ -23,7 +27,7 @@ def free_gpu_memory(learn:Learner, dls:DataLoaders=None):
 def less_random(seed=42, deterministic=True):
     "Stores and retrieves state of random number generators. Sets random seed for `random`, `torch`, and `numpy`. Does not set `torch.backends.cudnn.benchmark = False`"
     states = get_random_states()
-    
+
     try: torch.manual_seed(seed)
     except NameError: pass
     try: torch.cuda.manual_seed_all(seed)

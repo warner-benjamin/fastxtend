@@ -21,10 +21,10 @@ def debias(beta:float, step:int):
     return 1-beta**step
 
 # %% ../../nbs/optimizer.adan.ipynb 6
-def adan_setup(p:Tensor, step:int=0, grad_avg:Tensor|None=None, diff_avg:Tensor|None=None, 
+def adan_setup(p:Tensor, step:int=0, grad_avg:Tensor|None=None, diff_avg:Tensor|None=None,
                sqr_avg:Tensor|None=None, prior_grad:Tensor|None=None, paper_init:bool=False, **kwargs):
     "Handles Adan setup and keeps track of steps"
-    if step == 0: 
+    if step == 0:
         grad_avg = torch.zeros_like(p, memory_format=torch.preserve_format)
         diff_avg = torch.zeros_like(p, memory_format=torch.preserve_format)
         sqr_avg  = torch.zeros_like(p, memory_format=torch.preserve_format)
@@ -39,8 +39,8 @@ def adan_setup(p:Tensor, step:int=0, grad_avg:Tensor|None=None, diff_avg:Tensor|
         return {'step':step}
 
 # %% ../../nbs/optimizer.adan.ipynb 7
-def adan_step(p:Tensor, lr:float, eps:float, wd:float, beta1:float, beta2:float, beta3:float, 
-              step:int, grad_avg:Tensor, diff_avg:Tensor, sqr_avg:Tensor, prior_grad:Tensor, 
+def adan_step(p:Tensor, lr:float, eps:float, wd:float, beta1:float, beta2:float, beta3:float,
+              step:int, grad_avg:Tensor, diff_avg:Tensor, sqr_avg:Tensor, prior_grad:Tensor,
               do_wd:bool=True, **kwargs):
     "Updates Adan moving averages and performs the Adan step with `lr` on `p`"
 
@@ -52,7 +52,7 @@ def adan_step(p:Tensor, lr:float, eps:float, wd:float, beta1:float, beta2:float,
 
     # update v_k
     diff_avg.mul_(beta2).add_(grad_diff, alpha=1-beta2)
-    
+
     # update n_k
     adjusted_grad = torch.add(p.grad.data, grad_diff, alpha=beta2)
     sqr_avg.mul_(beta3).addcmul_(adjusted_grad, adjusted_grad, value=1-beta3)
@@ -60,11 +60,11 @@ def adan_step(p:Tensor, lr:float, eps:float, wd:float, beta1:float, beta2:float,
     # calculate debias terms
     db1, db2, db3 = debias(beta1, step), debias(beta2, step), debias(beta3, step)
 
-    # calculate applied λ 
-    wd = (1+lr*wd) if wd!=0 and do_wd else 1 
+    # calculate applied λ
+    wd = (1+lr*wd) if wd!=0 and do_wd else 1
 
     # calculate η_k
-    lr = lr/torch.sqrt(sqr_avg.div(db3)).add(eps) 
+    lr = lr/torch.sqrt(sqr_avg.div(db3)).add(eps)
 
     # perform Adan step and apply to parameter `p`
     p.data.sub_(torch.add(grad_avg.div(db1), diff_avg.div(db2), alpha=beta2).mul_(lr)).div_(wd)
@@ -78,18 +78,18 @@ adan_step.defaults = dict(beta1=0.98, beta2=0.92, beta3=0.99)
 # %% ../../nbs/optimizer.adan.ipynb 9
 @torch.jit.script
 def adan_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, beta1:float, beta2:float, beta3:float, eps:float,
-                  paper_init:bool, grad_avg:Optional[Tensor]=None, diff_avg:Optional[Tensor]=None, 
-                  sqr_avg:Optional[Tensor]=None, prior_grad:Optional[Tensor]=None, do_wd:bool=True, step:int=0, 
+                  paper_init:bool, grad_avg:Optional[Tensor]=None, diff_avg:Optional[Tensor]=None,
+                  sqr_avg:Optional[Tensor]=None, prior_grad:Optional[Tensor]=None, do_wd:bool=True, step:int=0,
                   force_train:Optional[bool]=None, mom:Optional[float]=None, decouple_wd:bool=False):
     dp = p
     grad = g
     step += 1
 
-    if grad_avg is None: 
+    if grad_avg is None:
         grad_avg = torch.zeros_like(dp, memory_format=torch.preserve_format)
-    if diff_avg is None: 
+    if diff_avg is None:
         diff_avg = torch.zeros_like(dp, memory_format=torch.preserve_format)
-    if sqr_avg is None: 
+    if sqr_avg is None:
         sqr_avg = torch.zeros_like(dp, memory_format=torch.preserve_format)
     if prior_grad is None:
         if paper_init:
@@ -105,7 +105,7 @@ def adan_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, beta1:float, beta2:flo
 
     # update v_k
     diff_avg = diff_avg.mul(beta2).add(diff_grad, alpha=1-beta2)
-    
+
     # update n_k
     adjusted_grad = grad.add(diff_grad, alpha=beta2)
     sqr_avg = sqr_avg.mul(beta3).addcmul(adjusted_grad, adjusted_grad, value=1-beta3)
@@ -117,9 +117,9 @@ def adan_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, beta1:float, beta2:flo
 
     # calculate applied λ
     if wd!=0 and do_wd:
-        wd = (1+lr*wd) 
+        wd = (1+lr*wd)
     else:
-        wd = 1. 
+        wd = 1.
 
     # calculate η_k
     lr = lr/torch.sqrt(sqr_avg.div(db3)).add(eps)
@@ -137,8 +137,8 @@ def adan_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, beta1:float, beta2:flo
     return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg':grad_avg, 'diff_avg':diff_avg, 'sqr_avg':sqr_avg, 'prior_grad':prior_grad, 'step':step})
 
 # %% ../../nbs/optimizer.adan.ipynb 11
-def adan_foreach_step(p:Tensor, grad:Tensor, grad_avg:list[Tensor], diff_avg:list[Tensor], sqr_avg:list[Tensor], 
-                      prior_grad:list[Tensor], steps:np.ndarray[Any, int], do_wd:np.ndarray[Any, bool], lr:float, 
+def adan_foreach_step(p:Tensor, grad:Tensor, grad_avg:list[Tensor], diff_avg:list[Tensor], sqr_avg:list[Tensor],
+                      prior_grad:list[Tensor], steps:np.ndarray[Any, int], do_wd:np.ndarray[Any, bool], lr:float,
                       wd:float, beta1:float, beta2:float, beta3:float, eps:float, **kwargs):
 
     # difference between current and previous gradients
@@ -151,7 +151,7 @@ def adan_foreach_step(p:Tensor, grad:Tensor, grad_avg:list[Tensor], diff_avg:lis
     # update v_k
     torch._foreach_mul_(diff_avg, beta2)
     torch._foreach_add_(diff_avg, grad_diff, alpha=1-beta2)
-    
+
     # update n_k
     adjusted_grad = torch._foreach_add(grad, grad_diff, alpha=beta2)
     torch._foreach_mul_(sqr_avg, beta3)
@@ -174,7 +174,7 @@ def adan_foreach_step(p:Tensor, grad:Tensor, grad_avg:list[Tensor], diff_avg:lis
     db1 = torch._foreach_div(grad_avg, scalars=db1.tolist())
     db2 = torch._foreach_div(diff_avg, scalars=db2.tolist())
     torch._foreach_sub_(p, torch._foreach_mul(torch._foreach_add(db1, db2, alpha=beta2), p_lrs))
-    
+
     # calculate and apply λ
     if wd != 0:
         wd = np.where(do_wd, 1+lr*wd, 1.)
@@ -187,7 +187,7 @@ def adan_foreach_step(p:Tensor, grad:Tensor, grad_avg:list[Tensor], diff_avg:lis
 class AdanForEachOptimizer(ForEachOptimizer):
     "An `Optimizer` with a modified step for Adan ForEach"
     def __init__(self,
-        params:listified[Tensor], # Model parameters
+        params:Listified[Tensor], # Model parameters
         opt_step:Callable, # `ForEachOptimizer` optimizer step
         paper_init:bool=False, # Initialize first prior_grad to grad following paper or zeros
         **defaults # Optimizer specific hyper parameters
@@ -225,12 +225,12 @@ class AdanForEachOptimizer(ForEachOptimizer):
                     do_wd.append(state.get('do_wd', True))
                     steps.append(state['step'])
 
-            self.opt_step(p=pl, grad=gl, grad_avg=grad_avg, diff_avg=diff_avg, sqr_avg=sqr_avg, 
+            self.opt_step(p=pl, grad=gl, grad_avg=grad_avg, diff_avg=diff_avg, sqr_avg=sqr_avg,
                           prior_grad=prior_grad, steps=np.array(steps, dtype=np.int32), do_wd=np.array(do_wd, dtype=bool), **hyper)
 
 # %% ../../nbs/optimizer.adan.ipynb 15
 def Adan(
-    params:listified[Tensor], # Model parameters or parameter groups
+    params:Listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
     beta1:float=0.98, # Gradient moving average (β1) coefficient
     beta2:float=0.92, # Gradient difference moving average (β2) coefficient
@@ -243,7 +243,7 @@ def Adan(
 ) -> Optimizer|AdanForEachOptimizer|JitOptimizer:
     "A fastai Adan optimizer with optional ForEach and TorchScript implementations"
     if foreach:
-        return AdanForEachOptimizer(params, adan_foreach_step, lr=lr, beta1=beta1, beta2=beta2, 
+        return AdanForEachOptimizer(params, adan_foreach_step, lr=lr, beta1=beta1, beta2=beta2,
                                     beta3=beta3, eps=eps, wd=wd, paper_init=paper_init)
     elif jit:
         cb = partial(adan_jit_step, paper_init=paper_init)
@@ -264,7 +264,7 @@ def adan(
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|AdanForEachOptimizer|JitOptimizer:
     "Partial function for the Adan optimizer with fused ForEach and TorchScript implementations"
-    return partialler(Adan, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd, 
+    return partialler(Adan, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd,
                       paper_init=paper_init, foreach=foreach, jit=jit)
 
 # %% ../../nbs/optimizer.adan.ipynb 19

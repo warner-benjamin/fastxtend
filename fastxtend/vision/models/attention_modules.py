@@ -11,9 +11,12 @@ from fastai.layers import ConvLayer
 from torch.nn.parameter import Parameter
 
 # %% ../../../nbs/vision.models.attention_modules.ipynb 5
+# ECA modified from https://github.com/BangguWu/ECANet
+# ECANet - MIT License - Copyright (c) 2019 BangguWu & Qilong Wang
+
 class ECA(Module):
     "Efficient Channel Attention, from https://arxiv.org/abs/1910.03151."
-    def __init__(self, 
+    def __init__(self,
         nf, # number of input features
         ks:int=None, # if set, Cov1D uses a fixed kernel size instead of adaptive kernel size
         gamma:int=2, # used for adaptive kernel size, see paper for more details
@@ -23,7 +26,7 @@ class ECA(Module):
             ks = int(abs(math.log(nf, 2)+ beta) / gamma)
             ks = max(3, ks if ks % 2 == 1 else ks + 1)
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.conv = nn.Conv1d(1, 1, kernel_size=ks, padding=(ks-1)//2, bias=False) 
+        self.conv = nn.Conv1d(1, 1, kernel_size=ks, padding=(ks-1)//2, bias=False)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
@@ -32,32 +35,10 @@ class ECA(Module):
         y = self.sigmoid(y)
         return x * y.expand_as(x)
 
-# MIT License
-
-# Original Efficient Channel Attention implementation, Copyright (c) 2019 BangguWu, Qilong Wang 
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 # %% ../../../nbs/vision.models.attention_modules.ipynb 8
 class ShuffleAttention(Module):
     "Implementation of Shuffle Attention, from https://arxiv.org/abs/2102.00240"
-    def __init__(self, 
+    def __init__(self,
         nf, # number of input features
         groups=64 # number of subfeature groups, usually 32 or 64
     ):
@@ -69,7 +50,7 @@ class ShuffleAttention(Module):
         self.sweight = Parameter(torch.zeros(1, nf // (2 * groups), 1, 1))
         self.sbias = Parameter(torch.ones(1, nf // (2 * groups), 1, 1))
         self.norm = nn.GroupNorm(nf // (2 * groups), nf // (2 * groups))
-    
+
     def forward(self, x):
         b, c, h, w = x.shape
         x = x.reshape(b*self.groups, -1, h, w) # group into subfeatures
@@ -92,13 +73,16 @@ class ShuffleAttention(Module):
         return x.reshape(b, c, h, w)
 
 # %% ../../../nbs/vision.models.attention_modules.ipynb 10
+# TripletAttention lightly modified from https://github.com/landskape-ai/triplet-attention
+# triplet-attention - MIT License - Copyright (c) 2020 LandskapeAI
+
 class ZPool(Module):
     def forward(self, x):
         return torch.cat((torch.max(x, 1)[0].unsqueeze(1), torch.mean(x, 1).unsqueeze(1)), dim=1)
 
 # %% ../../../nbs/vision.models.attention_modules.ipynb 11
 class AttentionGate(Module):
-    def __init__(self, 
+    def __init__(self,
         ks:int=7 # kernel size for Conv2D
     ):
         self.compress = ZPool()
@@ -113,7 +97,7 @@ class AttentionGate(Module):
 # %% ../../../nbs/vision.models.attention_modules.ipynb 12
 class TripletAttention(Module):
     "Lightly modified implementation of Triplet Attention, from http://arxiv.org/abs/2010.03045"
-    def __init__(self, 
+    def __init__(self,
         nf, # unused input features, for compatibility
         ks:int=7, # kernel size for AttentionGate
         no_spatial=False # exclude Spatial attention as third attention
@@ -137,25 +121,3 @@ class TripletAttention(Module):
         else:
             x_out = 1 / 2 * (x_out11 + x_out21)
         return x_out
-
-# MIT License
-
-# Original Triplet Attention implementation, Copyright (c) 2020 LandskapeAI
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.

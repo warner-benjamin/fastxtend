@@ -3,6 +3,10 @@
 # %% auto 0
 __all__ = ['LRFinder']
 
+# %% ../../nbs/callback.lr_finder.ipynb 1
+# Contains code from:
+# fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
+
 # %% ../../nbs/callback.lr_finder.ipynb 4
 from fastcore.xtras import is_listy
 from fastcore.foundation import patch, docs, Path
@@ -15,7 +19,7 @@ from copy import deepcopy
 import torch
 import collections, tempfile
 
-# %% ../../nbs/callback.lr_finder.ipynb 5
+# %% ../../nbs/callback.lr_finder.ipynb 6
 @docs
 class LRFinder(ParamScheduler):
     "Training with exponentially growing learning rate"
@@ -64,12 +68,12 @@ class LRFinder(ParamScheduler):
             self.learn.dls = self.old_dls
             set_random_states(**self.states)
 
-# %% ../../nbs/callback.lr_finder.ipynb 14
+# %% ../../nbs/callback.lr_finder.ipynb 15
 @patch
 def lr_find(self:Learner, start_lr=1e-7, end_lr=10, num_it=100, stop_div=True, show_plot=True, suggest_funcs=(SuggestionMethod.Valley), restore_state=True):
     """
-    Launch a mock training to find a good learning rate and return suggestions based on `suggest_funcs` as a named tuple. 
-    
+    Launch a mock training to find a good learning rate and return suggestions based on `suggest_funcs` as a named tuple.
+
     Use `restore_state` to reset dataloaders and random state after running.
     """
     n_epoch = num_it//len(self.dls.train) + 1

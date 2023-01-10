@@ -4,6 +4,7 @@
 # EMA Callbacks are inspired by timm's ModelEmaV2: https://github.com/rwightman/pytorch-image-models/blob/main/timm/utils/model_ema.py
 # PyTorch Image Models - Apache License 2.0 - Copyright (c) 2020 Ross Wightman
 
+# %% ../../nbs/callback.ema.ipynb 3
 from __future__ import annotations
 
 from copy import deepcopy
@@ -17,13 +18,13 @@ from ..imports import *
 # %% auto 0
 __all__ = ['EMACallback', 'EMAWarmupCallback']
 
-# %% ../../nbs/callback.ema.ipynb 5
+# %% ../../nbs/callback.ema.ipynb 6
 class EMACallback(Callback):
     "Exponential Moving Average (EMA) of model weights with a fused update step"
     order,run_valid = MixedPrecision.order+1,False
-    def __init__(self, 
+    def __init__(self,
         decay:float=0.9998, # EMA decay value
-        start_epoch:Number=0, # Epoch to start EMA in percent of training steps (float) or epochs (int, index 0)
+        start_epoch:Numeric=0, # Epoch to start EMA in percent of training steps (float) or epochs (int, index 0)
         ema_device:torch.device|str|None=None, # Device to store EMA weights. Defaults to model device
         validate_ema:bool=True, # Run validation metrics using EMA weights instead of model weights. If true, `ema_device` must match model device
         replace_weights:bool=False, # Replace model weights with EMA weights when finished training. If false, set `Learner.model_ema` to EMA weights
@@ -105,15 +106,15 @@ class EMACallback(Callback):
         else:
             self.learn.model_ema = self.ema_model
 
-# %% ../../nbs/callback.ema.ipynb 8
+# %% ../../nbs/callback.ema.ipynb 9
 class EMAWarmupCallback(EMACallback):
     "Exponential Moving Average (EMA) of model weights with a warmup schedule and fused update step"
     order,run_valid = MixedPrecision.order+1,False
     def __init__(self,
         start_decay:float=0.9, # Initial EMA decay value
         final_decay:float=0.9998, # Final EMA decay value
-        start_epoch:Number=0, # Epoch to start EMA warmup in percent of training steps (float) or epochs (int, index 0)
-        final_epoch:Number=0.3, # Epoch to finish EMA warmup in percent of training steps (float) or epochs (int, index 0)
+        start_epoch:Numeric=0, # Epoch to start EMA warmup in percent of training steps (float) or epochs (int, index 0)
+        final_epoch:Numeric=0.3, # Epoch to finish EMA warmup in percent of training steps (float) or epochs (int, index 0)
         schedule:Callable[..., _Annealer]=SchedCos, # EMA decay warmup schedule
         ema_device:torch.device|str|None=None, # Device to store EMA weights. Defaults to model device
         validate_ema:bool=True, # Run validation metrics using EMA weights instead of model weights. If true, `ema_device` must match model device
@@ -122,8 +123,8 @@ class EMAWarmupCallback(EMACallback):
         resume:bool=False, # Resume from EMA weights from previous training saved to `Learner.model_ema`
         logger_callback:str='wandb', # Log EMA decay to `logger_callback` using `Callback.name` if available
     ):
-        super().__init__(decay=final_decay, start_epoch=start_epoch, ema_device=ema_device, 
-                         validate_ema=validate_ema, replace_weights=replace_weights, 
+        super().__init__(decay=final_decay, start_epoch=start_epoch, ema_device=ema_device,
+                         validate_ema=validate_ema, replace_weights=replace_weights,
                          foreach=foreach, resume=resume)
         store_attr()
         self.schedule = schedule(start_decay, final_decay)
@@ -161,7 +162,7 @@ class EMAWarmupCallback(EMACallback):
             else:
                 self._log_ema_decay(0.)
 
-# %% ../../nbs/callback.ema.ipynb 11
+# %% ../../nbs/callback.ema.ipynb 12
 try:
     import wandb
 

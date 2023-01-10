@@ -2,7 +2,7 @@ import math
 from collections import OrderedDict, defaultdict, Counter, namedtuple
 from enum import Enum
 from functools import partial
-from typing import Iterable, Union, TypeVar, Callable, Any
+from typing import Iterable, Union, TypeVar, Callable, MutableSequence, Any
 from warnings import warn
 
 import torch
@@ -20,6 +20,6 @@ from fastai.torch_core import *
 
 T = TypeVar('T')
 
-listy     = Union[Iterable[T], L, fastuple]
-listified = Union[T, Iterable[T], L, fastuple]
-Number    = Union[int, float]
+Listy     = Union[Iterable[T], MutableSequence[T], L, fastuple]
+Listified = Union[T, Iterable[T], MutableSequence[T], L, fastuple]
+Numeric   = Union[int, float]

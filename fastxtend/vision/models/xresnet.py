@@ -10,7 +10,11 @@ __all__ = ['ResBlock', 'ResNeXtBlock', 'SEBlock', 'SEResNeXtBlock', 'ECABlock', 
            'xsa_resnext50', 'xsa_resnext101', 'xta_resnet18', 'xta_resnet34', 'xta_resnet50', 'xta_resnet101',
            'xta_resnext18', 'xta_resnext34', 'xta_resnext50', 'xta_resnext101']
 
-# %% ../../../nbs/vision.models.xresnet.ipynb 3
+# %% ../../../nbs/vision.models.xresnet.ipynb 1
+# Contains code from:
+# fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
+
+# %% ../../../nbs/vision.models.xresnet.ipynb 4
 from torchvision.ops.stochastic_depth import StochasticDepth
 
 from fastai.basics import defaults
@@ -24,34 +28,44 @@ from ...imports import *
 class ResBlock(Module):
     "Resnet block from `ni` to `nh` with `stride`"
     @delegates(ConvLayer.__init__)
-    def __init__(self, expansion, ni, nf, stride=1, groups=1, attn_mod=None, nh1=None, nh2=None, 
-                 dw=False, g2=1, sa=False, sym=False, norm_type=NormType.Batch, act_cls=defaults.activation, 
+    def __init__(self, expansion, ni, nf, stride=1, groups=1, attn_mod=None, nh1=None, nh2=None,
+                 dw=False, g2=1, sa=False, sym=False, norm_type=NormType.Batch, act_cls=defaults.activation,
                  ndim=2, ks=3, block_pool=AvgPool, pool_first=True, stoch_depth=0, **kwargs):
         norm2 = (NormType.BatchZero if norm_type==NormType.Batch else
                  NormType.InstanceZero if norm_type==NormType.Instance else norm_type)
-        if nh2 is None: nh2 = nf
-        if nh1 is None: nh1 = nh2
+        if nh2 is None:
+            nh2 = nf
+        if nh1 is None:
+            nh1 = nh2
         nf,ni = nf*expansion,ni*expansion
         k0 = dict(norm_type=norm_type, act_cls=act_cls, ndim=ndim, **kwargs)
         k1 = dict(norm_type=norm2, act_cls=None, ndim=ndim, **kwargs)
+
         convpath  = [ConvLayer(ni,  nh2, ks, stride=stride, groups=ni if dw else groups, **k0),
                      ConvLayer(nh2,  nf, ks, groups=g2, **k1)
         ] if expansion == 1 else [
                      ConvLayer(ni,  nh1, 1, **k0),
                      ConvLayer(nh1, nh2, ks, stride=stride, groups=nh1 if dw else groups, **k0),
                      ConvLayer(nh2,  nf, 1, groups=g2, **k1)]
-        if attn_mod: convpath.append(attn_mod(nf))
-        if sa: convpath.append(SimpleSelfAttention(nf,ks=1,sym=sym))
+
+        if attn_mod:
+            convpath.append(attn_mod(nf))
+        if sa:
+            convpath.append(SimpleSelfAttention(nf,ks=1,sym=sym))
         self.convpath = nn.Sequential(*convpath)
+
         idpath = []
-        if ni!=nf: idpath.append(ConvLayer(ni, nf, 1, act_cls=None, ndim=ndim, **kwargs))
+        if ni!=nf:
+            idpath.append(ConvLayer(ni, nf, 1, act_cls=None, ndim=ndim, **kwargs))
         if stride!=1:
             idpath.insert((1,0)[pool_first], block_pool(stride, ndim=ndim, ceil_mode=True))
         self.idpath = nn.Sequential(*idpath)
+
         self.act = act_cls()
         self.depth = nn.Identity() if stoch_depth==0 else StochasticDepth(stoch_depth, 'batch')
 
-    def forward(self, x): return self.act(self.depth(self.convpath(x)) + self.idpath(x))
+    def forward(self, x):
+        return self.act(self.depth(self.convpath(x)) + self.idpath(x))
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 8
 @delegates(ResBlock)
@@ -123,9 +137,9 @@ def TAResNeXtBlock(expansion, ni, nf, groups=32, ta_ks=7, stride=1, base_width=4
 class XResNet(nn.Sequential):
     "A flexible version of fastai's XResNet"
     @delegates(ResBlock)
-    def __init__(self, block, expansion, layers, p=0.0, c_in=3, n_out=1000, stem_szs=(32,32,64), 
-                 block_szs=[64,128,256,512], widen=1.0, sa=False, act_cls=defaults.activation, ndim=2, 
-                 ks=3, stride=2, stem_layer=ConvLayer, stem_pool=MaxPool, head_pool=AdaptiveAvgPool, 
+    def __init__(self, block, expansion, layers, p=0.0, c_in=3, n_out=1000, stem_szs=(32,32,64),
+                 block_szs=[64,128,256,512], widen=1.0, sa=False, act_cls=defaults.activation, ndim=2,
+                 ks=3, stride=2, stem_layer=ConvLayer, stem_pool=MaxPool, head_pool=AdaptiveAvgPool,
                  custom_head=None, pretrained=False, **kwargs):
         store_attr('block,expansion,act_cls,ndim,ks')
         if ks % 2 == 0: raise Exception('kernel size has to be odd!')
@@ -168,170 +182,170 @@ class XResNet(nn.Sequential):
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 25
 @delegates(XResNet)
-def xresnet18(n_out=1000, **kwargs): 
+def xresnet18(n_out=1000, **kwargs):
     return XResNet(ResBlock, 1, [2, 2, 2, 2], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xresnet34(n_out=1000, **kwargs):  
+def xresnet34(n_out=1000, **kwargs):
     return XResNet(ResBlock, 1, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xresnet50(n_out=1000, **kwargs): 
+def xresnet50(n_out=1000, **kwargs):
     return XResNet(ResBlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xresnet101(n_out=1000, **kwargs): 
+def xresnet101(n_out=1000, **kwargs):
     return XResNet(ResBlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 27
 @delegates(XResNet)
-def xresnext18(n_out=1000, **kwargs): 
+def xresnext18(n_out=1000, **kwargs):
     return XResNet(ResNeXtBlock, 1, [2, 2, 2, 2], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xresnext34(n_out=1000, **kwargs):  
+def xresnext34(n_out=1000, **kwargs):
     return XResNet(ResNeXtBlock, 1, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xresnext50(n_out=1000, **kwargs): 
+def xresnext50(n_out=1000, **kwargs):
     return XResNet(ResNeXtBlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xresnext101(n_out=1000, **kwargs): 
+def xresnext101(n_out=1000, **kwargs):
     return XResNet(ResNeXtBlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 29
 @delegates(XResNet)
-def xse_resnet18(n_out=1000, **kwargs):   
+def xse_resnet18(n_out=1000, **kwargs):
     return XResNet(SEBlock, 1, [2, 2, 2, 2], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xse_resnet34(n_out=1000, **kwargs):   
+def xse_resnet34(n_out=1000, **kwargs):
     return XResNet(SEBlock, 1, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xse_resnet50(n_out=1000, **kwargs): 
+def xse_resnet50(n_out=1000, **kwargs):
     return XResNet(SEBlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xse_resnet101(n_out=1000, **kwargs):   
+def xse_resnet101(n_out=1000, **kwargs):
     return XResNet(SEBlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 31
 @delegates(XResNet)
-def xse_resnext18(n_out=1000, **kwargs):  
+def xse_resnext18(n_out=1000, **kwargs):
     return XResNet(SEResNeXtBlock, 1, [2, 2, 2, 2], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xse_resnext34(n_out=1000, **kwargs):  
+def xse_resnext34(n_out=1000, **kwargs):
     return XResNet(SEResNeXtBlock, 1, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xse_resnext50(n_out=1000, **kwargs):  
+def xse_resnext50(n_out=1000, **kwargs):
     return XResNet(SEResNeXtBlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xse_resnext101(n_out=1000, **kwargs): 
+def xse_resnext101(n_out=1000, **kwargs):
     return XResNet(SEResNeXtBlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 33
 @delegates(XResNet)
-def xeca_resnet18(n_out=1000, **kwargs):   
+def xeca_resnet18(n_out=1000, **kwargs):
     return XResNet(ECABlock, 1, [2, 2, 2, 2], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xeca_resnet34(n_out=1000, **kwargs):   
+def xeca_resnet34(n_out=1000, **kwargs):
     return XResNet(ECABlock, 1, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xeca_resnet50(n_out=1000, **kwargs): 
+def xeca_resnet50(n_out=1000, **kwargs):
     return XResNet(ECABlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xeca_resnet101(n_out=1000, **kwargs):   
+def xeca_resnet101(n_out=1000, **kwargs):
     return XResNet(ECABlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 35
 @delegates(XResNet)
-def xeca_resnext18(n_out=1000, **kwargs):  
+def xeca_resnext18(n_out=1000, **kwargs):
     return XResNet(ECAResNeXtBlock, 1, [2, 2, 2, 2], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xeca_resnext34(n_out=1000, **kwargs):  
+def xeca_resnext34(n_out=1000, **kwargs):
     return XResNet(ECAResNeXtBlock, 1, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xeca_resnext50(n_out=1000, **kwargs):  
+def xeca_resnext50(n_out=1000, **kwargs):
     return XResNet(ECAResNeXtBlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xeca_resnext101(n_out=1000, **kwargs): 
+def xeca_resnext101(n_out=1000, **kwargs):
     return XResNet(ECAResNeXtBlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 37
 @delegates(XResNet)
-def xsa_resnet18(n_out=1000, **kwargs):   
+def xsa_resnet18(n_out=1000, **kwargs):
     return XResNet(SABlock, 1, [2, 2, 2, 2], n_out=n_out, sa_grps=32, **kwargs)
 
 @delegates(XResNet)
-def xsa_resnet34(n_out=1000, **kwargs):   
+def xsa_resnet34(n_out=1000, **kwargs):
     return XResNet(SABlock, 1, [3, 4, 6, 3], n_out=n_out, sa_grps=32, **kwargs)
 
 @delegates(XResNet)
-def xsa_resnet50(n_out=1000, **kwargs): 
+def xsa_resnet50(n_out=1000, **kwargs):
     return XResNet(SABlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xsa_resnet101(n_out=1000, **kwargs):   
+def xsa_resnet101(n_out=1000, **kwargs):
     return XResNet(SABlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 39
 @delegates(XResNet)
-def xsa_resnext18(n_out=1000, **kwargs):  
+def xsa_resnext18(n_out=1000, **kwargs):
     return XResNet(SAResNeXtBlock, 1, [2, 2, 2, 2], n_out=n_out, sa_grps=32, **kwargs)
 
 @delegates(XResNet)
-def xsa_resnext34(n_out=1000, **kwargs):  
+def xsa_resnext34(n_out=1000, **kwargs):
     return XResNet(SAResNeXtBlock, 1, [3, 4, 6, 3], n_out=n_out, sa_grps=32, **kwargs)
 
 @delegates(XResNet)
-def xsa_resnext50(n_out=1000, **kwargs):  
+def xsa_resnext50(n_out=1000, **kwargs):
     return XResNet(SAResNeXtBlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xsa_resnext101(n_out=1000, **kwargs): 
+def xsa_resnext101(n_out=1000, **kwargs):
     return XResNet(SAResNeXtBlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 41
 @delegates(XResNet)
-def xta_resnet18(n_out=1000, **kwargs):   
+def xta_resnet18(n_out=1000, **kwargs):
     return XResNet(TABlock, 1, [2, 2, 2, 2], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xta_resnet34(n_out=1000, **kwargs):   
+def xta_resnet34(n_out=1000, **kwargs):
     return XResNet(TABlock, 1, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xta_resnet50(n_out=1000, **kwargs): 
+def xta_resnet50(n_out=1000, **kwargs):
     return XResNet(TABlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xta_resnet101(n_out=1000, **kwargs):   
+def xta_resnet101(n_out=1000, **kwargs):
     return XResNet(TABlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)
 
 # %% ../../../nbs/vision.models.xresnet.ipynb 43
 @delegates(XResNet)
-def xta_resnext18(n_out=1000, **kwargs):  
+def xta_resnext18(n_out=1000, **kwargs):
     return XResNet(TAResNeXtBlock, 1, [2, 2, 2, 2], n_out=n_out, sa_grps=32, **kwargs)
 
 @delegates(XResNet)
-def xta_resnext34(n_out=1000, **kwargs):  
+def xta_resnext34(n_out=1000, **kwargs):
     return XResNet(TAResNeXtBlock, 1, [3, 4, 6, 3], n_out=n_out, sa_grps=32, **kwargs)
 
 @delegates(XResNet)
-def xta_resnext50(n_out=1000, **kwargs):  
+def xta_resnext50(n_out=1000, **kwargs):
     return XResNet(TAResNeXtBlock, 4, [3, 4, 6, 3], n_out=n_out, **kwargs)
 
 @delegates(XResNet)
-def xta_resnext101(n_out=1000, **kwargs): 
+def xta_resnext101(n_out=1000, **kwargs):
     return XResNet(TAResNeXtBlock, 4, [3, 4, 23, 3], n_out=n_out, **kwargs)

@@ -3,7 +3,11 @@
 # %% auto 0
 __all__ = ['SimpleProfilerPostCallback', 'SimpleProfilerCallback']
 
-# %% ../../nbs/callback.simpleprofiler.ipynb 2
+# %% ../../nbs/callback.simpleprofiler.ipynb 1
+# Contains code from:
+# fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
+
+# %% ../../nbs/callback.simpleprofiler.ipynb 3
 import locale
 import time
 import pandas as pd
@@ -82,7 +86,7 @@ def all_batches(self:Learner):
 
 # %% ../../nbs/callback.simpleprofiler.ipynb 18
 _loop = ['Start Fit', 'before_fit', 'Start Epoch Loop', 'before_epoch', 'Start Train', 'before_train',
-         'Start Batch Loop', 'before_draw', 'before_batch', 'after_pred', 'after_loss', 'before_backward', 
+         'Start Batch Loop', 'before_draw', 'before_batch', 'after_pred', 'after_loss', 'before_backward',
          'before_step', 'after_step', 'after_cancel_batch', 'after_batch','End Batch Loop', 'End Train',
          'after_cancel_train', 'after_train', 'Start Valid', 'before_validate', 'Start Batch Loop',
          '**CBs same as train batch**', 'End Batch Loop', 'End Valid', 'after_cancel_validate',
@@ -108,13 +112,13 @@ _valid = ['draw', 'batch', 'predict', 'loss']
 class SimpleProfilerPostCallback(Callback):
     "Pair with `SimpleProfilerCallback` to profile training performance. Removes itself after training is over."
     order,remove_on_fetch = Recorder.order-1,True
-    def __init__(self, samples_per_second=True): 
+    def __init__(self, samples_per_second=True):
         store_attr()
         self._phase,self._train,self._valid = _phase,_train,_valid
 
     def before_fit(self):
         self.profiler = self.learn.simple_profiler
-        self.has_logger = self.profiler.has_logger 
+        self.has_logger = self.profiler.has_logger
         self.n_train_batches = len(self.dls.train)
         self.n_valid_batches = len(self.dls.valid)
 
@@ -125,30 +129,36 @@ class SimpleProfilerPostCallback(Callback):
         self.profiler._raw_values['valid'].append(time.perf_counter() - self.profiler._validate_start)
 
     def after_pred(self):
-        if self.training: self.profiler._raw_values['train_forward'].append(time.perf_counter() - self.profiler._train_batch_start)
-        else:             self.profiler._raw_values['valid_predict'].append(time.perf_counter() - self.profiler._valid_batch_start)
-        
-        if self.training: self.profiler._train_loss_start = time.perf_counter()
-        else:             self.profiler._valid_loss_start = time.perf_counter()
+        if self.training:
+            self.profiler._raw_values['train_forward'].append(time.perf_counter() - self.profiler._train_batch_start)
+        else:
+            self.profiler._raw_values['valid_predict'].append(time.perf_counter() - self.profiler._valid_batch_start)
+
+        if self.training:
+            self.profiler._train_loss_start = time.perf_counter()
+        else:
+            self.profiler._valid_loss_start = time.perf_counter()
 
     def after_loss(self):
-        if self.training: self.profiler._raw_values['train_loss'].append(time.perf_counter() - self.profiler._train_loss_start)
-        else:             self.profiler._raw_values['valid_loss'].append(time.perf_counter() - self.profiler._valid_loss_start)
+        if self.training:
+            self.profiler._raw_values['train_loss'].append(time.perf_counter() - self.profiler._train_loss_start)
+        else:
+            self.profiler._raw_values['valid_loss'].append(time.perf_counter() - self.profiler._valid_loss_start)
 
     def after_step(self):
         self.profiler._raw_values['train_opt_step'].append(time.perf_counter() - self.profiler._step_start)
         self.profiler._zero_start = time.perf_counter()
 
     def after_batch(self):
-        if self.training: 
+        if self.training:
             self.profiler._raw_values['train_batch'].append(time.perf_counter() - self.profiler._train_batch_start)
-            if self.samples_per_second: 
+            if self.samples_per_second:
                 self.profiler._raw_values['train_bs'].append(find_bs(self.learn.xb))
-                if self.has_logger: 
+                if self.has_logger:
                     self.profiler._log_after_batch()
-        else: 
+        else:
             self.profiler._raw_values['valid_batch'].append(time.perf_counter() - self.profiler._valid_batch_start)
-            if self.samples_per_second: 
+            if self.samples_per_second:
                 self.profiler._raw_values['valid_bs'].append(find_bs(self.learn.xb))
 
     def after_epoch(self):
@@ -166,20 +176,20 @@ class SimpleProfilerPostCallback(Callback):
 class SimpleProfilerCallback(Callback):
     """
     Adds a simple profiler to the fastai `Learner`. Optionally showing formatted report or saving unformatted results as csv.
-    
+
     Pair with SimpleProfilerPostCallback to profile training performance.
 
     Post fit, access report & results via `Learner.simple_profile_report` & `Learner.simple_profile_results`.
     """
     order,remove_on_fetch = TrainEvalCallback.order+1,True
-    def __init__(self, 
+    def __init__(self,
         show_report=True, # Display formatted report post profile
         plain=False, # For Jupyter Notebooks, display plain report
         markdown=False, # Display markdown formatted report
         save_csv=False,  # Save raw results to csv
         csv_name='simple_profile.csv', # CSV save location
         logger_callback='wandb' # Log report and samples/second to `logger_callback` using `Callback.name`
-    ): 
+    ):
         store_attr()
         self.csv_name = Path(csv_name)
         self._phase,self._train,self._valid = _phase,_train,_valid
@@ -208,15 +218,21 @@ class SimpleProfilerCallback(Callback):
         self._validate_start = time.perf_counter()
 
     def before_draw(self):
-        if self.training: self._train_draw_start = time.perf_counter()
-        else: self._valid_draw_start = time.perf_counter()
+        if self.training:
+            self._train_draw_start = time.perf_counter()
+        else:
+            self._valid_draw_start = time.perf_counter()
 
     def before_batch(self):
-        if self.training: self._raw_values['train_draw'].append(time.perf_counter() - self._train_draw_start)
-        else:             self._raw_values['valid_draw'].append(time.perf_counter() - self._valid_draw_start)
+        if self.training:
+            self._raw_values['train_draw'].append(time.perf_counter() - self._train_draw_start)
+        else:
+            self._raw_values['valid_draw'].append(time.perf_counter() - self._valid_draw_start)
 
-        if self.training: self._train_batch_start = time.perf_counter()
-        else:             self._valid_batch_start = time.perf_counter()
+        if self.training:
+            self._train_batch_start = time.perf_counter()
+        else:
+            self._valid_batch_start = time.perf_counter()
 
     def before_backward(self):
         self._backward_start = time.perf_counter()
@@ -224,12 +240,12 @@ class SimpleProfilerCallback(Callback):
     def before_step(self):
         self._raw_values['train_backward'].append(time.perf_counter() - self._backward_start)
         self._step_start = time.perf_counter()
-    
+
     def after_batch(self):
         if self.training: self._raw_values['train_zero_grad'].append(time.perf_counter() - self._zero_start)
 
     def _train_samples_per_second(self, action):
-        if action =='draw': 
+        if action =='draw':
             bs = self._raw_values['train_bs'][-1]
             batch = self._raw_values['train_batch'][-1]
             return bs/(batch+self._raw_values[f'train_draw'][-1]) - bs/batch
@@ -238,7 +254,7 @@ class SimpleProfilerCallback(Callback):
 
     def _generate_report(self):
         total_time = self._raw_values['fit'][0]
-        self.report = pd.DataFrame(columns=['Phase', 'Action', 'Step', 'Mean Duration', 'Duration Std Dev', 
+        self.report = pd.DataFrame(columns=['Phase', 'Action', 'Step', 'Mean Duration', 'Duration Std Dev',
                                             'Number of Calls', 'Samples/Second', 'Total Time', 'Percent of Total'])
 
         for p in _phase:
@@ -266,7 +282,7 @@ class SimpleProfilerCallback(Callback):
 
         self.learn.simple_profile_report = self.report
 
-    def _display_report(self):   
+    def _display_report(self):
         if self.show_report:
             if self.markdown: print(self.report.to_markdown(index=False))
             else:
@@ -303,14 +319,14 @@ class SimpleProfilerCallback(Callback):
         elif action=='draw':
             batch = np.array(self._raw_values[f'{phase}_batch'])
             sam_per_sec = f'{int(np.around(np.mean(bs/(np.array(input)+batch) - bs/batch))):,d}'
-        else: 
+        else:
             sam_per_sec = f'{int(np.around(np.mean(bs/np.array(input)))):,d}'
         return [phase, action, step, np.mean(input), np.std(input), len(input), sam_per_sec,
                 np.sum(input), f'{self._calc_percent(np.sum(input)):.0%}']
 
 # %% ../../nbs/callback.simpleprofiler.ipynb 25
 @patch
-def profile(self:Learner, 
+def profile(self:Learner,
         show_report=True, # Display formatted report post profile
         plain=False, # For Jupyter Notebooks, display plain report
         markdown=False, # Display markdown formatted report
