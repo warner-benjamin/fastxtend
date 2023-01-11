@@ -38,23 +38,23 @@ class MultiLoss(Module):
         reduction:str|None='mean' # PyTorch loss reduction
     ):
         store_attr(but='loss_names')
-        assert is_listy(loss_funcs), "`loss_funcs` must be list-like"
+        assert is_listy(loss_funcs), f"{loss_funcs=} must be list-like"
 
         if weights is None or len(weights)==0:
             self.weights = [1]*len(loss_funcs)
         else:
-            assert len(loss_funcs) == len(weights), "Must provide same number of `weights` as `loss_funcs`"
+            assert len(loss_funcs) == len(weights), f"Must provide same number of {weights=} as {loss_funcs=}"
             self.weights = weights
 
         if loss_kwargs is None or len(loss_kwargs)==0:
             loss_kwargs = [{}]*len(loss_funcs)
         else:
-            assert len(loss_funcs) == len(loss_kwargs), "Must provide same number of `loss_kwargs` as `loss_funcs`"
+            assert len(loss_funcs) == len(loss_kwargs), f"Must provide same number of {loss_kwargs=} as {loss_funcs=}"
 
         if loss_names is None or len(loss_names)==0:
             loss_names = [l.__name__ for l in loss_funcs]
         else:
-            assert len(loss_funcs) == len(loss_names), "Must provide same number of `loss_names` as `loss_funcs`"
+            assert len(loss_funcs) == len(loss_names), f"Must provide same number of {loss_names=} as {loss_funcs=}"
 
         self.loss_funcs = [init_loss(l, **k) for l, k in zip(loss_funcs, loss_kwargs)]
         self.loss_names = L(loss_names)

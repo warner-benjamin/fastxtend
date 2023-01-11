@@ -42,7 +42,7 @@ class EMACallback(Callback):
                 warn('EMACallback with foreach=True is untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
 
         if resume and self.start_epoch > 0:
-            warn(f'Resuming from prior EMA weights but delaying EMA until start_epoch={start_epoch}')
+            warn(f'Resuming from prior EMA weights but delaying EMA until {start_epoch=}')
 
     @torch.no_grad()
     def before_fit(self):
@@ -69,7 +69,7 @@ class EMACallback(Callback):
 
         self._validate_ema = model_device == ema_device if self.validate_ema else False
         if self.foreach:
-            assert model_device == ema_device, "EMA device must equal model device if using foreach"
+            assert model_device == ema_device, f"{ema_device=} must equal {model_device=} if using foreach"
 
     @torch.no_grad()
     def before_train(self):

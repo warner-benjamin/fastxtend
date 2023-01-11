@@ -147,7 +147,7 @@ def RAdam(
 ) -> Optimizer|RAdamForEachOptimizer|JitOptimizer:
     "A fastai RAdam/RAdamW optimizer with fused ForEach and TorchScript implementations"
     if (foreach or jit) and beta != 0:
-        raise ValueError('ForEach and TorchScript RAdam does not use beta, set jit=False if beta!=0')
+        raise ValueError(f'ForEach and TorchScript RAdam does not use {beta=}, set `jit` & `foreach` to False if beta!=0')
     if foreach:
         return RAdamForEachOptimizer(params, radam_foreach_step, lr=lr, mom=mom, sqr_mom=sqr_mom,
                                      eps=eps, wd=wd, decouple_wd=decouple_wd)

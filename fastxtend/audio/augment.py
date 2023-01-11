@@ -126,9 +126,9 @@ class RandomCropPad(RandTransform):
         if duration is None and samples is None:
             raise ValueError('One of `duration` or `samples` must be set')
         if constant >= 1 or constant <= -1:
-            raise ValueError('`constant` must be between [-1,1]')
+            raise ValueError(f'{constant=}` must be between [-1,1]')
         if padmode not in [vol for vol in AudioPadMode]:
-            raise ValueError(f"`padmode` {padmode} is not valid")
+            raise ValueError(f"{padmode=} is not valid")
         store_attr()
         super().__init__()
 
@@ -168,7 +168,7 @@ class Volume(RandTransform):
         super().__init__(p=p)
         store_attr(but='p')
         if volmode not in [vol for vol in VolumeMode]:
-            raise ValueError(f"`vol_mode` {volmode} is not valid")
+            raise ValueError(f"{volmode=} is not valid")
         if volmode != VolumeMode.DB:
             self.gain_range = (max(gain_range[0],0), gain_range[1])
         self._random_gain = gain is None
@@ -215,7 +215,7 @@ class VolumeOrPeakNorm(RandTransform):
         super().__init__(p=p)
         store_attr(but='p')
         if volmode not in [vol for vol in VolumeMode]:
-            raise ValueError(f"`vol_mode` {volmode} is not valid")
+            raise ValueError(f"{volmode=} is not valid")
         if volmode != VolumeMode.DB:
             self.gain_range = (max(gain_range[0],0), gain_range[1])
         self._random_gain = gain is None
@@ -269,7 +269,7 @@ class Noise(RandTransform):
         store_attr(but='p')
         self._color_choice = [nc for nc in NoiseColor]
         if color is not None and color not in self._color_choice:
-            raise ValueError(f"`color` {color} is not valid")
+            raise ValueError(f"{color=} is not valid")
         self._random_color = color is None
         self._random_noise = noise_level is None
 
@@ -304,7 +304,7 @@ class VolumeBatch(BatchRandTransform):
         super().__init__(p=p)
         store_attr(but='p')
         if volmode not in [vol for vol in VolumeMode]:
-            raise ValueError(f"`vol_mode` {volmode} is not valid")
+            raise ValueError(f"{volmode=} is not valid")
         if volmode != VolumeMode.DB:
             self.gain_range = (max(gain_range[0],0), gain_range[1])
         self._random_gain = gain is None
@@ -434,7 +434,7 @@ class PitchShift(BatchRandTransform):
         store_attr(but='p')
         self.sr = 0
         if padmode not in [vol for vol in AudioPadMode]:
-            raise ValueError(f"`padmode` {padmode} is not valid")
+            raise ValueError(f"{padmode=} is not valid")
 
     def before_call(self,
         b:TensorAudio|tuple[TensorAudio,...],
@@ -537,7 +537,7 @@ class TimeStretch(BatchRandTransform):
         store_attr(but='p')
         self.sr = 0
         if padmode not in [vol for vol in AudioPadMode]:
-            raise ValueError(f"`padmode` {padmode} is not valid")
+            raise ValueError(f"{padmode=} is not valid")
 
     def before_call(self,
         b:TensorAudio|tuple[TensorAudio,...],
@@ -580,7 +580,7 @@ class PitchShiftOrTimeStretch(BatchRandTransform):
     ):
         super().__init__(p=p)
         if padmode not in [vol for vol in AudioPadMode]:
-            raise ValueError(f"`padmode` {padmode} is not valid")
+            raise ValueError(f"{padmode=} is not valid")
         self.bernoulli = Bernoulli(.5)
         self.shift   = PitchShift(1., semitones, bins_per_octave, padmode, constant, split)
         self.stretch = TimeStretch(1., stretch_rates, padmode, constant, split)

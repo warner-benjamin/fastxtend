@@ -19,7 +19,7 @@ def BlurPool(
     ceil_mode:bool=False # Unused, for fastai compatibility
 ) -> BlurPool2D:
     "Compute blur (anti-aliasing) and downsample a given feature map."
-    assert ndim==2, "BlurPool is only implemented for 2D"
+    assert ndim==2, f"BlurPool is only implemented for 2D, {ndim=}"
     return BlurPool2D(kernel_size=ks, stride=stride)
 
 # %% ../../../nbs/vision.models.pooling.ipynb 7
@@ -32,5 +32,5 @@ def MaxBlurPool(
     max_ks:int=2 # The kernel size for max pooling
 ) -> MaxBlurPool2D:
     "Compute pools and blurs and downsample a given feature map. Equivalent to `nn.Sequential(nn.MaxPool2d(...), BlurPool2D(...))`"
-    assert ndim==2, "MaxBlurPool is only implemented for 2D"
+    assert ndim==2, f"MaxBlurPool is only implemented for 2D, {ndim=}"
     return MaxBlurPool2D(kernel_size=ks, stride=stride, ceil_mode=ceil_mode, max_pool_size=max_ks)

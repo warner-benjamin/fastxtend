@@ -350,7 +350,7 @@ def func_to_metric(func, metric_type, is_class, thresh=None, axis=-1, activation
         return AvgSmoothMetricX(func, dim_argmax=dim_argmax, activation=activation, thresh=thresh, **kwargs)
     else:
         name = func.func.__name__ if hasattr(func, 'func') else  func.__name__
-        raise ValueError(f"Unsupported `metric_type` {metric_type} for metric {name}.")
+        raise ValueError(f"Unsupported {metric_type=} for metric {name}.")
 
 # %% ../nbs/metrics.ipynb 63
 @delegates(MetricX)

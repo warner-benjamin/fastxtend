@@ -107,8 +107,8 @@ def fit_flat_varied(self:Learner,
     Fit `self.model` for `n_epoch` at flat `start_lr`, then change to flat `next_lr` at `change_by`,
     optionally with cosine annealing or custom `change_sched` over `change_time`. Final cosine annealing at `pct_start`.
     """
-    assert isinstance(next_lr, (float, slice)) or (is_listish(next_lr) and len(next_lr)>=1), '`next_lr` must be float, slice, or list of float or slice'
-    assert isinstance(change_by, (int, float, slice)) or (is_listish(change_by) and len(change_by)>=1), '`change_by` must be int, float, slice, or list of int, float, or slice'
+    assert isinstance(next_lr, (float, slice)) or (is_listish(next_lr) and len(next_lr)>=1), f'{next_lr=} must be float, slice, or list of float or slice'
+    assert isinstance(change_by, (int, float, slice)) or (is_listish(change_by) and len(change_by)>=1), f'{change_by=} must be int, float, slice, or list of int, float, or slice'
 
     if self.opt is None:
         self.create_opt()
@@ -121,17 +121,17 @@ def fit_flat_varied(self:Learner,
     if not is_listish(change_by):
         change_by = [change_by]
     change_by = [i/n_epoch if i>=1 else i for i in change_by]
-    assert len(change_by)==len(next_lr), '`next_lr` & `change_by` need to be same length'
+    assert len(change_by)==len(next_lr), f'{next_lr=} & {change_by=} need to be same length'
 
     if not is_listish(change_time):
         change_time = [change_time]*len(change_by)
-    else: assert len(change_by)==len(change_time), '`change_time` list needs to be same length as `next_lr` & `change_by`'
+    else: assert len(change_by)==len(change_time), f'{change_time=} list needs to be same length as {next_lr=} & {change_by=}'
     change_time = [i/n_epoch if i>=1 else i for i in change_time]
 
     if change_sched is not None:
         if not is_listish(change_sched):
             change_sched = [change_sched]
-        assert len(change_by)==len(change_sched), '`next_lr` & `change_sched` need to be same length'
+        assert len(change_by)==len(change_sched), f'{next_lr=} & {change_sched=} need to be same length'
 
     pcts, scheds, last_lr, last_pct = [], [SchedNo(start_lr, start_lr)], start_lr, 0
     for i, cb in enumerate(change_by):
@@ -143,7 +143,7 @@ def fit_flat_varied(self:Learner,
                 nlr=np.array(nlr)
 
             change_pct = cb - change_time[i]
-            assert change_pct >= last_pct, f'{change_pct} in pos {i} of `change_by` overlaps with previous schedule {last_pct}'
+            assert change_pct >= last_pct, f'{change_pct=} in pos {i} of {change_by=} overlaps with previous schedule {last_pct}'
 
             pcts.append(change_pct - sum(pcts))
             scheds.append(SchedNo(nlr, nlr))
@@ -156,7 +156,7 @@ def fit_flat_varied(self:Learner,
             last_lr = nlr
             last_pct = change_pct
         else:
-            warn(f'change_by: {change_by[i]} is after pct_start={pct_start} and ignored.')
+            warn(f'change_by: {change_by[i]} is after {pct_start=} and ignored.')
 
     pcts += [pct_start - sum(pcts), 1-pct_start]
     scheds += [SchedCos(last_lr, last_lr/div_final)]
