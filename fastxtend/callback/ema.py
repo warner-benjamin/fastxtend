@@ -39,7 +39,7 @@ class EMACallback(Callback):
 
         if self.foreach:
             if notmax_torch('1.12'):
-                warn('EMACallback with foreach=True is untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
+                warn(f'EMACallback with foreach=True is untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
 
         if resume and self.start_epoch > 0:
             warn(f'Resuming from prior EMA weights but delaying EMA until {start_epoch=}')
