@@ -75,7 +75,7 @@ class EMACallback(Callback):
         for (n, mb), (_, eb) in zip(self.learn.model.named_buffers(), self.ema_model.named_buffers()):
             if self.all_buffers or n in state_names:
                 # foreach methods cannot convert non-floats back to original type and error out
-                if self.foreach and torch.is_floating_point(mb.dtype):
+                if self.foreach and torch.is_floating_point(mb):
                     self.model_tensors.append(mb)
                     self.ema_tensors.append(eb)
                 else:
