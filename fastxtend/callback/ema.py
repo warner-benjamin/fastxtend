@@ -27,9 +27,11 @@ class EMACallback(Callback):
         start_epoch:Numeric=0, # Epoch to start EMA in percent of training steps (float) or epochs (int, index 0)
         ema_device:torch.device|str|None=None, # Device to store EMA weights. Defaults to model device
         validate_ema:bool=True, # Run validation metrics using EMA weights instead of model weights. If true, `ema_device` must match model device
-        replace_weights:bool=False, # Replace model weights with EMA weights when finished training. If false, set `Learner.model_ema` to EMA weights
+        replace_weights:bool=False, # Replace model weights with EMA weights when finished training. If false, sets `Learner.model_ema` to EMA weights
         foreach:bool|None=None, # Fuse EMA update step with PyTorch ForEach methods or use a standard for loop. Defaults to true if PyTorch 1.12+ and Cuda device detected
         resume:bool=False, # Resume from EMA weights from previous training saved to `Learner.model_ema`
+        all_parameters:bool=False, # Apply EMA step to all parameters or only those with `requires_grad`
+        all_buffers:bool=False, # Apply EMA step to persistent model buffers or all buffers
     ):
         store_attr()
         self._do_ema = False
@@ -64,8 +66,21 @@ class EMACallback(Callback):
 
         self.model_tensors, self.ema_tensors = [], []
         for mt, et in zip(self.learn.model.parameters(), self.ema_model.parameters()):
-            self.model_tensors.append(mt)
-            self.ema_tensors.append(et)
+            if self.all_parameters or mt.requires_grad:
+                self.model_tensors.append(mt)
+                self.ema_tensors.append(et)
+
+        self.model_buffers, self.ema_buffers = [], []
+        state_names = self.model.state_dict().keys()
+        for (n, mb), (_, eb) in zip(self.learn.model.named_buffers(), self.ema_model.named_buffers()):
+            if self.all_buffers or n in state_names:
+                # foreach methods cannot convert non-floats back to original type and error out
+                if self.foreach and torch.is_floating_point(mb.dtype):
+                    self.model_tensors.append(mb)
+                    self.ema_tensors.append(eb)
+                else:
+                    self.model_buffers.append(mb)
+                    self.ema_buffers.append(mb)
 
         self._validate_ema = model_device == ema_device if self.validate_ema else False
         if self.foreach:
@@ -84,6 +99,9 @@ class EMACallback(Callback):
             if self.foreach:
                 torch._foreach_mul_(self.ema_tensors, scalar=self.decay)
                 torch._foreach_add_(self.ema_tensors, self.model_tensors, alpha=self.inverse_decay)
+                # foreach methods cannot convert non-floats back to original type and error out
+                for mb, eb in zip(self.model_buffers, self.ema_buffers):
+                    eb.copy_(self.decay * eb + self.inverse_decay * mb)
             else:
                 for mt, et in zip(self.model_tensors, self.ema_tensors):
                     et.copy_(self.decay * et + self.inverse_decay * mt)
@@ -121,11 +139,14 @@ class EMAWarmupCallback(EMACallback):
         replace_weights:bool=False, # Replace model weights with EMA weights when finished training. If false, set `Learner.model_ema` to EMA weights
         foreach:bool|None=None, # Fuse EMA update step with PyTorch ForEach methods or use a standard for loop. Defaults to true if PyTorch 1.12+ and Cuda device detected
         resume:bool=False, # Resume from EMA weights from previous training saved to `Learner.model_ema`
+        all_parameters:bool=False, # Apply EMA step to all parameters or only those with `requires_grad`
+        all_buffers:bool=False, # Apply EMA step to persistent model buffers or all buffers
         logger_callback:str='wandb', # Log EMA decay to `logger_callback` using `Callback.name` if available
     ):
         super().__init__(decay=final_decay, start_epoch=start_epoch, ema_device=ema_device,
                          validate_ema=validate_ema, replace_weights=replace_weights,
-                         foreach=foreach, resume=resume)
+                         foreach=foreach, resume=resume, all_parameters=all_parameters,
+                         all_buffers=all_buffers)
         store_attr()
         self.schedule = schedule(start_decay, final_decay)
 
