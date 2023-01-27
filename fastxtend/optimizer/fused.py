@@ -120,10 +120,10 @@ def Adam(
 
 # %% ../../nbs/optimizer.fused.ipynb 18
 def adam(
-    mom:float=0., # Gradient moving average (β1) coefficient
+    mom:float=0.9, # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
-    eps:float=1e-8, # Added for numerical stability
-    wd:float=0., # Optional weight decay (true or L2)
+    eps:float=1e-5, # Added for numerical stability
+    wd:float=0.01, # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
     foreach:bool=False, # Use fused ForEach implementation
     jit:bool=False # Use fused TorchScript implementation
@@ -161,9 +161,9 @@ def RAdam(
 
 # %% ../../nbs/optimizer.fused.ipynb 22
 def radam(
-    mom:float=0., # Gradient moving average (β1) coefficient
+    mom:float=0.9, # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
-    eps:float=1e-8, # Added for numerical stability
+    eps:float=1e-5, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
     beta:float=0., # Set to enable SAdam with native fastai RAdam
     decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
@@ -198,8 +198,8 @@ def QHAdam(
 
 # %% ../../nbs/optimizer.fused.ipynb 26
 def qhadam(
-    mom:float=0., # Gradient moving average (β1) coefficient
-    sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
+    mom:float=0.999, # Gradient moving average (β1) coefficient
+    sqr_mom:float=0.999, # Gradient squared moving average (β2) coefficient
     nu_1:float=0.7, # QH immediate discount factor
     nu_2:float=1.0, # QH momentum discount factor
     eps:float=1e-8, # Added for numerical stability
@@ -236,7 +236,7 @@ def Larc(
 
 # %% ../../nbs/optimizer.fused.ipynb 30
 def larc(
-    mom:float=0., # Gradient moving average (β1) coefficient
+    mom:float=0.9, # Gradient moving average (β1) coefficient
     clip:bool=True, # LARC if clip=True, LARS if clip=False
     trust_coeff:float=0.02, # Trust coeffiecnet for calculating layerwise LR
     eps:float=1e-8, # Added for numerical stability
@@ -255,7 +255,7 @@ def Lamb(
     mom:float=0.9, # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-5, # Added for numerical stability
-    wd:float=0.01, # Optional weight decay (true or L2). Paper default, fastai's is 0.
+    wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay or L2 regularization
     foreach:bool=False, # Use fused ForEach implementation
     jit:bool=False # Use fused TorchScript implementation
@@ -274,9 +274,9 @@ def Lamb(
 
 # %% ../../nbs/optimizer.fused.ipynb 34
 def lamb(
-    mom:float=0., # Gradient moving average (β1) coefficient
+    mom:float=0.9, # Gradient moving average (β1) coefficient
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
-    eps:float=1e-8, # Added for numerical stability
+    eps:float=1e-5, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
     foreach:bool=False, # Use fused ForEach implementation
