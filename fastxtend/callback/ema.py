@@ -24,7 +24,7 @@ class EMACallback(Callback):
     order,run_valid = MixedPrecision.order+1,False
     def __init__(self,
         decay:float=0.9998, # EMA decay value
-        start_epoch:Numeric=0, # Epoch to start EMA in percent of training steps (float) or epochs (int, index 0)
+        start:Numeric=0, # Start EMA in percent of training steps (float) or epochs (int, index 0)
         ema_device:torch.device|str|None=None, # Device to store EMA weights. Defaults to model device
         validate_ema:bool=True, # Run validation metrics using EMA weights instead of model weights. If true, `ema_device` must match model device
         replace_weights:bool=False, # Replace model weights with EMA weights when finished training. If false, sets `Learner.model_ema` to EMA weights
@@ -32,9 +32,9 @@ class EMACallback(Callback):
         resume:bool=False, # Resume from EMA weights from previous training saved to `Learner.model_ema`
         all_parameters:bool=False, # Apply EMA step to all parameters or only those with `requires_grad`
         all_buffers:bool=False, # Apply EMA step to persistent model buffers or all buffers
+        skip_ema:bool=True, # Skip EMA step if callbacks, such as GradientAccumulation or MixedPrecision, skip the Optimizer update step
     ):
         store_attr()
-        self._do_ema = False
         self.inverse_decay = 1-decay
         if self.foreach is None and ema_device is None:
             self.foreach = ismin_torch('1.12') and torch.cuda.is_available()
@@ -43,8 +43,8 @@ class EMACallback(Callback):
             if notmax_torch('1.12'):
                 warn(f'EMACallback with foreach=True is untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
 
-        if resume and self.start_epoch > 0:
-            warn(f'Resuming from prior EMA weights but delaying EMA until {start_epoch=}')
+        if resume and self.start > 0:
+            warn(f'Resuming from prior EMA weights but delaying EMA until {start=}')
 
     @torch.no_grad()
     def before_fit(self):
@@ -52,8 +52,12 @@ class EMACallback(Callback):
             self.run = False
             return
 
-        if self.start_epoch < 1:
-            self.start_epoch = int(self.start_epoch*self.n_epoch)
+        self._do_ema, self._restore_ema = False, False
+
+        if self.start >= 1 and isinstance(self.start, int):
+            self.start = self.start/self.n_epoch
+        if self.start >= 1:
+            warn(f'EMA start {self.start} is equal or greater than one and will not start in this training run')
 
         if self.resume:
             self.ema_model = self.learn.model_ema.eval()
@@ -87,11 +91,23 @@ class EMACallback(Callback):
             assert model_device == ema_device, f"{ema_device=} must equal {model_device=} if using foreach"
 
     @torch.no_grad()
-    def before_train(self):
-        if self.epoch == self.start_epoch:
-            self._do_ema = True
-            if self.start_epoch > 0 and not self.resume:
+    def before_batch(self):
+        if self.pct_train >= self.start:
+            if self.start > 0 and not self._do_ema and not self.resume:
                 self.ema_model.load_state_dict(self.learn.model.state_dict())
+            self._do_ema = True
+
+    def after_cancel_batch(self):
+        # if a callback (such as GradientAccumulation) raises a CancelBatchException, don't do EMA step and potentially turn EMA back on
+        if self.skip_ema:
+            self._restore_ema = self._do_ema
+            self._do_ema = False
+
+    def after_cancel_step(self):
+        # if a callback (such as MixedPrecision) raises a CancelStepException, don't do EMA step and potentially turn EMA back on
+        if self.skip_ema:
+            self._restore_ema = self._do_ema
+            self._do_ema = False
 
     @torch.no_grad()
     def after_batch(self):
@@ -105,6 +121,10 @@ class EMACallback(Callback):
             else:
                 for mt, et in zip(self.model_tensors, self.ema_tensors):
                     et.copy_(self.decay * et + self.inverse_decay * mt)
+        # handle a Cancel Exception while self._do_ema was set to True
+        if self._restore_ema:
+            self._do_ema = True
+            self._restore_ema = False
 
     @torch.no_grad()
     def before_validate(self):
@@ -131,8 +151,8 @@ class EMAWarmupCallback(EMACallback):
     def __init__(self,
         start_decay:float=0.9, # Initial EMA decay value
         final_decay:float=0.9998, # Final EMA decay value
-        start_epoch:Numeric=0, # Epoch to start EMA warmup in percent of training steps (float) or epochs (int, index 0)
-        final_epoch:Numeric=0.3, # Epoch to finish EMA warmup in percent of training steps (float) or epochs (int, index 0)
+        start:Numeric=0, # Start EMA warmup in percent of training steps (float) or epochs (int, index 0)
+        finish:Numeric=0.3, # Finish EMA warmup in percent of training steps (float) or epochs (int, index 0)
         schedule:Callable[..., _Annealer]=SchedCos, # EMA decay warmup schedule
         ema_device:torch.device|str|None=None, # Device to store EMA weights. Defaults to model device
         validate_ema:bool=True, # Run validation metrics using EMA weights instead of model weights. If true, `ema_device` must match model device
@@ -141,38 +161,46 @@ class EMAWarmupCallback(EMACallback):
         resume:bool=False, # Resume from EMA weights from previous training saved to `Learner.model_ema`
         all_parameters:bool=False, # Apply EMA step to all parameters or only those with `requires_grad`
         all_buffers:bool=False, # Apply EMA step to persistent model buffers or all buffers
+        skip_ema:bool=True, # Skip EMA step if callbacks, such as GradientAccumulation or MixedPrecision, skip the Optimizer update step
         logger_callback:str='wandb', # Log EMA decay to `logger_callback` using `Callback.name` if available
     ):
-        super().__init__(decay=final_decay, start_epoch=start_epoch, ema_device=ema_device,
+        super().__init__(decay=final_decay, start=start, ema_device=ema_device,
                          validate_ema=validate_ema, replace_weights=replace_weights,
                          foreach=foreach, resume=resume, all_parameters=all_parameters,
-                         all_buffers=all_buffers)
-        store_attr()
+                         all_buffers=all_buffers, skip_ema=skip_ema)
+        store_attr(names='start_decay,final_decay,finish,logger_callback')
         self.schedule = schedule(start_decay, final_decay)
 
     def before_fit(self):
+        if self.finish - self.start <= 0:
+            warn(f'EMA Warmup start={self.start} is less or equal to final={self.epoch} which negates warmup')
+
         super().before_fit()
 
-        if self.final_epoch < 1:
-            self.final_epoch = int(self.final_epoch*self.n_epoch)
+        if self.finish >= 1 and isinstance(self.finish, int):
+            self.finish = self.finish/self.n_epoch
+        if self.finish >= 1:
+            warn(f'EMA Warmup finish {self.finish} is equal or greater than one and will not finish in this training run')
 
+        if self.resume and self.n_epoch < self.finish*self.n_epoch:
+            warn("Resuming EMA Warmup before the warmup is finished is not supported")
+
+        # negate decay so at least one ema scheduling step will occur
+        self.decay = -1*self.decay
         self.warmup_pct = 0.
-        self.warmup_epochs = self.final_epoch - self.start_epoch
-
-        if self.warmup_epochs == 0:
-            warn(f'start_epoch {self.start_epoch} is equal to final_epoch {self.final_epoch} which negates warmup')
+        self._warmup_sched = 1/(len(self.dls.train) * self.n_epoch * (self.finish - self.start))
 
         self._log_ema_decay = getattr(self, f'_{self.logger_callback}_log_ema_decay', noop)
         self.has_logger = hasattr(self.learn, self.logger_callback) and self._log_ema_decay != noop
 
     def after_batch(self):
         if self._do_ema:
-            if self.epoch <= self.final_epoch:
-                if self.epoch == self.final_epoch:
+            if self.pct_train >= self.start and self.decay != self.final_decay:
+                if self.pct_train >= self.finish:
                     self.decay = self.final_decay
                 else:
                     self.decay = self.schedule(self.warmup_pct)
-                    self.warmup_pct += 1./(self.learn.n_iter*self.warmup_epochs)
+                    self.warmup_pct += self._warmup_sched
                 self.inverse_decay = 1-self.decay
 
             super().after_batch()
