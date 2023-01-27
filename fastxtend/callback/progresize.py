@@ -143,8 +143,14 @@ class ProgressiveResize(Callback):
 
         if self.resize_batch:
             # Set when the progressive resizing step is applied in training percent
-            self.start  = self.start/self.n_epoch  if isinstance(self.start, int)  else self.start
-            self.finish = self.finish/self.n_epoch if isinstance(self.finish, int) else self.finish
+            if self.start >= 1 and isinstance(self.start, int):
+                self.start = self.start/self.n_epoch
+            if self.finish >= 1 and isinstance(self.finish, int):
+                self.finish = self.finish/self.n_epoch
+            if self.start >= 1:
+                warn(f'ProgressiveResize start {self.start} is equal or greater than one and will not start in this training run')
+            if self.finish >= 1:
+                warn(f'ProgressiveResize finish {self.finish} is equal or greater than one and will not finish in this training run')
             n_steps = ((self.final_size-self.current_size) / self.increase_by).int()
             if sum(n_steps.shape)==2:
                 n_steps = n_steps[0].item()
