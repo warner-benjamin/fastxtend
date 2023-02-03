@@ -46,23 +46,26 @@ class SaveModelAtEnd(SaveModelCallback):
 
 # %% ../../nbs/callback.tracker.ipynb 11
 class LastMetricCallback(Callback):
-    "A `Callback` which stores metrics by name in a `Learner.lastmetric` dictionary"
+    "A `Callback` which stores the last metric(s) value by name (or all if None) in the `Learner.lastmetric` dictionary"
     order,remove_on_fetch,_only_train_loop = 60,True,True
-    def __init__(self, metrics:Listified[str]='valid_loss'):
-        self.metrics=L(metrics)
+    def __init__(self, metrics:Listified[str]|None=None):
+        self._all_metrics = metrics is None
+        self._last_metrics=L(metrics)
 
     def before_fit(self):
         "Prepare the monitored value(s)"
         self.run = not hasattr(self, "lr_finder") and not hasattr(self, "gather_preds")
         self.idx, self.learn.lastmetric = [], {}
-        for m in self.metrics:
+        if self._all_metrics:
+            self._last_metrics = L([m for m in self.recorder.metric_names[1:] if m !='time'])
+        for m in self._last_metrics:
             assert m in self.recorder.metric_names[1:], f'Metric {m} does not exist'
             self.idx.append(list(self.recorder.metric_names[1:]).index(m))
 
     def after_fit(self):
         "Store the last the monitored value(s)"
         for i, idx in enumerate(self.idx):
-            self.learn.lastmetric[self.metrics[i]] = self.recorder.values[-1][idx]
+            self.learn.lastmetric[self._last_metrics[i]] = self.recorder.values[-1][idx]
         self.run = True
 
     def after_fit_exception(self):
