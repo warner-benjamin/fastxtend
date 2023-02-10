@@ -28,7 +28,7 @@ $footer-border: $black !default;
 
 $code-bg: $gray !default;
 $code-color: $purple !default;
-$code-block-bg: rgb(44, 44, 44) !default;
+$code-block-bg: rgb(34, 34, 34) !default;
 
 $table-border-color: rgba(0, 0, 0, .3) !default;
 
@@ -38,6 +38,8 @@ $callout-border-color: rgba(0, 0, 0, .05) !default;
 $hr-margin-y: 1.5rem !default;
 
 $blockquote-border-color: $gray !default;
+
+// $hr-color: $white !default;
 
 /*-- scss:mixins --*/
 
@@ -100,6 +102,7 @@ $footer-border-color: $black;
 
 // code
 $border-radius: 3px;
+$code-block-bg-padding: 1rem;
 
 // Navbar colors
 .navbar {

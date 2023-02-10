@@ -211,7 +211,7 @@ class EMAWarmupCallback(EMACallback):
             else:
                 self._log_ema_decay(0.)
 
-# %% ../../nbs/callback.ema.ipynb 12
+# %% ../../nbs/callback.ema.ipynb 13
 try:
     import wandb
 

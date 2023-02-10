@@ -51,8 +51,8 @@ class IncreaseMode(Enum):
 
 # %% ../../nbs/callback.progresize.ipynb 9
 class ProgressiveResize(Callback):
-    order = MixedPrecision.order+1 # Needs to run after MixedPrecision
     "Progressively increase the size of input images during training. Starting from `initial_size` and ending at the valid image size or `final_size`."
+    order = MixedPrecision.order+1 # Needs to run after MixedPrecision
     def __init__(self,
         initial_size:float|tuple[int,int]=0.5, # Staring size to increase from. Image shape must be square
         start:Numeric=0.5, # Earliest upsizing epoch in percent of training time or epoch (index 0)
@@ -308,7 +308,7 @@ class ProgressiveResize(Callback):
                     self.null_resize = null_resize
         self.remove_resize = remove_resize
 
-# %% ../../nbs/callback.progresize.ipynb 38
+# %% ../../nbs/callback.progresize.ipynb 39
 try:
     import wandb
 
