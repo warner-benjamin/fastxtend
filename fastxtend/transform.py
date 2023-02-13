@@ -27,18 +27,7 @@ def to(self:TfmdDL, device):
         if hasattr(tfm, 'to'): tfm.to(device)
     return self
 
-# %% ../nbs/transform.ipynb 6
-@patch
-def _one_pass(self:TfmdDL):
-    b = self.do_batch([self.do_item(None)])
-    if self.device is not None:
-        b = to_device(b, self.device)
-        self.to(self.device)
-    its = self.after_batch(b)
-    self._n_inp = 1 if not isinstance(its, (list,tuple)) or len(its)==1 else len(its)-1
-    self._types = explode_types(its)
-
-# %% ../nbs/transform.ipynb 8
+# %% ../nbs/transform.ipynb 7
 class BatchRandTransform(DisplayedTransform):
     "Randomly selects a subset of batch `b` to apply transform with per item probability `p` in `before_call`"
     do,supports,split_idx = True,[],0
