@@ -67,7 +67,7 @@ class FFCVDataLoader(BaseLoader, Loader):
         batches_ahead:int=3, # Number of batches prepared in advance; balances latency and memory
         recompile:bool=False, # Recompile at every epoch. Required if FFCV augmentations change during training
         device:str|int|torch.device|None=None, # Device to place batch, defaults to fastai's `default_device`
-        n_inp:int|None=None, # Number of inputs to the model. Defaults to batch length minus 1
+        n_inp:int|None=None, # Number of inputs to the model. Defaults to pipelines length minus 1
         split_idx:int|None=None, # Apply batch transform(s) to training (0) or validation (1) set
         do_setup:bool=True, # Run `setup()` for batch transform(s)
         **kwargs
@@ -106,10 +106,10 @@ class FFCVDataLoader(BaseLoader, Loader):
         BaseLoader.__init__(self, **kwargs)
         self.split_idx = split_idx
         self.device = device
-        if n_inp is not None:
-            self._n_inp = n_inp
+        if n_inp is None:
+            self._n_inp = len(pipelines) - 1
         else:
-            _ = self.n_inp
+            self._n_inp = n_inp
 
         for name in ['item_tfms', 'after_item', 'before_batch']:
             if name in kwargs:
@@ -175,9 +175,7 @@ class FFCVDataLoader(BaseLoader, Loader):
 
     @property
     def n_inp(self) -> int:
-        "Number of elements in `Datasets` or `TfmdDL` tuple to be considered part of input."
-        if not hasattr(self, '_n_inp'):
-            self._one_pass()
+        "Number of elements in a batch for model input"
         return self._n_inp
 
     @property
@@ -230,7 +228,6 @@ class FFCVDataLoader(BaseLoader, Loader):
     def _one_pass(self, b=None):
         if b is None:
             b = self.one_batch()
-        self._n_inp = 1 if not isinstance(b, (list,tuple)) or len(b)==1 else len(b)-1
         self._types = explode_types(b)
 
     def _retain_dl(self, b):
