@@ -3,8 +3,10 @@
 # %% ../../nbs/optimizer.foreach.ipynb 3
 from __future__ import annotations
 
+from packaging.version import parse
 import numpy as np
 
+import fastai
 from fastai.optimizer import Optimizer
 
 from ..imports import *
@@ -23,7 +25,10 @@ class ForEachOptimizer(Optimizer):
     ):
         if notmax_torch('1.12'):
             warn(f'ForEach optimizers are untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
-        super().__init__(params, [None], True, **defaults)
+        if parse(fastai.__version__) < parse('2.7.11'):
+            super().__init__(params, [None], True, **defaults)
+        else:
+            super().__init__(params, [None], **defaults)
         self.opt_step = opt_step
         self.decouple_wd = decouple_wd
 

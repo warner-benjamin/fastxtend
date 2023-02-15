@@ -8,7 +8,10 @@
 from __future__ import annotations
 from typing import Optional, Dict
 
-from fastai.optimizer import Optimizer, _update
+from packaging.version import parse
+
+import fastai
+from fastai.optimizer import Optimizer
 
 from ..imports import *
 
@@ -33,7 +36,10 @@ class JitOptimizer(Optimizer):
     ):
         if notmax_torch('1.12'):
             warn(f'TorchScript optimizers are untested on PyTorch {torch.__verson__}, recommended to use 1.12 or newer')
-        super().__init__(params, [None], True, **defaults)
+        if parse(fastai.__version__) < parse('2.7.11'):
+            super().__init__(params, [None], True, **defaults)
+        else:
+            super().__init__(params, [None], **defaults)
         self.opt_step = opt_step
         self.decouple_wd = decouple_wd
 

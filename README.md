@@ -39,33 +39,33 @@ addons for fastai
 
 **Audio**
 
-- [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensoraudio),
-  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensorspec),
-  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
+- [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio),
+  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec),
+  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec)
   objects which maintain metadata and support plotting themselves using
   librosa.
 - A selection of performant [audio augmentations](audio.augment.html)
   inspired by fastaudio and torch-audiomentations.
 - Uses TorchAudio to quickly convert
-  [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensoraudio)
+  [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio)
   waveforms into
-  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensorspec)
+  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec)
   spectrograms or
-  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
+  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec)
   mel spectrograms using the GPU.
 - Out of the box support for converting one
-  [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensoraudio)
+  [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio)
   to one or multiple
-  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensorspec)
+  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec)
   or
-  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
+  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec)
   objects from the Datablock api.
 - Audio [MixUp and CutMix](audio.mixup.html) Callbacks.
-- [`audio_learner`](https://fastxtend.benjaminwarner.dev/audio.learner.html#audio_learner)
+- [`audio_learner`](https://fastxtend.benjaminwarner.dev/audio.04_learner.html#audio_learner)
   which merges multiple
-  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensorspec)
+  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec)
   or
-  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
+  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec)
   objects before passing to the model.
 
 Check out the documentation for additional splitters, callbacks,
