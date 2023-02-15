@@ -56,7 +56,7 @@ class BatchRandTransform(DisplayedTransform):
     ):
         "Randomly select `self.idxs` and set `self.do` based on `self.p` if not valid `split_idx`"
         self.idxs = self.bernoulli.sample((find_bs(b),)).bool() if not split_idx and self.p<1. else torch.ones(find_bs(b)).bool()
-        self.do = self.p==1. or self.idxs.shape[-1] > 0
+        self.do = self.p==1. or self.idxs.sum() > 0
 
     def __call__(self,
         b:Tensor|tuple[Tensor,...], # Batch item(s)
