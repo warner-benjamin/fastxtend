@@ -18,15 +18,17 @@ class BCEWithLogitsLoss(TL._Loss):
     then `mean` reduction.
     """
     def __init__(self,
-        weight:Tensor|None=None, # Rescaling weieght for each class
-        reduction:str='mean', # Reduction to apply to loss output. Also supports 'batchmean'.
-        pos_weight:Tensor|None=None # Weight of positive examples
-    ) -> None:
+        weight:Tensor|None=None, # Rescaling weight for each class
+        reduction:str='mean', # Pytorch reduction to apply to loss output. Also supports 'batchmean'.
+        pos_weight:Tensor|None=None, # Weight of positive examples
+        thresh:float=0.5, # Threshold for `decodes`
+    ):
         super().__init__(None, None, reduction)
         self.register_buffer('weight', weight)
         self.register_buffer('pos_weight', pos_weight)
         self.weight:Tensor|None
         self.pos_weight:Tensor|None
+        self.thresh = thresh
 
     def forward(self, input: Tensor, target: Tensor) -> Tensor:
         if self.reduction == 'batchmean':
@@ -42,7 +44,7 @@ class BCEWithLogitsLoss(TL._Loss):
 
     def decodes(self, x:Tensor) -> Tensor:
         "Converts model output to target format"
-        return x>self.thresh
+        return x > self.thresh
 
     def activation(self, x:Tensor) -> Tensor:
         "`nn.BCEWithLogitsLoss`'s fused activation function applied to model output"
@@ -55,9 +57,9 @@ class BCEWithLogitsLoss(TL._Loss):
 class ClassBalanced(TL._WeightedLoss):
     "Class Balanced weight calculation, from https://arxiv.org/abs/1901.05555."
     def __init__(self,
-        samples_per_class:Tensor,
-        beta:float=0.99,
-        reduction:str='mean',
+        samples_per_class:Tensor|Listy[int], # Number of samples per class
+        beta:float=0.99, # Rebalance factor, usually between [0.9, 0.9999]
+        reduction:str='mean', # Pytorch reduction to apply to loss output
     ):
         num_classes = len(samples_per_class)
         if not isinstance(samples_per_class, Tensor):
@@ -83,17 +85,17 @@ class ClassBalancedCrossEntropyLoss(ClassBalanced):
     label_smoothing: float
 
     def __init__(self,
-        samples_per_class:Tensor,
-        beta:float=0.99,
-        ignore_index:int=-100,
-        reduction:str='mean',
-        label_smoothing:float=0.0,
-        axis:int=-1
+        samples_per_class:Tensor|Listy[int], # Number of samples per class
+        beta:float=0.99, # Rebalance factor, usually between [0.9, 0.9999]
+        ignore_index:int=-100, # Target value which is ignored and doesn't contribute to gradient
+        reduction:str='mean', # Pytorch reduction to apply to loss output
+        label_smoothing:float=0.0, # Convert hard targets to soft targets, defaults to no smoothing
+        axis:int=-1 # ArgMax axis for fastai `decodes``
     ):
         super().__init__(samples_per_class, beta, reduction)
         self.ignore_index = ignore_index
         self.label_smoothing = label_smoothing
-        self.axis=axis
+        self.axis = axis
 
     def forward(self, input:Tensor, target:Tensor) -> Tensor:
         return F.cross_entropy(input, target, weight=self.weight,
@@ -113,13 +115,16 @@ class ClassBalancedBCEWithLogitsLoss(ClassBalanced):
     "Class Balanced BCE With Logits Loss, from https://arxiv.org/abs/1901.05555 with 'batchmean' reduction"
 
     def __init__(self,
-        samples_per_class:Tensor,
-        beta:float=0.99,
-        reduction:str='mean',
-        thresh:float=0.5, # Threshold for `decodes`
+        samples_per_class:Tensor|Listy[int], # Number of samples per class
+        beta:float=0.99, # Rebalance factor, usually between [0.9, 0.9999]
+        reduction:str='mean', # Pytorch reduction to apply to loss output. Also supports 'batchmean'.
+        pos_weight:Tensor|None=None, # BCE Weight of positive examples
+        thresh:float=0.5, # Threshold for fastai `decodes`
     ):
         super().__init__(samples_per_class, beta, reduction)
-        self.thresh=thresh
+        self.register_buffer('pos_weight', pos_weight)
+        self.pos_weight:Tensor|None
+        self.thresh = thresh
 
     def forward(self, input:Tensor, target:Tensor) -> Tensor:
         if self.reduction == 'batchmean':
@@ -135,7 +140,7 @@ class ClassBalancedBCEWithLogitsLoss(ClassBalanced):
 
     def decodes(self, x:Tensor) -> Tensor:
         "Converts model output to target format"
-        return x>self.thresh
+        return x > self.thresh
 
     def activation(self, x:Tensor) -> Tensor:
         "`nn.BCEWithLogitsLoss`'s fused activation function applied to model output"
