@@ -10,6 +10,8 @@ addons for fastai
 
 - [Fused optimizers](optimizer.fused.html) which are 21 to 293 percent
   faster relative to fastai native optimizers.
+- Fused implementations of modern optimizers, such as
+  [Adan](optimizer.adan.html) and [Lion](optimizer.lion.html).
 - Flexible [metrics](metrics.html) which can log on train, valid, or
   both. Backwards compatible with fastai metrics.
 - Easily use [multiple losses](multiloss.html) and log each individual
@@ -120,7 +122,7 @@ compatible with the original fastai code.
 Use a fused ForEach optimizer:
 
 ``` python
-Learner(..., opt_func=adam(fused=True))
+Learner(..., opt_func=adam(foreach=True))
 ```
 
 Log an accuracy metric on the training set as a smoothed metric and

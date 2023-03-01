@@ -6,6 +6,7 @@ __all__ = ['free_gpu_memory', 'less_random', 'scale_time']
 # %% ../../nbs/utils.ipynb 1
 # Contains code from:
 # fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
+# mish-cuda - MIT License - Copyright (c) 2019 thomasbrandon https://github.com/thomasbrandon/mish-cuda
 
 # %% ../../nbs/utils.ipynb 3
 import torch, random, gc

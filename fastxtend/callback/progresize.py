@@ -110,7 +110,6 @@ class ProgressiveResize(Callback):
                 self.learn.mixed_precision.autocast.__exit__(None, None, None)
 
             self.learn.loss.backward()
-            print('backwards')
             self.learn.opt.zero_grad()
 
         finally:
