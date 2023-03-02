@@ -6,15 +6,11 @@
 
 # %% ../nbs/transform.ipynb 3
 from __future__ import annotations
-from packaging.version import parse
 
 from torch.distributions import Bernoulli
 
 from fastcore.transform import DisplayedTransform, _is_tuple, retain_type
 from fastcore.dispatch import typedispatch, explode_types
-
-import fastai
-from fastai.data.core import TfmdDL
 
 from .imports import *
 
@@ -22,21 +18,6 @@ from .imports import *
 __all__ = ['BatchRandTransform']
 
 # %% ../nbs/transform.ipynb 5
-# This has been upstreamed in fastai 2.7.11
-if parse(fastai.__version__) < parse('2.7.11'):
-    @patch
-    def to(self:TfmdDL, device):
-        self.device = device
-        for tfm in self.after_batch.fs:
-            # Check that tfm.to is callable as TabularPandas & transforms set tfm.to as an object
-            if hasattr(tfm, 'to') and callable(tfm.to):
-                tfm.to(device)
-            else:
-                for a in L(getattr(tfm, 'parameters', None)):
-                    setattr(tfm, a, getattr(tfm, a).to(device))
-        return self
-
-# %% ../nbs/transform.ipynb 7
 class BatchRandTransform(DisplayedTransform):
     "Randomly selects a subset of batch `b` to apply transform with per item probability `p` in `before_call`"
     do,supports,split_idx = True,[],0
