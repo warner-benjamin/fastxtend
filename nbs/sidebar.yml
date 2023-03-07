@@ -32,6 +32,8 @@ website:
         - optimizer.fused.ipynb
         - text: Adan Optimizer
           file: optimizer.adan.ipynb
+        - text: Lion Optimizer
+          file: optimizer.lion.ipynb
       - section: Vision
         contents:
         - section: Augmentations

@@ -10,6 +10,8 @@ addons for fastai
 
 - [Fused optimizers](optimizer.fused.html) which are 21 to 293 percent
   faster relative to fastai native optimizers.
+- Fused implementations of modern optimizers, such as
+  [Adan](optimizer.adan.html) and [Lion](optimizer.lion.html).
 - Flexible [metrics](metrics.html) which can log on train, valid, or
   both. Backwards compatible with fastai metrics.
 - Easily use [multiple losses](multiloss.html) and log each individual
@@ -39,33 +41,33 @@ addons for fastai
 
 **Audio**
 
-- [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensoraudio),
-  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensorspec),
-  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
+- [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio),
+  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec),
+  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec)
   objects which maintain metadata and support plotting themselves using
   librosa.
 - A selection of performant [audio augmentations](audio.augment.html)
   inspired by fastaudio and torch-audiomentations.
 - Uses TorchAudio to quickly convert
-  [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensoraudio)
+  [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio)
   waveforms into
-  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensorspec)
+  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec)
   spectrograms or
-  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
+  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec)
   mel spectrograms using the GPU.
 - Out of the box support for converting one
-  [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensoraudio)
+  [`TensorAudio`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio)
   to one or multiple
-  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensorspec)
+  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec)
   or
-  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
+  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec)
   objects from the Datablock api.
 - Audio [MixUp and CutMix](audio.mixup.html) Callbacks.
-- [`audio_learner`](https://fastxtend.benjaminwarner.dev/audio.learner.html#audio_learner)
+- [`audio_learner`](https://fastxtend.benjaminwarner.dev/audio.04_learner.html#audio_learner)
   which merges multiple
-  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensorspec)
+  [`TensorSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec)
   or
-  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.core.html#tensormelspec)
+  [`TensorMelSpec`](https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec)
   objects before passing to the model.
 
 Check out the documentation for additional splitters, callbacks,
@@ -120,7 +122,7 @@ compatible with the original fastai code.
 Use a fused ForEach optimizer:
 
 ``` python
-Learner(..., opt_func=adam(fused=True))
+Learner(..., opt_func=adam(foreach=True))
 ```
 
 Log an accuracy metric on the training set as a smoothed metric and

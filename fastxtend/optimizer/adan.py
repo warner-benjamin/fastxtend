@@ -274,7 +274,7 @@ def adan(
     return partialler(Adan, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd,
                       paper_init=paper_init, foreach=foreach, jit=jit)
 
-# %% ../../nbs/optimizer.adan.ipynb 20
+# %% ../../nbs/optimizer.adan.ipynb 19
 def AdanLargeBatchLR(bs:int) -> float:
     "Square root rule for scaling `Adan` learning rate for large-batch training"
     return math.sqrt(bs/256)*6.25e-3

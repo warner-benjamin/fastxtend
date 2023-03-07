@@ -65,7 +65,7 @@ class ProgressiveResize(Callback):
         add_resize:bool=False, # Add a separate resize step. Use for non-fastai DataLoaders or fastai DataLoader without batch_tfms
         resize_targ:bool=False, # Applies the separate resize step to targets
         empty_cache:bool=False, # Call `torch.cuda.empty_cache()` before a resizing epoch. May prevent Cuda & Magma errors. Don't use with multiple GPUs
-        verbose:str=True, # Print a summary of the progressive resizing schedule
+        verbose:bool=True, # Print a summary of the progressive resizing schedule
         logger_callback:str='wandb', # Log image size to `logger_callback` using `Callback.name` if available
     ):
         store_attr()
@@ -81,7 +81,7 @@ class ProgressiveResize(Callback):
             self.run = False
             return
 
-        self._resize, self.remove_resize, self.null_resize, self.remove_cutmix = [], True, True, False
+        self._resize, self._remove_resize, self._null_resize, self._remove_cutmix = [], False, True, False
         self._log_size = getattr(self, f'_{self.logger_callback}_log_size', noop)
         self.has_logger = hasattr(self.learn, self.logger_callback) and self._log_size != noop
         self.increase_by = tensor(self.increase_by)
@@ -170,7 +170,7 @@ class ProgressiveResize(Callback):
             n_steps = _num_steps(self.final_size, self.current_size, self.increase_by)
 
             # Set when per epoch progressive resizing steps are applied
-            step_size = int(max_steps / n_steps)
+            step_size = max(1, int(max_steps / n_steps))
             start_epoch = finish_epoch - ((self.final_size-self.current_size) / self.increase_by)*step_size
             if isinstance(start_epoch, torch.Tensor):
                 if sum(start_epoch.shape)==2: start_epoch = int(start_epoch[0].item())
@@ -201,13 +201,13 @@ class ProgressiveResize(Callback):
             if hasattr(self.learn, 'cut_mix_up_augment'):
                 self._has_cutmixupaug = True
                 # Modify the `CutMixUpAugment` augmentation pipeline
-                self._process_pipeline(self.learn.cut_mix_up_augment._orig_pipe, False)
+                self._process_pipeline(self.learn.cut_mix_up_augment._orig_pipe)
 
                 # If `CutMixUpAugment` has an Affine Transform for Augmentations then use it
                 if len(self._resize) > 0:
                     # Check for pre-mixup augment pipeline and modify it
                     if self.learn.cut_mix_up_augment._docutmixaug:
-                        self._process_pipeline(self.learn.cut_mix_up_augment._cutmixaugs_pipe, False)
+                        self._process_pipeline(self.learn.cut_mix_up_augment._cutmixaugs_pipe)
                         self.learn.cut_mix_up_augment._size = _to_size(self.current_size)
                     else:
                         # There isn't one, then add it a pre-mixup augment pipeline for resizing
@@ -215,20 +215,20 @@ class ProgressiveResize(Callback):
                         self.learn.cut_mix_up_augment._docutmixaug = True
                         self.learn.cut_mix_up_augment._size = _to_size(self.current_size)
                         self._resize.append(self.learn.cut_mix_up_augment._cutmixaugs_pipe[0])
-                        self.remove_cutmix, self.remove_resize = True, True
+                        self._remove_cutmix, self._remove_resize = True, True
             else:
                 self._has_cutmixupaug = False
                 # If no `CutMixUpAugment` check the train dataloader pipeline for Affine Transforms
-                self._process_pipeline(self.dls.train.after_batch.fs, False)
+                self._process_pipeline(self.dls.train.after_batch.fs)
 
             # If `resize_valid` check the valid dataloader pipeline for Affine Transforms
             if self.resize_valid:
-                self._process_pipeline(self.dls.valid.after_batch.fs, False)
+                self._process_pipeline(self.dls.valid.after_batch.fs)
 
         # If `add_resize` or missing a fastai Augmentation resize add a seperate resize
         if self.add_resize or len(self._resize) == 0:
             self._added_resize = partial(F.interpolate, mode=self.resize_mode, recompute_scale_factor=True)
-            self.add_resize, self.remove_resize = True, True
+            self.add_resize, self._remove_resize = True, True
 
         # Set created or detected resize to the first size and store original interpolation
         self._orig_modes = []
@@ -280,7 +280,7 @@ class ProgressiveResize(Callback):
                     self.learn.cut_mix_up_augment._size = _to_size(self.current_size)
             else:
                 # Reset everything after progressive resizing is done
-                if self.null_resize:
+                if self._null_resize:
                     resize.size = None
                     if self._has_cutmixupaug:
                         self.learn.cut_mix_up_augment._size = None
@@ -288,27 +288,26 @@ class ProgressiveResize(Callback):
                     resize.size = _to_size(self.current_size)
                     resize.mode = self._orig_modes[i]
 
-        if (self.current_size == self.final_size).all() and self.remove_resize:
-            self.add_resize = False
-            if self.remove_cutmix:
-                self.learn.cut_mix_up_augment._cutmixaugs_pipe = Pipeline([])
-                self.learn.cut_mix_up_augment._docutmixaug = False
+        if (self.current_size == self.final_size).all() and self._remove_resize:
+                self.add_resize = False
+                if self._remove_cutmix:
+                    self.learn.cut_mix_up_augment._cutmixaugs_pipe = Pipeline([])
+                    self.learn.cut_mix_up_augment._docutmixaug = False
 
         if self.has_logger:
             self._log_size()
 
-    def _process_pipeline(self, pipe, remove_resize=False, null_resize=None):
+    def _process_pipeline(self, pipe, null_resize=None):
         'Helper method for processing augmentation pipelines'
         for p in pipe:
             if isinstance(p, _resize_augs):
                 self._resize.append(p)
                 if null_resize is None:
-                    self.null_resize = self.null_resize and p.size is None
+                    self._null_resize = self._null_resize and p.size is None
                 else:
-                    self.null_resize = null_resize
-        self.remove_resize = remove_resize
+                    self._null_resize = null_resize
 
-# %% ../../nbs/callback.progresize.ipynb 39
+# %% ../../nbs/callback.progresize.ipynb 44
 try:
     import wandb
 

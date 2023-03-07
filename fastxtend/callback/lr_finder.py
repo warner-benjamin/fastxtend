@@ -8,19 +8,19 @@ __all__ = ['LRFinder']
 # fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
 
 # %% ../../nbs/callback.lr_finder.ipynb 4
-from fastcore.xtras import is_listy
-from fastcore.foundation import patch, docs, Path
+from copy import deepcopy
+import tempfile
+
+from fastcore.foundation import Path
 from fastcore.basics import tuplify
+
 from fastai.callback.schedule import ParamScheduler, SchedExp, SuggestionMethod
 from fastai.torch_core import tensor, get_random_states, set_random_states
 from fastai.learner import Learner, CancelFitException, CancelValidException
-from functools import partial
-from copy import deepcopy
-import torch
-import collections, tempfile
+
+from ..imports import *
 
 # %% ../../nbs/callback.lr_finder.ipynb 6
-@docs
 class LRFinder(ParamScheduler):
     "Training with exponentially growing learning rate"
     def __init__(self, start_lr=1e-7, end_lr=10, num_it=100, stop_div=True, restore_state=True):
@@ -49,9 +49,12 @@ class LRFinder(ParamScheduler):
     def after_batch(self):
         "Record hyper-parameters of this batch and potentially stop training"
         super().after_batch()
-        if self.smooth_loss < self.best_loss: self.best_loss = self.smooth_loss
-        if self.smooth_loss > 4*self.best_loss and self.stop_div: raise CancelFitException()
-        if self.train_iter >= self.num_it: raise CancelFitException()
+        if self.smooth_loss < self.best_loss:
+            self.best_loss = self.smooth_loss
+        if self.smooth_loss > 4*self.best_loss and self.stop_div:
+            raise CancelFitException()
+        if self.train_iter >= self.num_it:
+            raise CancelFitException()
 
     def before_validate(self):
         "Skip the validation part of training"
@@ -91,7 +94,7 @@ def lr_find(self:Learner, start_lr=1e-7, end_lr=10, num_it=100, stop_div=True, s
             nms.append(func.__name__ if not isinstance(func, partial) else func.func.__name__) # deal with partials
             _suggestions.append(func(lrs, losses, num_it))
 
-        SuggestedLRs = collections.namedtuple('SuggestedLRs', nms)
+        SuggestedLRs = namedtuple('SuggestedLRs', nms)
         lrs, pnts = [], []
         for lr, pnt in _suggestions:
             lrs.append(lr)

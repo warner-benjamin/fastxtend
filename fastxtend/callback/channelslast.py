@@ -26,7 +26,7 @@ class ChannelsLast(Callback):
 @patch
 @delegates(GradScaler)
 def to_channelslast(self:Learner,
-    to_fp16:bool=True, # Add `MixedPrecision` callback. Required for full channels last performance
+    to_fp16:bool=True, # Add `MixedPrecision` callback. Recommended for full channels last performance
     **kwargs
 ):
     "Set `Learner` and inputs to `channels_last` format and Mixed Precision by default"

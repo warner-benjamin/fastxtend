@@ -68,7 +68,7 @@ $grid-screen-inset-padding: 1.5em;
 $grid-body-minsize: 600px;
 $grid-body-minsize-slim: 500px;
 $grid-body-maxsize-mid: calc(800px - #{2 * $grid-screen-inset-padding});
-$grid-body-maxsize-float-wide: calc(1000px - #{2 * $grid-screen-inset-padding});
+$grid-body-maxsize-float-wide: calc(1010px - #{2 * $grid-screen-inset-padding});
 $grid-body-maxsize-docked-wide: calc(1200px - #{2 * $grid-screen-inset-padding});
 $grid-body-maxsize-plain-wide: calc(1400px - #{2 * $grid-screen-inset-padding});
 $grid-body-maxsize-listing: calc(1200px - #{2 * $grid-screen-inset-padding});
@@ -169,7 +169,8 @@ a {
 }
 
 .content {
-  a { box-shadow: inset 0 -0.15rem 0 $link-color-underline;
+  a:not(.sidebar-navigation a) {
+      box-shadow: inset 0 -0.115rem 0 $link-color-underline;
       text-decoration: none;
       transition: all .15s cubic-bezier(.33,.66,.66,1);
 
@@ -201,7 +202,7 @@ code {
 }
 
 a code { color: $purple;
-         box-shadow: inset 0 -0.15rem 0 $link-color-underline;
+         box-shadow: inset 0 -0.115rem 0 $link-color-underline;
          text-decoration: none;
          transition: all .15s cubic-bezier(.33,.66,.66,1);
          z-index: 10;

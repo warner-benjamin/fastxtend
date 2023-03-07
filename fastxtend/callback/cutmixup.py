@@ -193,9 +193,9 @@ class CutMixUpAugment(MixUp, CutMix):
 
     Pulls augmentations from `Dataloaders.train.after_batch`. These augmentations are not applied when performing `MixUp` & `CutMix`, the frequency is controlled by `augment_ratio`.
 
-    Use `augment_finetune` to only apply dataloader augmentations at the end of training.
+    Use `augment_finetune` to only apply dataloader augmentations at the end of training for `augment_finetune` epochs or percent of training.
 
-    `cutmixup_augs` are an optional separate set of augmentations to apply with `MixUp` and `CutMix`. Usually less intensive then the dataloader augmentations. 
+    `cutmixup_augs` are an optional separate set of augmentations to apply with `MixUp` and `CutMix`. Usually these should be less intensive then the dataloader augmentations.
     """
     run_valid = False
     def __init__(self,
@@ -204,7 +204,7 @@ class CutMixUpAugment(MixUp, CutMix):
         mixup_ratio:Numeric=1, # Ratio to apply `MixUp` relative to `CutMix` & augmentations
         cutmix_ratio:Numeric=1, # Ratio to apply `CutMix` relative to `MixUp` & augmentations
         augment_ratio:Numeric=1, # Ratio to apply augmentations relative to `MixUp` & `CutMix`
-        augment_finetune:Numeric|None=None, # Number of epochs or pct of training to only apply augmentations
+        augment_finetune:Numeric|None=None, # Number of epochs or percent of training to only apply dataloader augmentations
         cutmix_uniform:bool=True, # Uniform patches across batch. True matches fastai CutMix
         cutmixup_augs:Listified[Transform|Callable[...,Transform]]|None=None, # Augmentations to apply before `MixUp` & `CutMix`. Should not have `Normalize`
         element:bool=True, # Apply element-wise MixUp, CutMix, and Augment on a batch
@@ -219,19 +219,22 @@ class CutMixUpAugment(MixUp, CutMix):
         self.mix_distrib = Beta(tensor(mix_alpha), tensor(mix_alpha))
         self.cut_distrib = Beta(tensor(cut_alpha), tensor(cut_alpha))
         self.aug_cutmix_ratio = augment_ratio / (augment_ratio + cutmix_ratio + mixup_ratio)
-        if self.aug_cutmix_ratio == 1: self.cut_mix_ratio = 0
-        else: self.cut_mix_ratio = mixup_ratio / (cutmix_ratio + mixup_ratio)
         self._docutmixaug = cutmixup_augs is not None
+        if self.aug_cutmix_ratio == 1:
+            self.cut_mix_ratio = 0
+        else:
+            self.cut_mix_ratio = mixup_ratio / (cutmix_ratio + mixup_ratio)
 
     def before_fit(self):
         "Remove training augmentations from dataloader & setup augmentation pipelines"
         super().before_fit()
         if self.augment_finetune is None:
-            self.augment_finetune = (self.learn.n_epoch + 1)/self.learn.n_epoch
+            self.augment_finetune = self.n_epoch/self.n_epoch
         elif self.augment_finetune >= 1:
-            self.augment_finetune = self.augment_finetune/self.learn.n_epoch
+            self.augment_finetune = (self.n_epoch - self.augment_finetune)/self.n_epoch
         else:
-            self.augment_finetune = self.augment_finetune
+            self.augment_finetune = 1 - self.augment_finetune
+        self.augment_finetune = min(1., self.augment_finetune)
 
         self._inttofloat_pipe = Pipeline([])
         self._norm_pipe = Pipeline([])
