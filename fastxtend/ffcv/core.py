@@ -12,10 +12,10 @@ from pathlib import Path
 
 import numpy as np
 
-from ffcvx.fields.base import Field
-from ffcvx.loader.loader import Loader, OrderOption, ORDER_TYPE, DEFAULT_OS_CACHE, ORDER_MAP
-from ffcvx.pipeline.operation import Operation
-from ffcvx.transforms.ops import ToDevice as _ToDevice
+from ffcv.fields.base import Field
+from ffcv.loader.loader import Loader, OrderOption, ORDER_TYPE, DEFAULT_OS_CACHE, ORDER_MAP
+from ffcv.pipeline.operation import Operation
+from ffcv.transforms.ops import ToDevice as _ToDevice
 
 from fastcore.basics import GetAttr, detuplify, Inf
 from fastcore.dispatch import retain_types, explode_types
@@ -27,11 +27,11 @@ from fastai.data.core import show_batch, show_results, DataLoaders
 from ..imports import *
 
 # %% auto 0
-__all__ = ['FFCVDataLoader', 'FFCVTensorCategory', 'FFCVTensorMultiCategory']
+__all__ = ['DataLoader', 'FFCVTensorCategory', 'FFCVTensorMultiCategory']
 
 # %% ../../nbs/ffcv.core.ipynb 5
 @funcs_kwargs
-class BaseLoader(GetAttr):
+class BaseDL(GetAttr):
     "Provides callbacks for DataLoaders which inherit from `BaseLoader`"
     _methods = 'before_iter after_batch after_iter'.split()
     def __init__(self, **kwargs):
@@ -50,11 +50,11 @@ class BaseLoader(GetAttr):
         return x
 
 # %% ../../nbs/ffcv.core.ipynb 6
-class FFCVDataLoader(BaseLoader, Loader):
-    "Hybrid FFCV `Loader` and fastai Transformed DataLoader `TfmdDL`"
+class DataLoader(BaseDL, Loader):
+    "FFCV `Loader` with fastai Transformed DataLoader `TfmdDL` batch transforms"
     def __init__(self,
         fname:str|Path, # Path to the location of the dataset (FFCV beton format)
-        bs:int=64, # Batch size
+        batch_size:int, # Batch size
         num_workers:int=-1, # Number of CPU cores to use in parallel (default: All available up to 16)
         os_cache:bool=DEFAULT_OS_CACHE, # Leverage the OS for caching. Beneficial when there is enough memory to cache the dataset
         order:ORDER_TYPE=OrderOption.SEQUENTIAL, # Dataset traversal order, one of: SEQEUNTIAL, RANDOM, QUASI_RANDOM
@@ -90,7 +90,7 @@ class FFCVDataLoader(BaseLoader, Loader):
 
         Loader.__init__(self,
             fname=str(Path(fname)),
-            batch_size=bs,
+            batch_size=batch_size,
             num_workers=num_workers,
             os_cache=os_cache,
             order=order,
@@ -103,7 +103,7 @@ class FFCVDataLoader(BaseLoader, Loader):
             batches_ahead=batches_ahead,
             recompile=recompile
         )
-        BaseLoader.__init__(self, **kwargs)
+        BaseDL.__init__(self, **kwargs)
         self.split_idx = split_idx
         self.device = device
         if n_inp is None:
@@ -163,7 +163,7 @@ class FFCVDataLoader(BaseLoader, Loader):
         "Show `max_n` results with input(s), target(s) and prediction(s)."
         x,y,its = self.show_batch(b, max_n=max_n, show=False)
         b_out = type(b)(b[:self.n_inp] + (tuple(out) if is_listy(out) else (out,)))
-        x1,y1,outs = self.show_batch(b_out, max_n=max_n, show=False)
+        x1,_,outs = self.show_batch(b_out, max_n=max_n, show=False)
         if its is None:
             res = (x, x1, None, None)
         else:
@@ -281,18 +281,3 @@ class FFCVTensorMultiCategory(TensorMultiCategory):
     "fastai's TensorMultiCategory with a show method"
     def show(self, **kwargs):
         show_title(self.item(), **kwargs)
-
-# %% ../../nbs/ffcv.core.ipynb 11
-from packaging.version import parse
-import fastai
-
-# %% ../../nbs/ffcv.core.ipynb 12
-if parse(fastai.__version__) <= parse('2.7.10'):
-    @patch
-    def __init__(self:DataLoaders,
-        *loaders, # `DataLoader` objects to wrap
-        path:str|Path='.', # Path to store export objects
-        device=None # Device to put `DataLoaders`
-    ):
-        self.loaders,self.path = list(loaders),Path(path)
-        if device is not None and hasattr(loaders[0],'to'): self.device = device
