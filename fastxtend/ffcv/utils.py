@@ -17,8 +17,10 @@ from torch.utils.data import Dataset
 
 from fastai.data.core import Datasets
 
-from ffcv.fields import RGBImageField, IntField, FloatField
+from ffcv.fields import IntField, FloatField
 from ffcv.writer import DatasetWriter
+
+from .fields import RGBImageField
 
 # %% auto 0
 __all__ = ['FFCVLabelFields', 'rgb_dataset_to_ffcv']

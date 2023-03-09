@@ -13,7 +13,8 @@ from pathlib import Path
 import numpy as np
 
 from ffcv.fields.base import Field
-from ffcv.loader.loader import Loader, OrderOption, ORDER_TYPE, DEFAULT_OS_CACHE, ORDER_MAP
+from ffcv.loader.loader import Loader as _Loader
+from ffcv.loader.loader import OrderOption, ORDER_TYPE, DEFAULT_OS_CACHE, ORDER_MAP
 from ffcv.pipeline.operation import Operation
 from ffcv.transforms.ops import ToDevice as _ToDevice
 
@@ -27,7 +28,7 @@ from fastai.data.core import show_batch, show_results, DataLoaders
 from ..imports import *
 
 # %% auto 0
-__all__ = ['DataLoader', 'FFCVTensorCategory', 'FFCVTensorMultiCategory']
+__all__ = ['Loader']
 
 # %% ../../nbs/ffcv.core.ipynb 5
 @funcs_kwargs
@@ -50,7 +51,7 @@ class BaseDL(GetAttr):
         return x
 
 # %% ../../nbs/ffcv.core.ipynb 6
-class DataLoader(BaseDL, Loader):
+class Loader(BaseDL, _Loader):
     "FFCV `Loader` with fastai Transformed DataLoader `TfmdDL` batch transforms"
     def __init__(self,
         fname:str|Path, # Path to the location of the dataset (FFCV beton format)
@@ -88,7 +89,7 @@ class DataLoader(BaseDL, Loader):
         if device is None:
             device = default_device()
 
-        Loader.__init__(self,
+        _Loader.__init__(self,
             fname=str(Path(fname)),
             batch_size=batch_size,
             num_workers=num_workers,
@@ -114,13 +115,13 @@ class DataLoader(BaseDL, Loader):
         for name in ['item_tfms', 'after_item', 'before_batch']:
             if name in kwargs:
                 if name != 'before_batch':
-                    msg = f'`FFCVDataLoader` will not call any {name} methods. ' \
-                          f'{name} is for use with a fastai DataLoader.\n' \
-                          f'Instead of passing fastai Item Transforms to {name},' \
-                          f'initialize the `FFCVDataLoader` pipeline with FFCV transforms.'
+                    msg = f"fastxtend's `Loader` will not call any {name} methods. " \
+                          f"{name} is for use with a fastai DataLoader.\n" \
+                          f"Instead of passing fastai Item Transforms to {name}," \
+                          f"initialize the fastxtend `Loader` pipeline with FFCV transforms."
                 else:
-                    msg = f'`FFCVDataLoader` will not call any {name} methods. ' \
-                          f'{name} are for use with a fastai DataLoader.'
+                    msg = f"fastxtend's `Loader` will not call any {name} methods. " \
+                          f"{name} are for use with a fastai DataLoader."
                 warn(msg)
 
 
@@ -269,15 +270,3 @@ class DataLoader(BaseDL, Loader):
         self.indices = orig_indices
         self.drop_last = orig_drop_last
         self.traversal_order = orig_traversal_order
-
-# %% ../../nbs/ffcv.core.ipynb 8
-class FFCVTensorCategory(TensorCategory):
-    "fastai's TensorCategory with a show method"
-    def show(self, **kwargs):
-        show_title(self.item(), **kwargs)
-
-# %% ../../nbs/ffcv.core.ipynb 9
-class FFCVTensorMultiCategory(TensorMultiCategory):
-    "fastai's TensorMultiCategory with a show method"
-    def show(self, **kwargs):
-        show_title(self.item(), **kwargs)
