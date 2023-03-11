@@ -30,7 +30,7 @@ from ..imports import *
 # %% auto 0
 __all__ = ['Loader']
 
-# %% ../../nbs/ffcv.core.ipynb 5
+# %% ../../nbs/ffcv.core.ipynb 4
 @funcs_kwargs
 class BaseDL(GetAttr):
     "Provides callbacks for DataLoaders which inherit from `BaseLoader`"
@@ -50,7 +50,7 @@ class BaseDL(GetAttr):
         "Called after `BaseLoader` has fully read/iterated over the dataset."
         return x
 
-# %% ../../nbs/ffcv.core.ipynb 6
+# %% ../../nbs/ffcv.core.ipynb 5
 class Loader(BaseDL, _Loader):
     "FFCV `Loader` with fastai Transformed DataLoader `TfmdDL` batch transforms"
     def __init__(self,
@@ -64,12 +64,12 @@ class Loader(BaseDL, _Loader):
         indices:Sequence[int]|None=None, # Subset dataset by returning only these indices
         pipelines:Mapping[str, Sequence[Operation|nn.Module]]={}, # Dictionary defining for each field the sequence of Decoders and transforms to apply
         custom_fields:Mapping[str, Field]={}, # Dictonary informing `Loader` of the types associated to fields that are using a custom type
-        drop_last:bool|None=None, # Drop non-full batch in each epoch
+        drop_last:bool|None=None, # Drop non-full batch in each epoch. Defaults to True if order is sequential
         batches_ahead:int=3, # Number of batches prepared in advance; balances latency and memory
         recompile:bool=False, # Recompile at every epoch. Required if FFCV augmentations change during training
-        device:str|int|torch.device|None=None, # Device to place batch, defaults to fastai's `default_device`
+        device:str|int|torch.device|None=None, # Device to place batch. Defaults to fastai's `default_device`
         n_inp:int|None=None, # Number of inputs to the model. Defaults to pipelines length minus 1
-        split_idx:int|None=None, # Apply batch transform(s) to training (0) or validation (1) set
+        split_idx:int|None=None, # Apply batch transform(s) to training (0) or validation (1) set. Defaults to valid if order is sequential
         do_setup:bool=True, # Run `setup()` for batch transform(s)
         **kwargs
     ):
@@ -89,6 +89,9 @@ class Loader(BaseDL, _Loader):
         if device is None:
             device = default_device()
 
+        if split_idx is None:
+            split_idx = int(order==OrderOption.SEQUENTIAL)
+
         _Loader.__init__(self,
             fname=str(Path(fname)),
             batch_size=batch_size,
@@ -105,6 +108,7 @@ class Loader(BaseDL, _Loader):
             recompile=recompile
         )
         BaseDL.__init__(self, **kwargs)
+
         self.split_idx = split_idx
         self.device = device
         if n_inp is None:

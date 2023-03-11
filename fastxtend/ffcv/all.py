@@ -7,6 +7,6 @@ from ffcv.writer import DatasetWriter
 import fastxtend.ffcv.ft as ft
 
 from .fields import RGBImageField
-from .core import *
+from .loader import *
 from .inference import *
 from .utils import *

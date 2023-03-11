@@ -4,6 +4,10 @@
 __all__ = ['RGBImageField']
 
 # %% ../../nbs/ffcv.fields.ipynb 1
+# Contains code from:
+# FFCV - Apache License 2.0 - Copyright (c) 2022 FFCV Team
+
+# %% ../../nbs/ffcv.fields.ipynb 2
 import cv2
 import numpy as np
 from typing import Type
@@ -20,12 +24,12 @@ from ffcv.fields.rgb_image import SimpleRGBImageDecoder, encode_jpeg
 from ffcv.pipeline.operation import Operation
 from ..utils import pil_to_numpy
 
-# %% ../../nbs/ffcv.fields.ipynb 4
+# %% ../../nbs/ffcv.fields.ipynb 5
 IMAGE_MODES = Dict()
 IMAGE_MODES['jpg'] = 0
 IMAGE_MODES['raw'] = 1
 
-# %% ../../nbs/ffcv.fields.ipynb 5
+# %% ../../nbs/ffcv.fields.ipynb 6
 def resizer(image, max_resolution, min_resolution, interpolation=(cv2.INTER_AREA, LANCZOS)):
     pillow_resize = isinstance(image, Image.Image)
     if max_resolution is None and min_resolution is None:
@@ -54,7 +58,7 @@ def resizer(image, max_resolution, min_resolution, interpolation=(cv2.INTER_AREA
     else:
         return image
 
-# %% ../../nbs/ffcv.fields.ipynb 6
+# %% ../../nbs/ffcv.fields.ipynb 7
 class RGBImageField(Field):
     """
     A subclass of :class:`~ffcv.fields.Field` supporting RGB image data.
