@@ -37,6 +37,7 @@ class ToDevice(_ToDevice):
         device:int|str|torch.device, # Device to move Tensor to
         non_blocking:bool=True # Asynchronous if copying from CPU to GPU
     ):
+        device, *_ = torch._C._nn._parse_to(device=device)
         super().__init__(device, non_blocking)
 
     def generate_code(self) -> Callable:
