@@ -7,6 +7,7 @@
 # %% ../../nbs/ffcv.operations.ipynb 3
 from __future__ import annotations
 
+from abc import ABCMeta
 from typing import Callable, Optional, Tuple
 from dataclasses import replace
 
@@ -14,6 +15,9 @@ import torch
 import numpy as np
 
 from fastcore.dispatch import retain_meta
+from fastcore.transform import _TfmMeta
+
+from fastai.data.transforms import IntToFloatTensor as _IntToFloatTensor
 
 from ffcv.pipeline.allocation_query import AllocationQuery
 from ffcv.pipeline.operation import Operation
@@ -25,7 +29,7 @@ from ..imports import *
 
 # %% auto 0
 __all__ = ['ToDevice', 'ToTensorBase', 'ToTensorImage', 'ToTensorImageBW', 'ToTensorMask', 'ToTensorCategory',
-           'ToTensorMultiCategory', 'ToTensorTitledTensorScalar', 'Convert', 'View']
+           'ToTensorMultiCategory', 'ToTensorTitledTensorScalar', 'IntToFloatTensor', 'Convert', 'View']
 
 # %% ../../nbs/ffcv.operations.ipynb 4
 _all_ = ['Convert', 'View']
@@ -112,3 +116,22 @@ class ToTensorTitledTensorScalar(ToTensorBase):
     "Convenience op convert from Numpy array to fastai TitledTensorScalar."
     def __init__(self):
         super().__init__(TitledTensorScalar)
+
+# %% ../../nbs/ffcv.operations.ipynb 19
+class _ABCTfmMeta(ABCMeta, _TfmMeta):
+    pass
+
+# %% ../../nbs/ffcv.operations.ipynb 20
+class IntToFloatTensor(Operation, _IntToFloatTensor, metaclass=_ABCTfmMeta):
+    def __init__(self, div:float=255., div_mask:int=1):
+        Operation.__init__(self)
+        _IntToFloatTensor.__init__(self, div, div_mask)
+
+    def generate_code(self) -> Callable:
+        def apply_self(inp, _):
+            return self(inp)
+
+        return apply_self
+
+    def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
+        return replace(previous_state, jit_mode=False), None
