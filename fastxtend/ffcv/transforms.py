@@ -458,7 +458,7 @@ class RandomLighting(Operation):
             def grayscale(x):
                 return 0.2989 * x[:,:,0] + 0.587 * x[:,:,1] + 0.114 * x[:,:,2]
             def probs(max, shape, prob):
-                return np.random.rand(shape) < prob if max > 0 else np.zeros(shape, dtype=bool)
+                return np.random.rand(shape) < prob if max > 0 else np.zeros(shape)==1
 
             bs = images.shape[0]
             apply_brightness = probs(max_brightness, bs, prob_brightness)
