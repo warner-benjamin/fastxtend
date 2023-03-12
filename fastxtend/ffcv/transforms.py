@@ -31,8 +31,8 @@ from ffcv.transforms.common import Squeeze
 
 # %% auto 0
 __all__ = ['RandomHorizontalFlip', 'RandomBrightnessTV', 'RandomContrastTV', 'RandomSaturationTV', 'RandomCutout',
-           'RandomErasing', 'RandomHueTV', 'RandomBrightness', 'RandomContrast', 'RandomSaturation', 'RandomHue',
-           'RandomResizedCrop', 'RandomTranslate', 'Cutout', 'Poison', 'ReplaceLabel', 'Squeeze']
+           'RandomErasing', 'RandomHueTV', 'RandomBrightness', 'RandomContrast', 'RandomSaturation', 'RandomLighting',
+           'RandomHue', 'RandomResizedCrop', 'RandomTranslate', 'Cutout', 'Poison', 'ReplaceLabel', 'Squeeze']
 
 # %% ../../nbs/ffcv.transforms.ipynb 3
 _all_ = ['RandomResizedCrop', 'RandomTranslate', 'Cutout', 'Poison', 'ReplaceLabel', 'Squeeze']
@@ -308,13 +308,20 @@ class RandomBrightness(Operation):
         magnitude = self.magnitude
 
         def brightness(images, dst):
+            def logit(x):
+                return -np.log(1. / np.clip(x, 1e-7, 1-1e-7) - 1.)
+            def sigmoid(x):
+                return 1. / (1. + np.exp(-x))
+
             apply_bright = np.random.rand(images.shape[0]) < prob
             magnitudes = np.random.uniform(0.5*(1-magnitude), 0.5*(1+magnitude), images.shape[0])
-            magnitudes = np.clip(magnitudes, 1e-7, 1-1e-7)
-            magnitudes = -np.log(1. / magnitudes - 1.)
+            magnitudes = logit(magnitudes)
             for i in my_range(images.shape[0]):
                 if apply_bright[i]:
-                    dst[i] = np.clip((images[i] + magnitudes[i]*255.), 0, 255).astype(np.uint8)
+                    img = images[i] / 255.
+                    img = logit(img)
+                    img = sigmoid(img + magnitudes[i])
+                    dst[i] = (img*255.).astype(np.uint8)
                 else:
                     dst[i] = images[i]
             return dst
@@ -342,11 +349,19 @@ class RandomContrast(Operation):
         magnitude = self.magnitude
 
         def contrast(images, dst):
+            def logit(x):
+                return -np.log(1. / np.clip(x, 1e-7, 1-1e-7) - 1.)
+            def sigmoid(x):
+                return 1. / (1. + np.exp(-x))
+
             apply_contrast = np.random.rand(images.shape[0]) < prob
             magnitudes = np.exp(np.random.uniform(np.log(1-magnitude), -np.log(1-magnitude), images.shape[0]))
             for i in my_range(images.shape[0]):
                 if apply_contrast[i]:
-                    dst[i] = np.clip(images[i] * magnitudes[i], 0, 255).astype(np.uint8)
+                    img = images[i] / 255.
+                    img = logit(img)
+                    img = sigmoid(img * magnitudes[i])
+                    dst[i] = (img*255.).astype(np.uint8)
                 else:
                     dst[i] = images[i]
             return dst
@@ -374,17 +389,28 @@ class RandomSaturation(Operation):
         magnitude = self.magnitude
 
         def saturation(images, dst):
+            def logit(x):
+                return -np.log(1. / np.clip(x, 1e-7, 1-1e-7) - 1.)
+            def sigmoid(x):
+                return 1. / (1. + np.exp(-x))
+            def grayscale(x):
+                return 0.2989 * x[:,:,0] + 0.587 * x[:,:,1] + 0.114 * x[:,:,2]
+
             apply_saturation = np.random.rand(images.shape[0]) < prob
             magnitudes = np.exp(np.random.uniform(np.log(1-magnitude), -np.log(1-magnitude), images.shape[0]))
             for i in my_range(images.shape[0]):
                 if apply_saturation[i]:
                     img = images[i] / 255.
-                    l_img = (0.2989 * img[:,:,0] + 0.587 * img[:,:,1] + 0.114 * img[:,:,2]) * (1-magnitudes[i])
+
+                    l_img = grayscale(img) * (1-magnitudes[i])
                     gray = np.zeros_like(img)
                     for j in range(img.shape[-1]):
                         gray[:,:,j] = l_img
+
+                    img = logit(img)
                     img = img * magnitudes[i]
-                    dst[i] = np.clip((img + gray)*255., 0, 255).astype(np.uint8)
+                    img = sigmoid(img + gray)
+                    dst[i] = (img*255.).astype(np.uint8)
                 else:
                     dst[i] = images[i]
             return dst
@@ -396,6 +422,90 @@ class RandomSaturation(Operation):
         return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
 
 # %% ../../nbs/ffcv.transforms.ipynb 26
+class RandomLighting(Operation):
+    'Randomly adjust image brightness, contrast, and saturation like fastai. Combines all three into single transform for speed.'
+    def __init__(self,
+        prob:float|None=0.75, # Probability of changing brightness, contrast, and saturation. Set to None for individual probability
+        max_brightness:float=0.2, # Maximum brightness change. Randomly choose factor on [0.5*(1-max_brightness), 0.5*(1+max_brightness)]
+        max_contrast:float=0.2, # Maximum contrast change. Randomly choose factor on [1-max_contrast, 1/(1-max_contrast)] in log space
+        max_saturation:float=0.2, # Maximum saturation change. Randomly choose factor on [1-max_saturation, 1/(1-max_saturation)] in log space
+        prob_brightness:float|None=None, # Individual probability of changing brightness. Set to prob=None to use
+        prob_contrast:float|None=None, # Individual probability of changing contrast. Set to prob=None to use
+        prob_saturation:float|None=None, # Individual probability of changing saturation. Set to prob=None to use
+    ):
+        super().__init__()
+        self.prob = prob
+        self.prob_brightness = prob_brightness
+        self.prob_contrast   = prob_contrast
+        self.prob_saturation = prob_saturation
+        self.max_brightness  = max_brightness
+        self.max_contrast    = max_contrast
+        self.max_saturation  = max_saturation
+
+    def generate_code(self):
+        my_range = Compiler.get_iterator()
+        if self.prob is not None:
+            prob_brightness, prob_contrast, prob_saturation = self.prob, self.prob, self.prob
+        else:
+            prob_brightness, prob_contrast, prob_saturation = self.prob_brightness, self.prob_contrast, self.prob_saturation
+        max_brightness, max_contrast, max_saturation = self.max_brightness, self.max_contrast, self.max_saturation
+
+        def lighting(images, dst):
+            def logit(x):
+                return -np.log(1. / np.clip(x, 1e-7, 1-1e-7) - 1.)
+            def sigmoid(x):
+                return 1. / (1. + np.exp(-x))
+            def grayscale(x):
+                return 0.2989 * x[:,:,0] + 0.587 * x[:,:,1] + 0.114 * x[:,:,2]
+            def probs(max, shape, prob):
+                return np.random.rand(shape) < prob if max > 0 else np.zeros(shape, dtype=bool)
+
+            bs = images.shape[0]
+            apply_brightness = probs(max_brightness, bs, prob_brightness)
+            apply_contrast   = probs(max_contrast, bs, prob_contrast)
+            apply_saturation = probs(max_saturation, bs, prob_saturation)
+
+            brightness = logit(np.random.uniform(0.5*(1-max_brightness), 0.5*(1+max_brightness), bs))
+            contrast   = np.exp(np.random.uniform(np.log(1-max_contrast), -np.log(1-max_contrast), bs))
+            saturation = np.exp(np.random.uniform(np.log(1-max_saturation), -np.log(1-max_saturation), bs))
+            for i in my_range(bs):
+                if apply_brightness[i] or apply_contrast[i] or apply_saturation[i]:
+                    img = images[i] / 255.
+
+                    if apply_saturation[i]:
+                        l_img = grayscale(img)
+                    else:
+                        l_img = np.empty_like(img[:,:,0])
+
+                    img = logit(img)
+
+                    if apply_brightness[i]:
+                        img = img + brightness[i]
+
+                    if apply_contrast[i]:
+                        img = img * contrast[i]
+
+                    if apply_saturation[i]:
+                        l_img = l_img * (1-saturation[i])
+                        gray = np.empty_like(img)
+                        for j in range(img.shape[-1]):
+                            gray[:,:,j] = l_img
+                        img = img * saturation[i]
+                        img = img + gray
+
+                    img = sigmoid(img)
+                    dst[i] = (img*255.).astype(np.uint8)
+                else:
+                    dst[i] = images[i]
+            return dst
+
+        lighting.is_parallel = True
+        return lighting
+
+    def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
+        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
+
+# %% ../../nbs/ffcv.transforms.ipynb 27
 # RandomHue adapted from pending FFCV PR: https://github.com/libffcv/ffcv/pull/226
 # FFCV - Apache License 2.0 - Copyright (c) 2022 FFCV Team
 
