@@ -30,9 +30,9 @@ from ffcv.transforms.replace_label import ReplaceLabel
 from ffcv.transforms.common import Squeeze
 
 # %% auto 0
-__all__ = ['RandomHorizontalFlip', 'RandomBrightnessTV', 'RandomContrastTV', 'RandomSaturationTV', 'RandomCutout',
-           'RandomErasing', 'RandomHueTV', 'RandomBrightness', 'RandomContrast', 'RandomSaturation', 'RandomLighting',
-           'RandomHue', 'RandomResizedCrop', 'RandomTranslate', 'Cutout', 'Poison', 'ReplaceLabel', 'Squeeze']
+__all__ = ['RandomHorizontalFlip', 'RandomBrightness', 'RandomContrast', 'RandomSaturation', 'RandomLighting', 'RandomHue',
+           'RandomCutout', 'RandomErasing', 'RandomResizedCrop', 'RandomTranslate', 'Cutout', 'Poison', 'ReplaceLabel',
+           'Squeeze']
 
 # %% ../../nbs/ffcv.transforms.ipynb 3
 _all_ = ['RandomResizedCrop', 'RandomTranslate', 'Cutout', 'Poison', 'ReplaceLabel', 'Squeeze']
@@ -53,52 +53,391 @@ class RandomHorizontalFlip(_RandomHorizontalFlip):
     def __init__(self, prob: float = 0.5):
         super().__init__(prob)
 
-# %% ../../nbs/ffcv.transforms.ipynb 12
-class RandomBrightnessTV(_RandomBrightness):
-    '''
-    Randomly adjust image brightness like TorchVision. Operates on raw arrays (not tensors).
+# %% ../../nbs/ffcv.transforms.ipynb 16
+class RandomBrightness(Operation):
+    'Randomly adjust image brightness. Supports both TorchVision and fastai style brighness transforms.'
+    def __init__(self,
+        prob:float, # Probability of changing brightness
+        max_lighting:float, # Maximum brightness change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [0.5*(1-magnitude), 0.5*(1+magnitude)] if fastai=True.
+        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision.
+    ):
+        super().__init__()
+        self.prob = prob
+        self.magnitude = max_lighting
+        self.fastai = fastai
 
-    Parameters
-    ----------
-    prob : float
-        probability to apply brightness
-    magnitude : float
-        randomly choose brightness enhancement factor on [max(0, 1-magnitude), 1+magnitude]
-    '''
-    def __init__(self, prob:float, magnitude: float):
-        super().__init__(magnitude, prob)
+    def generate_code(self):
+        my_range = Compiler.get_iterator()
+        prob = self.prob
+        magnitude = self.magnitude
 
-# %% ../../nbs/ffcv.transforms.ipynb 13
-class RandomContrastTV(_RandomContrast):
-    '''
-    Randomly adjust image contrast like TorchVision. Operates on raw arrays (not tensors).
+        if self.fastai:
+            def brightness(images, dst):
+                fp = np.float32
+                def logit(x):
+                    return -np.log(fp(1) / x - fp(1))
+                def sigmoid(x):
+                    return fp(1) / (fp(1) + np.exp(-x))
 
-    Parameters
-    ----------
-    prob : float
-        probability to apply contrast
-    magnitude : float
-        randomly choose contrast enhancement factor on [max(0, 1-magnitude), 1+magnitude]
-    '''
-    def __init__(self, prob:float, magnitude:float):
-        super().__init__(magnitude, prob)
+                apply_bright = np.random.rand(images.shape[0]) < prob
+                magnitudes = logit(np.random.uniform(0.5*(1-magnitude), 0.5*(1+magnitude), images.shape[0]).astype(fp))
+                for i in my_range(images.shape[0]):
+                    if apply_bright[i]:
+                        img = images[i] / fp(255)
+                        img = logit(img)
+                        img = sigmoid(img + magnitudes[i])
+                        dst[i] = (img*255).astype(np.uint8)
+                    else:
+                        dst[i] = images[i]
+                return dst
+        else:
+            def brightness(images, dst):
+                fp = np.float32
+                def blend(img1, img2, ratio): 
+                    return (ratio*img1 + (1-ratio)*img2).clip(0, 255).astype(img1.dtype)
 
-# %% ../../nbs/ffcv.transforms.ipynb 14
-class RandomSaturationTV(_RandomSaturation):
-    '''
-    Randomly adjust image saturation like TorchVision. Operates on raw arrays (not tensors).
+                apply_bright = np.random.rand(images.shape[0]) < prob
+                magnitudes = np.random.uniform(max(0, 1-magnitude), 1+magnitude, images.shape[0]).astype(fp)
+                for i in my_range(images.shape[0]):
+                    if apply_bright[i]:
+                        dst[i] = blend(images[i], 0, magnitudes[i])
+                    else:
+                        dst[i] = images[i]
+                return dst
 
-    Parameters
-    ----------
-    prob : float
-        probability to apply saturation
-    magnitude : float
-        randomly choose color balance enhancement factor on [max(0, 1-magnitude), 1+magnitude]
-    '''
-    def __init__(self, prob:float, magnitude:float):
-        super().__init__(magnitude, prob)
+        brightness.is_parallel = True
+        return brightness
+
+    def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
+        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
+
+# %% ../../nbs/ffcv.transforms.ipynb 17
+class RandomContrast(Operation):
+    'Randomly adjust image contrast. Supports both TorchVision and fastai style contrast transforms.'
+    def __init__(self,
+        prob:float, # Probability of changing contrast
+        max_lighting:float, # Maximum contrast change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [1-max_lighting, 1/(1-max_lighting)] in log space if fastai=True.
+        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision.
+    ):
+        super().__init__()
+        self.prob = prob
+        self.magnitude = max_lighting
+        self.fastai = fastai
+
+    def generate_code(self):
+        my_range = Compiler.get_iterator()
+        prob = self.prob
+        magnitude = self.magnitude
+
+        if self.fastai:
+            def contrast(images, dst):
+                fp = np.float32
+                def logit(x):
+                    return -np.log(fp(1) / x - fp(1))
+                def sigmoid(x):
+                    return fp(1) / (fp(1) + np.exp(-x))
+
+                apply_contrast = np.random.rand(images.shape[0]) < prob
+                magnitudes = np.exp(np.random.uniform(np.log(1-magnitude), -np.log(1-magnitude), images.shape[0]).astype(fp))
+                for i in my_range(images.shape[0]):
+                    if apply_contrast[i]:
+                        img = images[i] / fp(255)
+                        img = logit(img)
+                        img = sigmoid(img * magnitudes[i])
+                        dst[i] = (img*255).astype(np.uint8)
+                    else:
+                        dst[i] = images[i]
+                return dst
+        else:
+            def contrast(images, dst):
+                fp = np.float32
+                def blend(img1, img2, ratio): 
+                    return (ratio*img1 + (1-ratio)*img2).clip(0, 255).astype(img1.dtype)
+
+                apply_contrast = np.random.rand(images.shape[0]) < prob
+                magnitudes = np.random.uniform(max(0, 1-magnitude), 1+magnitude, images.shape[0]).astype(fp)
+                for i in my_range(images.shape[0]):
+                    if apply_contrast[i]:
+                        l_img = fp(0.2989)*images[i,:,:,0] + fp(0.587)*images[i,:,:,1] + fp(0.114)*images[i,:,:,2]
+                        dst[i] = blend(images[i], l_img.mean(), magnitudes[i])
+                    else:
+                        dst[i] = images[i]
+                return dst
+
+        contrast.is_parallel = True
+        return contrast
+
+    def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
+        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
+
+# %% ../../nbs/ffcv.transforms.ipynb 18
+class RandomSaturation(Operation):
+    'Randomly adjust image saturation. Supports both TorchVision and fastai style contrast transforms.'
+    def __init__(self,
+        prob:float, # Probability of changing saturation
+        max_lighting:float, # Maximum saturation change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [1-max_lighting, 1/(1-max_lighting)] in log space if fastai=True.
+        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision.
+    ):
+        super().__init__()
+        self.prob = prob
+        self.magnitude = max_lighting
+        self.fastai = fastai
+
+    def generate_code(self):
+        my_range = Compiler.get_iterator()
+        prob = self.prob
+        magnitude = self.magnitude
+
+        if self.fastai:
+            def saturation(images, dst):
+                fp = np.float32
+                def logit(x):
+                    return -np.log(fp(1) / x - fp(1))
+                def sigmoid(x):
+                    return fp(1) / (fp(1) + np.exp(-x))
+                def grayscale(x):
+                    return fp(0.2989) * x[:,:,0] + fp(0.587) * x[:,:,1] + fp(0.114) * x[:,:,2]
+
+                apply_saturation = np.random.rand(images.shape[0]) < prob
+                magnitudes = np.exp(np.random.uniform(np.log(1-magnitude), -np.log(1-magnitude), images.shape[0]).astype(fp))
+                for i in my_range(images.shape[0]):
+                    if apply_saturation[i]:
+                        img = images[i] / fp(255)
+
+                        l_img = grayscale(img) * (1-magnitudes[i])
+                        gray = np.empty_like(img)
+                        for j in range(3):
+                            gray[:,:,j] = l_img
+
+                        img = logit(img)
+                        img = img * magnitudes[i]
+                        img = sigmoid(img + gray)
+                        dst[i] = (img*255).astype(np.uint8)
+                    else:
+                        dst[i] = images[i]
+                return dst
+        else:
+            def saturation(images, dst):
+                fp = np.float32
+                def blend(img1, img2, ratio): 
+                    return (ratio*img1 + (1-ratio)*img2).clip(0, 255).astype(img1.dtype)
+
+                apply_saturation = np.random.rand(images.shape[0]) < prob
+                magnitudes = np.random.uniform(max(0, 1-magnitude), 1+magnitude, images.shape[0]).astype(fp)
+                for i in my_range(images.shape[0]):
+                    if apply_saturation[i]:
+                        l_img = fp(0.2989)*images[i,:,:,0] + fp(0.587)*images[i,:,:,1] + fp(0.114)*images[i,:,:,2]
+                        gray = np.empty_like(l_img)
+                        for j in range(3):
+                            gray[:,:,j] = l_img
+                        dst[i] = blend(images[i], gray, magnitudes[i])
+                    else:
+                        dst[i] = images[i]
+                return dst
+
+        saturation.is_parallel = True
+        return saturation
+
+    def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
+        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
 
 # %% ../../nbs/ffcv.transforms.ipynb 19
+class RandomLighting(Operation):
+    '''
+    Randomly adjust image brightness, contrast, and saturation. 
+    Combines all three into single transform for speed.
+    Supports both TorchVision and fastai style contrast transforms. 
+    '''
+    def __init__(self,
+        prob:float|None, # Probability of changing brightness, contrast, and saturation. Set to None for individual probability.
+        max_lighting:float|None, # Maximum lighting change. Set to None for individual probability. See max_brightness, max_contrast, and max_saturation for details.
+        max_brightness:float|None=None, # Maximum brightness change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [0.5*(1-magnitude), 0.5*(1+magnitude)] if fastai=True.
+        max_contrast:float|None=None, # Maximum contrast change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [1-max_lighting, 1/(1-max_lighting)] in log space if fastai=True.
+        max_saturation:float|None=None, # Maximum saturation change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [1-max_lighting, 1/(1-max_lighting)] in log space if fastai=True.
+        prob_brightness:float|None=None, # Individual probability of changing brightness. Set to prob=None to use.
+        prob_contrast:float|None=None, # Individual probability of changing contrast. Set to prob=None to use.
+        prob_saturation:float|None=None, # Individual probability of changing saturation. Set to prob=None to use.
+        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision.
+    ):
+        super().__init__()
+        self.prob = prob
+        self.fastai = fastai
+        self.max_lighting    = max_lighting
+        self.max_brightness  = max_brightness
+        self.max_contrast    = max_contrast
+        self.max_saturation  = max_saturation
+        self.prob_brightness = prob_brightness
+        self.prob_contrast   = prob_contrast
+        self.prob_saturation = prob_saturation
+
+    def generate_code(self):
+        my_range = Compiler.get_iterator()
+        if self.prob is not None:
+            prob_brightness, prob_contrast, prob_saturation = self.prob, self.prob, self.prob
+        else:
+            prob_brightness, prob_contrast, prob_saturation = self.prob_brightness, self.prob_contrast, self.prob_saturation
+        if self.max_lighting is not None:
+            max_brightness, max_contrast, max_saturation = self.max_lighting, self.max_lighting, self.max_lighting
+        else:
+            max_brightness, max_contrast, max_saturation = self.max_brightness, self.max_contrast, self.max_saturation
+
+        if self.fastai:
+            def lighting(images, dst):
+                fp = np.float32
+                assert images.shape[-1] == 3
+                def logit(x):
+                    return -np.log(fp(1) / x - fp(1))
+                def sigmoid(x):
+                    return fp(1) / (fp(1) + np.exp(-x))
+                def grayscale(x):
+                    return fp(0.2989) * x[:,:,0] + fp(0.587) * x[:,:,1] + fp(0.114) * x[:,:,2]
+                def probs(max, shape, prob):
+                    return np.random.rand(shape) < prob if max > 0 else np.zeros(shape)==1
+
+                bs = images.shape[0]
+                apply_brightness = probs(max_brightness, bs, prob_brightness)
+                apply_contrast   = probs(max_contrast, bs, prob_contrast)
+                apply_saturation = probs(max_saturation, bs, prob_saturation)
+
+                brightness = logit(np.random.uniform(0.5*(1-max_brightness), 0.5*(1+max_brightness), bs).astype(fp))
+                contrast   = np.exp(np.random.uniform(np.log(1-max_contrast), -np.log(1-max_contrast), bs).astype(fp))
+                saturation = np.exp(np.random.uniform(np.log(1-max_saturation), -np.log(1-max_saturation), bs).astype(fp))
+                for i in my_range(bs):
+                    if apply_brightness[i] or apply_contrast[i] or apply_saturation[i]:
+                        img = images[i] / fp(255)
+
+                        if apply_saturation[i]:
+                            l_img = grayscale(img)
+                        else:
+                            l_img = np.empty_like(img[:,:,0])
+                        
+                        img = logit(img)
+
+                        if apply_brightness[i]:
+                            img = img + brightness[i]
+
+                        if apply_contrast[i]:
+                            img = img * contrast[i]
+
+                        if apply_saturation[i]:
+                            l_img = l_img * (fp(1)-saturation[i])
+                            gray = np.empty_like(img)
+                            for j in range(3):
+                                gray[:,:,j] = l_img
+                            img = img * saturation[i]
+                            img = img + gray
+
+                        img = sigmoid(img)
+                        dst[i] = (img*255).astype(np.uint8)
+                    else:
+                        dst[i] = images[i]
+                return dst
+        else:
+            def lighting(images, dst):
+                fp = np.float32
+                def blend(img1, img2, ratio): 
+                    return (ratio*img1 + (1-ratio)*img2).clip(0, 255).astype(img1.dtype)
+                def probs(max, shape, prob):
+                    return np.random.rand(shape) < prob if max > 0 else np.zeros(shape)==1
+
+                bs = images.shape[0]
+                apply_brightness = probs(max_brightness, bs, prob_brightness)
+                apply_contrast   = probs(max_contrast, bs, prob_contrast)
+                apply_saturation = probs(max_saturation, bs, prob_saturation)
+
+                brightness = np.random.uniform(max(0, 1-max_brightness), 1+max_brightness, images.shape[0]).astype(fp)
+                contrast = np.random.uniform(max(0, 1-max_contrast), 1+max_contrast, images.shape[0]).astype(fp)
+                saturation = np.random.uniform(max(0, 1-max_saturation), 1+max_saturation, images.shape[0]).astype(fp)
+                for i in my_range(images.shape[0]):
+                    dst[i] = images[i]
+                    if apply_brightness[i] or apply_contrast[i] or apply_saturation[i]:
+                        if apply_brightness[i]:
+                            dst[i] = blend(dst[i], 0, brightness[i])
+
+                        if apply_contrast[i] or apply_saturation[i]:
+                            l_img = fp(0.2989)*dst[i,:,:,0] + fp(0.587)*dst[i,:,:,1] + fp(0.114)*dst[i,:,:,2]
+                        else:
+                            l_img = np.empty_like(dst[i,:,:,0], dtype=np.float32)
+
+                        if apply_contrast[i]:
+                            dst[i] = blend(dst[i], l_img.mean(), contrast[i])
+
+                        if apply_saturation[i]:
+                            gray = np.empty_like(dst[i], dtype=np.float32)
+                            for j in range(3):
+                                gray[:,:,j] = l_img
+                            dst[i] = blend(dst[i], gray, saturation[i])
+                return dst
+
+        lighting.is_parallel = True
+        return lighting
+
+    def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
+        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
+
+# %% ../../nbs/ffcv.transforms.ipynb 20
+# RandomHue adapted from pending FFCV PR: https://github.com/libffcv/ffcv/pull/226
+
+# Code for Hue adapted from:
+# https://sanje2v.wordpress.com/2021/01/11/accelerating-data-transforms/
+# https://stackoverflow.com/questions/8507885
+
+class RandomHue(Operation):
+    'Randomly adjust image Hue. Supports both TorchVision and fastai style contrast transforms.'
+    def __init__(self,
+        prob:float, # Probability of changing hue
+        max_hue:float, # Maximum hue change. Randomly choose factor on [-magnitude, magnitude] clipped to [-0.5, 0.5] or [1-max_hue, 1/(1-max_hue)] in log space if fastai=True.
+        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision
+    ):
+        super().__init__()
+        self.prob = prob
+        self.magnitude = max_hue if fastai else np.clip(max_hue, -0.5, 0.5)
+        self.fastai = fastai
+
+    def generate_code(self):
+        my_range = Compiler.get_iterator()
+        prob = self.prob
+        magnitude = self.magnitude
+        fastai = self.fastai
+
+        def hue(images, dst):
+            fp = np.float32
+            sqrt3 = np.sqrt(fp(1/3))
+            apply_hue = np.random.rand(images.shape[0]) < prob
+            if fastai:
+                magnitudes = np.random.uniform(np.log(1-magnitude), -np.log(1-magnitude), images.shape[0]).astype(fp)
+            else:
+                magnitudes = np.random.uniform(-magnitude, magnitude, images.shape[0]).astype(fp)
+            for i in my_range(images.shape[0]):
+                if apply_hue[i] and magnitudes[i]!=0:
+                    img = images[i] / fp(255)
+                    hue_factor_radians = magnitudes[i] * fp(2) * fp(np.pi)
+                    cosA = np.cos(hue_factor_radians)
+                    sinA = np.sin(hue_factor_radians)
+                    hue_rotation_matrix =\
+                        [[cosA + (fp(1) - cosA) / fp(3), fp(1/3) * (fp(1) - cosA) - sqrt3 * sinA, fp(1/3) * (fp(1) - cosA) + sqrt3 * sinA],
+                        [fp(1/3) * (fp(1) - cosA) + sqrt3 * sinA, cosA + fp(1/3)*(fp(1) - cosA), fp(1/3) * (fp(1) - cosA) - sqrt3 * sinA],
+                        [fp(1/3) * (fp(1) - cosA) - sqrt3 * sinA, fp(1/3) * (fp(1) - cosA) + sqrt3 * sinA, cosA + fp(1/3) * (fp(1) - cosA)]]
+                    hue_rotation_matrix = np.array(hue_rotation_matrix, dtype=img.dtype)
+
+                    for row in range(img.shape[0]):
+                        for col in range(img.shape[1]):
+                            r, g, b = img[row, col, :]
+                            img[row, col, 0] = r * hue_rotation_matrix[0, 0] + g * hue_rotation_matrix[0, 1] + b * hue_rotation_matrix[0, 2]
+                            img[row, col, 1] = r * hue_rotation_matrix[1, 0] + g * hue_rotation_matrix[1, 1] + b * hue_rotation_matrix[1, 2]
+                            img[row, col, 2] = r * hue_rotation_matrix[2, 0] + g * hue_rotation_matrix[2, 1] + b * hue_rotation_matrix[2, 2]
+                    dst[i] = np.clip(img * 255, 0, 255).astype(np.uint8)
+                else:
+                    dst[i] = images[i]
+            return dst
+
+        hue.is_parallel = True
+        return hue
+
+    def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
+        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
+
+# %% ../../nbs/ffcv.transforms.ipynb 22
 class RandomCutout(Cutout):
     """Random cutout data augmentation (https://arxiv.org/abs/1708.04552).
 
@@ -139,7 +478,7 @@ class RandomCutout(Cutout):
         cutout_square.is_parallel = True
         return cutout_square
 
-# %% ../../nbs/ffcv.transforms.ipynb 20
+# %% ../../nbs/ffcv.transforms.ipynb 23
 # Implementation inspired by fastai https://docs.fast.ai/vision.augment.html#randomerasing
 # fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
 class RandomErasing(Operation):
@@ -228,334 +567,3 @@ class RandomErasing(Operation):
 
     def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
         return replace(previous_state, jit_mode=True), None
-
-# %% ../../nbs/ffcv.transforms.ipynb 21
-# RandomHueTV adapted from pending FFCV PR: https://github.com/libffcv/ffcv/pull/226
-# FFCV - Apache License 2.0 - Copyright (c) 2022 FFCV Team
-
-# Code for Hue adapted from:
-# https://sanje2v.wordpress.com/2021/01/11/accelerating-data-transforms/
-# https://stackoverflow.com/questions/8507885
-
-class RandomHueTV(Operation):
-    '''
-    Randomly adjust image Hue like TorchVision. Operates on raw arrays (not tensors).
-
-    Parameters
-    ----------
-    prob : float
-        probability to apply hue shift
-    magnitude : float
-        Randomly choose hue factor on [-magnitude, magnitude], clipped to [-0.5, 0.5].
-        0.5 and -0.5 give a complete reversal of the hue channel. 0 means no shift.
-    '''
-    def __init__(self, prob:float, magnitude:float):
-        super().__init__()
-        self.prob = prob
-        self.magnitude  = np.clip(magnitude, 0, 0.5)
-
-    def generate_code(self):
-        my_range = Compiler.get_iterator()
-        prob = self.prob
-        magnitude = self.magnitude
-
-        def hue(images, dst):
-            apply_hue = np.random.rand(images.shape[0]) < prob
-            magnitudes = np.random.uniform(-magnitude, magnitude, images.shape[0])
-            for i in my_range(images.shape[0]):
-                if apply_hue[i] and magnitudes[i]!=0.:
-                    img = images[i] / 255.0
-                    hue_factor_radians = magnitudes[i] * 2.0 * np.pi
-                    cosA = np.cos(hue_factor_radians)
-                    sinA = np.sin(hue_factor_radians)
-                    hue_rotation_matrix =\
-                        [[cosA + (1.0 - cosA) / 3.0, 1./3. * (1.0 - cosA) - np.sqrt(1./3.) * sinA, 1./3. * (1.0 - cosA) + np.sqrt(1./3.) * sinA],
-                        [1./3. * (1.0 - cosA) + np.sqrt(1./3.) * sinA, cosA + 1./3.*(1.0 - cosA), 1./3. * (1.0 - cosA) - np.sqrt(1./3.) * sinA],
-                        [1./3. * (1.0 - cosA) - np.sqrt(1./3.) * sinA, 1./3. * (1.0 - cosA) + np.sqrt(1./3.) * sinA, cosA + 1./3. * (1.0 - cosA)]]
-                    hue_rotation_matrix = np.array(hue_rotation_matrix, dtype=img.dtype)
-
-                    for row in range(img.shape[0]):
-                        for col in range(img.shape[1]):
-                            r, g, b = img[row, col, :]
-                            img[row, col, 0] = r * hue_rotation_matrix[0, 0] + g * hue_rotation_matrix[0, 1] + b * hue_rotation_matrix[0, 2]
-                            img[row, col, 1] = r * hue_rotation_matrix[1, 0] + g * hue_rotation_matrix[1, 1] + b * hue_rotation_matrix[1, 2]
-                            img[row, col, 2] = r * hue_rotation_matrix[2, 0] + g * hue_rotation_matrix[2, 1] + b * hue_rotation_matrix[2, 2]
-                    dst[i] = np.asarray(np.clip(img * 255., 0, 255), dtype=np.uint8)
-                else:
-                    dst[i] = images[i]
-            return dst
-
-        hue.is_parallel = True
-        return hue
-
-    def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
-        return (replace(previous_state, jit_mode=True), AllocationQuery(shape=previous_state.shape, dtype=previous_state.dtype))
-
-# %% ../../nbs/ffcv.transforms.ipynb 23
-class RandomBrightness(Operation):
-    'Randomly adjust image brightness like fastai. Operates on raw arrays (not tensors)'
-    def __init__(self,
-        prob:float=0.75, # Probability of changing brightness
-        max_lighting:float=0.2 # Maximum brightness change. Randomly choose factor on [0.5*(1-magnitude), 0.5*(1+magnitude)]
-    ):
-        super().__init__()
-        self.prob = prob
-        self.magnitude = max_lighting
-
-    def generate_code(self):
-        my_range = Compiler.get_iterator()
-        prob = self.prob
-        magnitude = self.magnitude
-
-        def brightness(images, dst):
-            def logit(x):
-                return -np.log(1. / np.clip(x, 1e-7, 1-1e-7) - 1.)
-            def sigmoid(x):
-                return 1. / (1. + np.exp(-x))
-
-            apply_bright = np.random.rand(images.shape[0]) < prob
-            magnitudes = np.random.uniform(0.5*(1-magnitude), 0.5*(1+magnitude), images.shape[0])
-            magnitudes = logit(magnitudes)
-            for i in my_range(images.shape[0]):
-                if apply_bright[i]:
-                    img = images[i] / 255.
-                    img = logit(img)
-                    img = sigmoid(img + magnitudes[i])
-                    dst[i] = (img*255.).astype(np.uint8)
-                else:
-                    dst[i] = images[i]
-            return dst
-
-        brightness.is_parallel = True
-        return brightness
-
-    def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
-        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
-
-# %% ../../nbs/ffcv.transforms.ipynb 24
-class RandomContrast(Operation):
-    'Randomly adjust image contrast like fastai. Operates on raw arrays (not tensors)'
-    def __init__(self,
-        prob:float=0.75, # Probability of changing contrast
-        max_lighting:float=0.2 #  Maximum contrast change. Randomly choose factor on [1-max_lighting, 1/(1-max_lighting)] in log space.
-    ):
-        super().__init__()
-        self.prob = prob
-        self.magnitude = max_lighting
-
-    def generate_code(self):
-        my_range = Compiler.get_iterator()
-        prob = self.prob
-        magnitude = self.magnitude
-
-        def contrast(images, dst):
-            def logit(x):
-                return -np.log(1. / np.clip(x, 1e-7, 1-1e-7) - 1.)
-            def sigmoid(x):
-                return 1. / (1. + np.exp(-x))
-
-            apply_contrast = np.random.rand(images.shape[0]) < prob
-            magnitudes = np.exp(np.random.uniform(np.log(1-magnitude), -np.log(1-magnitude), images.shape[0]))
-            for i in my_range(images.shape[0]):
-                if apply_contrast[i]:
-                    img = images[i] / 255.
-                    img = logit(img)
-                    img = sigmoid(img * magnitudes[i])
-                    dst[i] = (img*255.).astype(np.uint8)
-                else:
-                    dst[i] = images[i]
-            return dst
-
-        contrast.is_parallel = True
-        return contrast
-
-    def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
-        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
-
-# %% ../../nbs/ffcv.transforms.ipynb 25
-class RandomSaturation(Operation):
-    'Randomly adjust image saturation like fastai. Operates on raw arrays (not tensors)'
-    def __init__(self,
-        prob:float=0.75, # Probability of changing saturation
-        max_lighting:float=0.2 # Maximum saturation change. Randomly choose factor on [1-max_lighting, 1/(1-max_lighting)] in log space
-    ):
-        super().__init__()
-        self.prob = prob
-        self.magnitude = max_lighting
-
-    def generate_code(self):
-        my_range = Compiler.get_iterator()
-        prob = self.prob
-        magnitude = self.magnitude
-
-        def saturation(images, dst):
-            def logit(x):
-                return -np.log(1. / np.clip(x, 1e-7, 1-1e-7) - 1.)
-            def sigmoid(x):
-                return 1. / (1. + np.exp(-x))
-            def grayscale(x):
-                return 0.2989 * x[:,:,0] + 0.587 * x[:,:,1] + 0.114 * x[:,:,2]
-
-            apply_saturation = np.random.rand(images.shape[0]) < prob
-            magnitudes = np.exp(np.random.uniform(np.log(1-magnitude), -np.log(1-magnitude), images.shape[0]))
-            for i in my_range(images.shape[0]):
-                if apply_saturation[i]:
-                    img = images[i] / 255.
-
-                    l_img = grayscale(img) * (1-magnitudes[i])
-                    gray = np.zeros_like(img)
-                    for j in range(img.shape[-1]):
-                        gray[:,:,j] = l_img
-
-                    img = logit(img)
-                    img = img * magnitudes[i]
-                    img = sigmoid(img + gray)
-                    dst[i] = (img*255.).astype(np.uint8)
-                else:
-                    dst[i] = images[i]
-            return dst
-
-        saturation.is_parallel = True
-        return saturation
-
-    def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
-        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
-
-# %% ../../nbs/ffcv.transforms.ipynb 26
-class RandomLighting(Operation):
-    'Randomly adjust image brightness, contrast, and saturation like fastai. Combines all three into single transform for speed.'
-    def __init__(self,
-        prob:float|None=0.75, # Probability of changing brightness, contrast, and saturation. Set to None for individual probability
-        max_brightness:float=0.2, # Maximum brightness change. Randomly choose factor on [0.5*(1-max_brightness), 0.5*(1+max_brightness)]
-        max_contrast:float=0.2, # Maximum contrast change. Randomly choose factor on [1-max_contrast, 1/(1-max_contrast)] in log space
-        max_saturation:float=0.2, # Maximum saturation change. Randomly choose factor on [1-max_saturation, 1/(1-max_saturation)] in log space
-        prob_brightness:float|None=None, # Individual probability of changing brightness. Set to prob=None to use
-        prob_contrast:float|None=None, # Individual probability of changing contrast. Set to prob=None to use
-        prob_saturation:float|None=None, # Individual probability of changing saturation. Set to prob=None to use
-    ):
-        super().__init__()
-        self.prob = prob
-        self.prob_brightness = prob_brightness
-        self.prob_contrast   = prob_contrast
-        self.prob_saturation = prob_saturation
-        self.max_brightness  = max_brightness
-        self.max_contrast    = max_contrast
-        self.max_saturation  = max_saturation
-
-    def generate_code(self):
-        my_range = Compiler.get_iterator()
-        if self.prob is not None:
-            prob_brightness, prob_contrast, prob_saturation = self.prob, self.prob, self.prob
-        else:
-            prob_brightness, prob_contrast, prob_saturation = self.prob_brightness, self.prob_contrast, self.prob_saturation
-        max_brightness, max_contrast, max_saturation = self.max_brightness, self.max_contrast, self.max_saturation
-
-        def lighting(images, dst):
-            def logit(x):
-                return -np.log(1. / np.clip(x, 1e-7, 1-1e-7) - 1.)
-            def sigmoid(x):
-                return 1. / (1. + np.exp(-x))
-            def grayscale(x):
-                return 0.2989 * x[:,:,0] + 0.587 * x[:,:,1] + 0.114 * x[:,:,2]
-            def probs(max, shape, prob):
-                return np.random.rand(shape) < prob if max > 0 else np.zeros(shape)==1
-
-            bs = images.shape[0]
-            apply_brightness = probs(max_brightness, bs, prob_brightness)
-            apply_contrast   = probs(max_contrast, bs, prob_contrast)
-            apply_saturation = probs(max_saturation, bs, prob_saturation)
-
-            brightness = logit(np.random.uniform(0.5*(1-max_brightness), 0.5*(1+max_brightness), bs))
-            contrast   = np.exp(np.random.uniform(np.log(1-max_contrast), -np.log(1-max_contrast), bs))
-            saturation = np.exp(np.random.uniform(np.log(1-max_saturation), -np.log(1-max_saturation), bs))
-            for i in my_range(bs):
-                if apply_brightness[i] or apply_contrast[i] or apply_saturation[i]:
-                    img = images[i] / 255.
-
-                    if apply_saturation[i]:
-                        l_img = grayscale(img)
-                    else:
-                        l_img = np.empty_like(img[:,:,0])
-
-                    img = logit(img)
-
-                    if apply_brightness[i]:
-                        img = img + brightness[i]
-
-                    if apply_contrast[i]:
-                        img = img * contrast[i]
-
-                    if apply_saturation[i]:
-                        l_img = l_img * (1-saturation[i])
-                        gray = np.empty_like(img)
-                        for j in range(img.shape[-1]):
-                            gray[:,:,j] = l_img
-                        img = img * saturation[i]
-                        img = img + gray
-
-                    img = sigmoid(img)
-                    dst[i] = (img*255.).astype(np.uint8)
-                else:
-                    dst[i] = images[i]
-            return dst
-
-        lighting.is_parallel = True
-        return lighting
-
-    def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
-        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
-
-# %% ../../nbs/ffcv.transforms.ipynb 27
-# RandomHue adapted from pending FFCV PR: https://github.com/libffcv/ffcv/pull/226
-# FFCV - Apache License 2.0 - Copyright (c) 2022 FFCV Team
-
-# Code for Hue adapted from:
-# https://sanje2v.wordpress.com/2021/01/11/accelerating-data-transforms/
-# https://stackoverflow.com/questions/8507885
-
-class RandomHue(Operation):
-    'Randomly adjust image Hue like fastai. Operates on raw arrays (not tensors)'
-    def __init__(self,
-        prob:float=0.75, # Probability of changing hue
-        max_hue:float=0.2 # Maximum hue change. Randomly choose factor on [1-max_hue, 1/(1-max_hue)] in log space
-    ):
-        super().__init__()
-        self.prob = prob
-        self.magnitude = max_hue
-
-    def generate_code(self):
-        my_range = Compiler.get_iterator()
-        prob = self.prob
-        magnitude = self.magnitude
-
-        def hue(images, dst):
-            apply_hue = np.random.rand(images.shape[0]) < prob
-            magnitudes = np.random.uniform(np.log(1-magnitude), -np.log(1-magnitude), images.shape[0])
-            for i in my_range(images.shape[0]):
-                if apply_hue[i] and magnitudes[i]!=0.:
-                    img = images[i] / 255.0
-                    hue_factor_radians = magnitudes[i] * 2.0 * np.pi
-                    cosA = np.cos(hue_factor_radians)
-                    sinA = np.sin(hue_factor_radians)
-                    hue_rotation_matrix =\
-                        [[cosA + (1.0 - cosA) / 3.0, 1./3. * (1.0 - cosA) - np.sqrt(1./3.) * sinA, 1./3. * (1.0 - cosA) + np.sqrt(1./3.) * sinA],
-                        [1./3. * (1.0 - cosA) + np.sqrt(1./3.) * sinA, cosA + 1./3.*(1.0 - cosA), 1./3. * (1.0 - cosA) - np.sqrt(1./3.) * sinA],
-                        [1./3. * (1.0 - cosA) - np.sqrt(1./3.) * sinA, 1./3. * (1.0 - cosA) + np.sqrt(1./3.) * sinA, cosA + 1./3. * (1.0 - cosA)]]
-                    hue_rotation_matrix = np.array(hue_rotation_matrix, dtype=img.dtype)
-
-                    for row in range(img.shape[0]):
-                        for col in range(img.shape[1]):
-                            r, g, b = img[row, col, :]
-                            img[row, col, 0] = r * hue_rotation_matrix[0, 0] + g * hue_rotation_matrix[0, 1] + b * hue_rotation_matrix[0, 2]
-                            img[row, col, 1] = r * hue_rotation_matrix[1, 0] + g * hue_rotation_matrix[1, 1] + b * hue_rotation_matrix[1, 2]
-                            img[row, col, 2] = r * hue_rotation_matrix[2, 0] + g * hue_rotation_matrix[2, 1] + b * hue_rotation_matrix[2, 2]
-                    dst[i] = np.clip(img * 255., 0, 255).astype(np.uint8)
-                else:
-                    dst[i] = images[i]
-            return dst
-
-        hue.is_parallel = True
-        return hue
-
-    def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
-        return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
