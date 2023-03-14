@@ -22,9 +22,6 @@ from ffcv.transforms.cutout import Cutout
 from ffcv.transforms.flip import RandomHorizontalFlip as _RandomHorizontalFlip
 from ffcv.transforms.random_resized_crop import RandomResizedCrop
 from ffcv.transforms.translate import RandomTranslate
-from ffcv.transforms.color_jitter import RandomBrightness as _RandomBrightness
-from ffcv.transforms.color_jitter import RandomContrast as _RandomContrast
-from ffcv.transforms.color_jitter import RandomSaturation as _RandomSaturation
 from ffcv.transforms.poisoning import Poison
 from ffcv.transforms.replace_label import ReplaceLabel
 from ffcv.transforms.common import Squeeze
@@ -46,8 +43,7 @@ class RandomHorizontalFlip(_RandomHorizontalFlip):
     Parameters
     ----------
     prob : float
-        The probability with which to flip each image in the batch
-        horizontally.
+        The probability with which to flip each image in the batch horizontally.
     """
 
     def __init__(self, prob: float = 0.5):
@@ -55,38 +51,53 @@ class RandomHorizontalFlip(_RandomHorizontalFlip):
 
 # %% ../../nbs/ffcv.transforms.ipynb 16
 class RandomBrightness(Operation):
-    'Randomly adjust image brightness. Supports both TorchVision and fastai style brighness transforms.'
+    'Randomly adjust image brightness. Supports both TorchVision and fastai style brightness transforms.'
     def __init__(self,
-        prob:float, # Probability of changing brightness
-        max_lighting:float, # Maximum brightness change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [0.5*(1-magnitude), 0.5*(1+magnitude)] if fastai=True.
-        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision.
+        prob:float=0.75, # Probability of changing brightness
+        max_lighting:float=0.2, # Maximum brightness change. Randomly choose factor on [0.5*(1-magnitude), 0.5*(1+magnitude)], or [max(0, 1-magnitude), 1+magnitude] if fastai=False.
+        fastai:bool=True # fastai-style transform or TorchVision. Defaults to fastai.
     ):
         super().__init__()
         self.prob = prob
         self.magnitude = max_lighting
         self.fastai = fastai
+        self.lut = self.logit(np.arange(256)).astype(np.float32)
+
+    def logit(self, x):
+        x = np.clip(x, 1e-7, 255-1e-7)
+        return np.log(x / (255 - x))
 
     def generate_code(self):
         my_range = Compiler.get_iterator()
         prob = self.prob
         magnitude = self.magnitude
+        lut = self.lut
 
         if self.fastai:
             def brightness(images, dst):
                 fp = np.float32
-                def logit(x):
-                    return -np.log(fp(1) / x - fp(1))
-                def sigmoid(x):
-                    return fp(1) / (fp(1) + np.exp(-x))
+                def logit(inp, out):
+                    for row in range(inp.shape[0]):
+                        for col in range(inp.shape[1]):
+                            for c in range(3):
+                                out[row, col, c] = lut[inp[row, col, c]]
+                def sigmoid(inp, out):
+                    for row in range(inp.shape[0]):
+                        for col in range(inp.shape[1]):
+                            for c in range(3):
+                                out[row, col, c] = fp(1) / (fp(1) + np.exp(-inp[row, col, c]))
 
                 apply_bright = np.random.rand(images.shape[0]) < prob
-                magnitudes = logit(np.random.uniform(0.5*(1-magnitude), 0.5*(1+magnitude), images.shape[0]).astype(fp))
+                magnitudes = np.random.uniform(0.5*(1-magnitude), 0.5*(1+magnitude), images.shape[0]).astype(fp)
+                magnitudes = np.clip(magnitudes, 1e-7, 1-1e-7)
+                magnitudes = -np.log(fp(1) / magnitudes - fp(1))
                 for i in my_range(images.shape[0]):
                     if apply_bright[i]:
-                        img = images[i] / fp(255)
-                        img = logit(img)
-                        img = sigmoid(img + magnitudes[i])
-                        dst[i] = (img*255).astype(np.uint8)
+                        img = np.empty_like(images[i], dtype=fp)
+                        out = np.empty_like(images[i], dtype=fp)
+                        logit(images[i], img)
+                        sigmoid(img + magnitudes[i], out)
+                        dst[i] = (out*255).astype(np.uint8)
                     else:
                         dst[i] = images[i]
                 return dst
@@ -115,36 +126,49 @@ class RandomBrightness(Operation):
 class RandomContrast(Operation):
     'Randomly adjust image contrast. Supports both TorchVision and fastai style contrast transforms.'
     def __init__(self,
-        prob:float, # Probability of changing contrast
-        max_lighting:float, # Maximum contrast change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [1-max_lighting, 1/(1-max_lighting)] in log space if fastai=True.
-        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision.
+        prob:float=0.75, # Probability of changing contrast
+        max_lighting:float=0.2, # Maximum contrast change. Randomly choose factor on [1-max_lighting, 1/(1-max_lighting)] in log space, or [max(0, 1-magnitude), 1+magnitude] if fastai=False.
+        fastai:bool=True  # fastai-style transform or TorchVision. Defaults to fastai.
     ):
         super().__init__()
         self.prob = prob
         self.magnitude = max_lighting
         self.fastai = fastai
+        self.lut = self.logit(np.arange(256)).astype(np.float32)
+
+    def logit(self, x):
+        x = np.clip(x, 1e-7, 255-1e-7)
+        return np.log(x / (255 - x))
 
     def generate_code(self):
         my_range = Compiler.get_iterator()
         prob = self.prob
         magnitude = self.magnitude
+        lut = self.lut
 
         if self.fastai:
             def contrast(images, dst):
                 fp = np.float32
-                def logit(x):
-                    return -np.log(fp(1) / x - fp(1))
-                def sigmoid(x):
-                    return fp(1) / (fp(1) + np.exp(-x))
+                def logit(inp, out):
+                    for row in range(inp.shape[0]):
+                        for col in range(inp.shape[1]):
+                            for c in range(3):
+                                out[row, col, c] = lut[inp[row, col, c]]
+                def sigmoid(inp, out):
+                    for row in range(inp.shape[0]):
+                        for col in range(inp.shape[1]):
+                            for c in range(3):
+                                out[row, col, c] = fp(1) / (fp(1) + np.exp(-inp[row, col, c]))
 
                 apply_contrast = np.random.rand(images.shape[0]) < prob
                 magnitudes = np.exp(np.random.uniform(np.log(1-magnitude), -np.log(1-magnitude), images.shape[0]).astype(fp))
                 for i in my_range(images.shape[0]):
                     if apply_contrast[i]:
-                        img = images[i] / fp(255)
-                        img = logit(img)
-                        img = sigmoid(img * magnitudes[i])
-                        dst[i] = (img*255).astype(np.uint8)
+                        img = np.empty_like(images[i], dtype=fp)
+                        out = np.empty_like(images[i], dtype=fp)
+                        logit(images[i], img)
+                        sigmoid(img * magnitudes[i], out)
+                        dst[i] = (out*255).astype(np.uint8)
                     else:
                         dst[i] = images[i]
                 return dst
@@ -172,29 +196,41 @@ class RandomContrast(Operation):
 
 # %% ../../nbs/ffcv.transforms.ipynb 18
 class RandomSaturation(Operation):
-    'Randomly adjust image saturation. Supports both TorchVision and fastai style contrast transforms.'
+    'Randomly adjust image saturation. Supports both TorchVision and fastai style saturation transforms.'
     def __init__(self,
-        prob:float, # Probability of changing saturation
-        max_lighting:float, # Maximum saturation change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [1-max_lighting, 1/(1-max_lighting)] in log space if fastai=True.
-        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision.
+        prob:float=0.75, # Probability of changing saturation
+        max_lighting:float=0.2, # Maximum saturation change. Randomly choose factor on [1-max_lighting, 1/(1-max_lighting)] in log space, or [max(0, 1-magnitude), 1+magnitude] if fastai=False.
+        fastai:bool=True # fastai-style transform or TorchVision. Defaults to fastai.
     ):
         super().__init__()
         self.prob = prob
         self.magnitude = max_lighting
         self.fastai = fastai
+        self.lut = self.logit(np.arange(256)).astype(np.float32)
+
+    def logit(self, x):
+        x = np.clip(x, 1e-7, 255-1e-7)
+        return np.log(x / (255 - x))
 
     def generate_code(self):
         my_range = Compiler.get_iterator()
         prob = self.prob
         magnitude = self.magnitude
+        lut = self.lut
 
         if self.fastai:
             def saturation(images, dst):
                 fp = np.float32
-                def logit(x):
-                    return -np.log(fp(1) / x - fp(1))
-                def sigmoid(x):
-                    return fp(1) / (fp(1) + np.exp(-x))
+                def logit(inp, out):
+                    for row in range(inp.shape[0]):
+                        for col in range(inp.shape[1]):
+                            for c in range(3):
+                                out[row, col, c] = lut[inp[row, col, c]]
+                def sigmoid(inp, out):
+                    for row in range(inp.shape[0]):
+                        for col in range(inp.shape[1]):
+                            for c in range(3):
+                                out[row, col, c] = fp(1) / (fp(1) + np.exp(-inp[row, col, c]))
                 def grayscale(x):
                     return fp(0.2989) * x[:,:,0] + fp(0.587) * x[:,:,1] + fp(0.114) * x[:,:,2]
 
@@ -203,16 +239,17 @@ class RandomSaturation(Operation):
                 for i in my_range(images.shape[0]):
                     if apply_saturation[i]:
                         img = images[i] / fp(255)
+                        out = np.empty_like(img)
 
                         l_img = grayscale(img) * (1-magnitudes[i])
                         gray = np.empty_like(img)
                         for j in range(3):
                             gray[:,:,j] = l_img
 
-                        img = logit(img)
+                        logit(images[i], img)
                         img = img * magnitudes[i]
-                        img = sigmoid(img + gray)
-                        dst[i] = (img*255).astype(np.uint8)
+                        sigmoid(img + gray, out)
+                        dst[i] = (out*255).astype(np.uint8)
                     else:
                         dst[i] = images[i]
                 return dst
@@ -246,29 +283,34 @@ class RandomLighting(Operation):
     '''
     Randomly adjust image brightness, contrast, and saturation. 
     Combines all three into single transform for speed.
-    Supports both TorchVision and fastai style contrast transforms. 
+    Supports both TorchVision and fastai style lighting transforms. 
     '''
     def __init__(self,
-        prob:float|None, # Probability of changing brightness, contrast, and saturation. Set to None for individual probability.
-        max_lighting:float|None, # Maximum lighting change. Set to None for individual probability. See max_brightness, max_contrast, and max_saturation for details.
-        max_brightness:float|None=None, # Maximum brightness change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [0.5*(1-magnitude), 0.5*(1+magnitude)] if fastai=True.
-        max_contrast:float|None=None, # Maximum contrast change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [1-max_lighting, 1/(1-max_lighting)] in log space if fastai=True.
-        max_saturation:float|None=None, # Maximum saturation change. Randomly choose factor on [max(0, 1-magnitude), 1+magnitude], or [1-max_lighting, 1/(1-max_lighting)] in log space if fastai=True.
+        prob:float|None=0.75, # Probability of changing brightness, contrast, and saturation. Set to None for individual probability.
+        max_lighting:float|None=0.2, # Maximum lighting change. Set to None for individual changes. See max_brightness, max_contrast, and max_saturation for details.
+        max_brightness:float|None=None, # Maximum brightness change. Randomly choose factor on [0.5*(1-magnitude), 0.5*(1+magnitude)], or [max(0, 1-magnitude), 1+magnitude] if fastai=False.
+        max_contrast:float|None=None, # Maximum contrast change. Randomly choose factor on [1-max_lighting, 1/(1-max_lighting)] in log space, or [max(0, 1-magnitude), 1+magnitude] if fastai=False.
+        max_saturation:float|None=None, # Maximum saturation change. Randomly choose factor on [1-max_lighting, 1/(1-max_lighting)] in log space, or [max(0, 1-magnitude), 1+magnitude] if fastai=False.
         prob_brightness:float|None=None, # Individual probability of changing brightness. Set to prob=None to use.
         prob_contrast:float|None=None, # Individual probability of changing contrast. Set to prob=None to use.
         prob_saturation:float|None=None, # Individual probability of changing saturation. Set to prob=None to use.
-        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision.
+        fastai:bool=False # fastai-style transform or TorchVision. Defaults to fastai.
     ):
         super().__init__()
         self.prob = prob
         self.fastai = fastai
-        self.max_lighting    = max_lighting
-        self.max_brightness  = max_brightness
-        self.max_contrast    = max_contrast
-        self.max_saturation  = max_saturation
+        self.max_lighting = max_lighting
+        self.max_brightness = max_brightness
+        self.max_contrast = max_contrast
+        self.max_saturation = max_saturation
         self.prob_brightness = prob_brightness
-        self.prob_contrast   = prob_contrast
+        self.prob_contrast = prob_contrast
         self.prob_saturation = prob_saturation
+        self.lut = self.logit(np.arange(256)).astype(np.float32)
+
+    def logit(self, x):
+        x = np.clip(x, 1e-7, 255-1e-7)
+        return np.log(x / (255 - x))
 
     def generate_code(self):
         my_range = Compiler.get_iterator()
@@ -280,15 +322,23 @@ class RandomLighting(Operation):
             max_brightness, max_contrast, max_saturation = self.max_lighting, self.max_lighting, self.max_lighting
         else:
             max_brightness, max_contrast, max_saturation = self.max_brightness, self.max_contrast, self.max_saturation
+        lut = self.lut
 
         if self.fastai:
             def lighting(images, dst):
                 fp = np.float32
                 assert images.shape[-1] == 3
-                def logit(x):
-                    return -np.log(fp(1) / x - fp(1))
-                def sigmoid(x):
-                    return fp(1) / (fp(1) + np.exp(-x))
+                def logit(inp, out):
+                    for row in range(inp.shape[0]):
+                        for col in range(inp.shape[1]):
+                            for c in range(3):
+                                out[row, col, c] = lut[inp[row, col, c]]
+                def sigmoid(inp, out):
+                    for row in range(inp.shape[0]):
+                        for col in range(inp.shape[1]):
+                            for c in range(3):
+                                out[row, col, c] = fp(1) / (fp(1) + np.exp(-inp[row, col, c]))
+                    return out
                 def grayscale(x):
                     return fp(0.2989) * x[:,:,0] + fp(0.587) * x[:,:,1] + fp(0.114) * x[:,:,2]
                 def probs(max, shape, prob):
@@ -299,19 +349,22 @@ class RandomLighting(Operation):
                 apply_contrast   = probs(max_contrast, bs, prob_contrast)
                 apply_saturation = probs(max_saturation, bs, prob_saturation)
 
-                brightness = logit(np.random.uniform(0.5*(1-max_brightness), 0.5*(1+max_brightness), bs).astype(fp))
                 contrast   = np.exp(np.random.uniform(np.log(1-max_contrast), -np.log(1-max_contrast), bs).astype(fp))
                 saturation = np.exp(np.random.uniform(np.log(1-max_saturation), -np.log(1-max_saturation), bs).astype(fp))
+                brightness = np.random.uniform(0.5*(1-max_brightness), 0.5*(1+max_brightness), images.shape[0]).astype(fp)
+                brightness = np.clip(brightness, 1e-7, 1-1e-7)
+                brightness = -np.log(fp(1) / brightness - fp(1))
                 for i in my_range(bs):
                     if apply_brightness[i] or apply_contrast[i] or apply_saturation[i]:
                         img = images[i] / fp(255)
+                        out = np.empty_like(img)
 
                         if apply_saturation[i]:
                             l_img = grayscale(img)
                         else:
                             l_img = np.empty_like(img[:,:,0])
                         
-                        img = logit(img)
+                        logit(images[i], img)
 
                         if apply_brightness[i]:
                             img = img + brightness[i]
@@ -327,8 +380,8 @@ class RandomLighting(Operation):
                             img = img * saturation[i]
                             img = img + gray
 
-                        img = sigmoid(img)
-                        dst[i] = (img*255).astype(np.uint8)
+                        sigmoid(img, out)
+                        dst[i] = (out*255).astype(np.uint8)
                     else:
                         dst[i] = images[i]
                 return dst
@@ -385,9 +438,9 @@ class RandomLighting(Operation):
 class RandomHue(Operation):
     'Randomly adjust image Hue. Supports both TorchVision and fastai style contrast transforms.'
     def __init__(self,
-        prob:float, # Probability of changing hue
-        max_hue:float, # Maximum hue change. Randomly choose factor on [-magnitude, magnitude] clipped to [-0.5, 0.5] or [1-max_hue, 1/(1-max_hue)] in log space if fastai=True.
-        fastai:bool=False # If True applies the slower, fastai-style transform. Defaults to TorchVision
+        prob:float=0.75, # Probability of changing hue
+        max_hue:float=0.1, # Maximum hue change. Randomly choose factor on [1-max_hue, 1/(1-max_hue)] in log space, or [-magnitude, magnitude] clipped to [-0.5, 0.5] if fastai=False.
+        fastai:bool=True # If True applies the slower, fastai-style transform. Defaults to TorchVision
     ):
         super().__init__()
         self.prob = prob
@@ -437,7 +490,7 @@ class RandomHue(Operation):
     def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
         return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
 
-# %% ../../nbs/ffcv.transforms.ipynb 22
+# %% ../../nbs/ffcv.transforms.ipynb 23
 class RandomCutout(Cutout):
     """Random cutout data augmentation (https://arxiv.org/abs/1708.04552).
 
@@ -478,7 +531,7 @@ class RandomCutout(Cutout):
         cutout_square.is_parallel = True
         return cutout_square
 
-# %% ../../nbs/ffcv.transforms.ipynb 23
+# %% ../../nbs/ffcv.transforms.ipynb 24
 # Implementation inspired by fastai https://docs.fast.ai/vision.augment.html#randomerasing
 # fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
 class RandomErasing(Operation):
