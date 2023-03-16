@@ -16,7 +16,6 @@ from .imports import *
 # %% ../nbs/patches.ipynb 3
 _torch_version = parse(torch.__version__)
 _torch_20  = parse('2.0')
-_torch_20d = parse('2.0.0dev')
 _torch_113 = parse('1.13')
 _torch_112 = parse('1.12')
 
@@ -61,32 +60,10 @@ if parse(fastai.__version__) < parse('2.7.12'):
         return self.as_subclass(Tensor).new_empty(*size, dtype=dtype, layout=layout, device=device, pin_memory=pin_memory, requires_grad=requires_grad).as_subclass(cls)
 
 # %% ../nbs/patches.ipynb 11
-if _torch_version >= _torch_20d and _torch_version < _torch_20:
-    def _rebuild_tensor(storage, storage_offset, size, stride, dtype):
-        # first construct a tensor with the correct dtype/device
-        t = torch.tensor([], dtype=dtype, device=storage.untyped().device)
-        return t.set_(storage.untyped(), storage_offset, size, stride)
-
-    def _rebuild_tensor_v2(
-        storage, storage_offset, size, stride, dtype, requires_grad, backward_hooks,
-    ):
-        tensor = _rebuild_tensor(storage, storage_offset, size, stride, dtype)
-        tensor.requires_grad = requires_grad
-        # NB: This line exists only for backwards compatibility; the
-        # general expectation is that backward_hooks is an empty
-        # OrderedDict.  See Note [Don't serialize hooks]
-        tensor._backward_hooks = backward_hooks
-        return tensor
-
+if _torch_version >= _torch_20 and parse(fastai.__version__) < parse('2.7.12'):
     @patch
     def __reduce_ex__(self:TensorBase, proto):
-        torch.utils.hooks.warn_if_has_hooks(self)
-        args = (self.untyped_storage(), self.storage_offset(), tuple(self.size()), self.stride(), self.dtype)
-        if self.is_quantized:
-            args = args + (self.q_scale(), self.q_zero_point())
-        args = args + (self.requires_grad, OrderedDict())
-        f = torch._utils._rebuild_qtensor if self.is_quantized else _rebuild_tensor_v2
-        return (_rebuild_from_type, (f, type(self), args, self.__dict__))
+        return super(TensorBase, self).__reduce_ex__(proto)
 
     @patch
     def after_batch(self:ProgressCallback):
