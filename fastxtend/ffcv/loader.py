@@ -4,7 +4,7 @@
 # Contains code from:
 # fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
 
-# %% ../../nbs/ffcv.loader.ipynb 3
+# %% ../../nbs/ffcv.loader.ipynb 4
 from __future__ import annotations
 
 from typing import Mapping, Sequence
@@ -30,7 +30,7 @@ from ..imports import *
 # %% auto 0
 __all__ = ['Loader']
 
-# %% ../../nbs/ffcv.loader.ipynb 4
+# %% ../../nbs/ffcv.loader.ipynb 6
 @funcs_kwargs
 class BaseDL(GetAttr):
     "Provides callbacks for DataLoaders which inherit from `BaseLoader`"
@@ -50,7 +50,7 @@ class BaseDL(GetAttr):
         "Called after `BaseLoader` has fully read/iterated over the dataset."
         return x
 
-# %% ../../nbs/ffcv.loader.ipynb 5
+# %% ../../nbs/ffcv.loader.ipynb 7
 class Loader(BaseDL, _Loader):
     "FFCV `Loader` with fastai Transformed DataLoader `TfmdDL` batch transforms"
     def __init__(self,
@@ -58,18 +58,18 @@ class Loader(BaseDL, _Loader):
         batch_size:int, # Batch size
         num_workers:int=-1, # Number of CPU cores to use in parallel (default: All available up to 16)
         os_cache:bool=DEFAULT_OS_CACHE, # Leverage the OS for caching. Beneficial when there is enough memory to cache the dataset
-        order:ORDER_TYPE=OrderOption.SEQUENTIAL, # Dataset traversal order, one of: SEQEUNTIAL, RANDOM, QUASI_RANDOM
+        order:ORDER_TYPE=OrderOption.SEQUENTIAL, # Dataset traversal order, one of: `SEQEUNTIAL`, `RANDOM`, `QUASI_RANDOM`
         distributed:bool=False, # Emulates the behavior of PyTorch's DistributedSampler for distributed training
         seed:int|None=None, # Random seed for batch ordering
         indices:Sequence[int]|None=None, # Subset dataset by returning only these indices
         pipelines:Mapping[str, Sequence[Operation|nn.Module]]={}, # Dictionary defining for each field the sequence of Decoders and transforms to apply
         custom_fields:Mapping[str, Field]={}, # Dictonary informing `Loader` of the types associated to fields that are using a custom type
-        drop_last:bool|None=None, # Drop non-full batch in each epoch. Defaults to True if order is sequential
+        drop_last:bool|None=None, # Drop non-full batch in each epoch. Defaults to True if order is `SEQEUNTIAL`
         batches_ahead:int=3, # Number of batches prepared in advance; balances latency and memory
         recompile:bool=False, # Recompile at every epoch. Required if FFCV augmentations change during training
         device:str|int|torch.device|None=None, # Device to place batch. Defaults to fastai's `default_device`
         n_inp:int|None=None, # Number of inputs to the model. Defaults to pipelines length minus 1
-        split_idx:int|None=None, # Apply batch transform(s) to training (0) or validation (1) set. Defaults to valid if order is sequential
+        split_idx:int|None=None, # Apply batch transform(s) to training (0) or validation (1) set. Defaults to valid if order is `SEQEUNTIAL`
         do_setup:bool=True, # Run `setup()` for batch transform(s)
         **kwargs
     ):
@@ -206,7 +206,7 @@ class Loader(BaseDL, _Loader):
                 if hasattr(tfm, 'to'):
                     tfm.to(device)
 
-    def to(self, device):
+    def to(self, device:int|str|torch.device):
         "Sets `self.device=device`."
         self.device = device
         return self

@@ -89,7 +89,7 @@ class RandomBrightness(Operation):
 
                 apply_bright = np.random.rand(images.shape[0]) < prob
                 magnitudes = np.random.uniform(0.5*(1-magnitude), 0.5*(1+magnitude), images.shape[0]).astype(fp)
-                magnitudes = np.clip(magnitudes, 1e-7, 1-1e-7)
+                magnitudes = np.clip(magnitudes, fp(1e-7), fp(1-1e-7))
                 magnitudes = -np.log(fp(1) / magnitudes - fp(1))
                 for i in my_range(images.shape[0]):
                     if apply_bright[i]:
@@ -104,7 +104,7 @@ class RandomBrightness(Operation):
         else:
             def brightness(images, dst):
                 fp = np.float32
-                def blend(img1, img2, ratio): 
+                def blend(img1, img2, ratio):
                     return (ratio*img1 + (1-ratio)*img2).clip(0, 255).astype(img1.dtype)
 
                 apply_bright = np.random.rand(images.shape[0]) < prob
@@ -175,7 +175,7 @@ class RandomContrast(Operation):
         else:
             def contrast(images, dst):
                 fp = np.float32
-                def blend(img1, img2, ratio): 
+                def blend(img1, img2, ratio):
                     return (ratio*img1 + (1-ratio)*img2).clip(0, 255).astype(img1.dtype)
 
                 apply_contrast = np.random.rand(images.shape[0]) < prob
@@ -256,7 +256,7 @@ class RandomSaturation(Operation):
         else:
             def saturation(images, dst):
                 fp = np.float32
-                def blend(img1, img2, ratio): 
+                def blend(img1, img2, ratio):
                     return (ratio*img1 + (1-ratio)*img2).clip(0, 255).astype(img1.dtype)
 
                 apply_saturation = np.random.rand(images.shape[0]) < prob
@@ -281,9 +281,9 @@ class RandomSaturation(Operation):
 # %% ../../nbs/ffcv.transforms.ipynb 19
 class RandomLighting(Operation):
     '''
-    Randomly adjust image brightness, contrast, and saturation. 
+    Randomly adjust image brightness, contrast, and saturation.
     Combines all three into single transform for speed.
-    Supports both TorchVision and fastai style lighting transforms. 
+    Supports both TorchVision and fastai style lighting transforms.
     '''
     def __init__(self,
         prob:float|None=0.75, # Probability of changing brightness, contrast, and saturation. Set to None for individual probability.
@@ -363,7 +363,7 @@ class RandomLighting(Operation):
                             l_img = grayscale(img)
                         else:
                             l_img = np.empty_like(img[:,:,0])
-                        
+
                         logit(images[i], img)
 
                         if apply_brightness[i]:
@@ -388,7 +388,7 @@ class RandomLighting(Operation):
         else:
             def lighting(images, dst):
                 fp = np.float32
-                def blend(img1, img2, ratio): 
+                def blend(img1, img2, ratio):
                     return (ratio*img1 + (1-ratio)*img2).clip(0, 255).astype(img1.dtype)
                 def probs(max, shape, prob):
                     return np.random.rand(shape) < prob if max > 0 else np.zeros(shape)==1

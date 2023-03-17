@@ -5,7 +5,7 @@
 # fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
 # FFCV - Apache License 2.0 - Copyright (c) 2022 FFCV Team
 
-# %% ../../nbs/ffcv.inference.ipynb 3
+# %% ../../nbs/ffcv.inference.ipynb 4
 from __future__ import annotations
 
 import cv2
@@ -26,7 +26,7 @@ from ..imports import *
 # %% auto 0
 __all__ = ['FFAIBase', 'FFAIImage', 'FFAIImageBW', 'FFAIMask', 'encodes', 'FFAIImageBlock', 'FFAICenterCrop']
 
-# %% ../../nbs/ffcv.inference.ipynb 6
+# %% ../../nbs/ffcv.inference.ipynb 7
 def load_image(fn:str|Path, mode=None):
     "Open and load an image with OpenCV, optionally converting to `mode` and RGB order"
     if isinstance(fn, Path):
@@ -39,7 +39,7 @@ def load_image(fn:str|Path, mode=None):
         else:
             return cv2.imread(fn, mode)
 
-# %% ../../nbs/ffcv.inference.ipynb 7
+# %% ../../nbs/ffcv.inference.ipynb 8
 class FFAIBase(np.ndarray):
     "Base class for a FFCV image that can show itself and convert to a Tensor"
     # _bypass_type = np.ndarray
@@ -75,26 +75,26 @@ class FFAIBase(np.ndarray):
     def __repr__(self):
         return f'{self.__class__.__name__} shape={"x".join([str(d) for d in self.shape])}'
 
-# %% ../../nbs/ffcv.inference.ipynb 8
+# %% ../../nbs/ffcv.inference.ipynb 9
 class FFAIImage(FFAIBase):
     "A RGB FFCV image that can show itself and converts to `TensorImage`"
     _tensor_cls = TensorImage
 
-# %% ../../nbs/ffcv.inference.ipynb 10
+# %% ../../nbs/ffcv.inference.ipynb 11
 class FFAIImageBW(FFAIBase):
     "A BW FFCV image that can show itself and converts to `TensorImageBW`"
     _show_args = {'cmap':'Greys'}
     _open_args = {'mode': cv2.IMREAD_GRAYSCALE}
     _tensor_cls = TensorImageBW
 
-# %% ../../nbs/ffcv.inference.ipynb 14
+# %% ../../nbs/ffcv.inference.ipynb 15
 class FFAIMask(FFAIBase):
     "A FFCV image mask that can show itself and converts to `TensorMask`"
     _show_args = {'cmap':'Greys'}
     _open_args = {'mode': cv2.IMREAD_GRAYSCALE}
     _tensor_cls = TensorMask
 
-# %% ../../nbs/ffcv.inference.ipynb 16
+# %% ../../nbs/ffcv.inference.ipynb 17
 @ToTensor
 def encodes(self, o:FFAIBase):
     return o._tensor_cls(image2tensor(o))
@@ -103,12 +103,12 @@ def encodes(self, o:FFAIBase):
 def encodes(self, o:FFAIMask):
     return o._tensor_cls(image2tensor(o)[0])
 
-# %% ../../nbs/ffcv.inference.ipynb 20
+# %% ../../nbs/ffcv.inference.ipynb 21
 def FFAIImageBlock(cls:FFAIBase=FFAIImage):
     "A `TransformBlock` for images of `cls`"
     return TransformBlock(type_tfms=cls.create, batch_tfms=IntToFloatTensor)
 
-# %% ../../nbs/ffcv.inference.ipynb 22
+# %% ../../nbs/ffcv.inference.ipynb 23
 def get_center_crop(height, width, _, ratio):
     s = min(height, width)
     c = int(ratio * s)
@@ -117,7 +117,7 @@ def get_center_crop(height, width, _, ratio):
 
     return delta_h, delta_w, c
 
-# %% ../../nbs/ffcv.inference.ipynb 23
+# %% ../../nbs/ffcv.inference.ipynb 24
 class FFAICenterCrop(DisplayedTransform):
     split_idx,order = None,1
     "Resize `FFAIBase` image to `output_size` using `ratio`"
