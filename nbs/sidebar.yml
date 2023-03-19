@@ -20,8 +20,8 @@ website:
         - callback.cutmixup.ipynb
         - callback.ema.ipynb
         - callback.lr_finder.ipynb
+        - callback.profiler.ipynb
         - callback.progresize.ipynb
-        - callback.simpleprofiler.ipynb
         - callback.tracker.ipynb
       - section: FFCV [beta]
         contents:
