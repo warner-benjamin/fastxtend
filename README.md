@@ -16,7 +16,7 @@ addons for fastai
   both. Backwards compatible with fastai metrics.
 - Easily use [multiple losses](multiloss.html) and log each individual
   loss on train and valid.
-- A [simple profiler](callback.simpleprofiler.html) for profiling fastai
+- A [multiple profilers](callback.profiler.html) for profiling fastai
   training.
 
 **Vision**
