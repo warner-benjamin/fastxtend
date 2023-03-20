@@ -34,7 +34,7 @@ __all__ = ['ToDevice', 'ToTensorBase', 'ToTensorImage', 'ToTensorImageBW', 'ToTe
 # %% ../../nbs/ffcv.operations.ipynb 5
 _all_ = ['Convert', 'View']
 
-# %% ../../nbs/ffcv.operations.ipynb 11
+# %% ../../nbs/ffcv.operations.ipynb 13
 class ToDevice(_ToDevice):
     "Move tensor to device and retains metadata"
     def __init__(self,
@@ -57,7 +57,7 @@ class ToDevice(_ToDevice):
             return dst
         return to_device
 
-# %% ../../nbs/ffcv.operations.ipynb 13
+# %% ../../nbs/ffcv.operations.ipynb 16
 class ToTensorBase(Operation):
     "Convert from Numpy array to fastai TensorBase or `tensor_cls`."
     def __init__(self, tensor_cls:TensorBase=TensorBase):
@@ -74,9 +74,9 @@ class ToTensorBase(Operation):
         new_dtype = torch.from_numpy(np.empty((), dtype=previous_state.dtype)).dtype
         return replace(previous_state, jit_mode=False, dtype=new_dtype), None
 
-# %% ../../nbs/ffcv.operations.ipynb 14
+# %% ../../nbs/ffcv.operations.ipynb 18
 class ToTensorImage(ToTensorBase):
-    "Convenience op to convert from Numpy array to fastai TensorImage or `tensor_cls`."
+    "Convenience operation to convert from Numpy array to fastai TensorImage or `tensor_cls`."
     def __init__(self, tensor_cls:TensorImageBase=TensorImage):
         super().__init__()
         self.tensor_cls = tensor_cls
@@ -87,32 +87,32 @@ class ToTensorImage(ToTensorBase):
             return tensor_cls(torch.from_numpy(inp).permute(0,3,1,2))
         return to_tensor
 
-# %% ../../nbs/ffcv.operations.ipynb 15
+# %% ../../nbs/ffcv.operations.ipynb 20
 class ToTensorImageBW(ToTensorImage):
-    "Convenience op to convert from Numpy array to fastai TensorImageBW."
+    "Convenience operation to convert from Numpy array to fastai TensorImageBW."
     def __init__(self):
         super().__init__(TensorImageBW)
 
-# %% ../../nbs/ffcv.operations.ipynb 16
+# %% ../../nbs/ffcv.operations.ipynb 22
 class ToTensorMask(ToTensorImage):
-    "Convenience op to convert from Numpy array to fastai TensorMask."
+    "Convenience operation to convert from Numpy array to fastai TensorMask."
     def __init__(self):
         super().__init__(TensorMask)
 
-# %% ../../nbs/ffcv.operations.ipynb 17
+# %% ../../nbs/ffcv.operations.ipynb 24
 class ToTensorCategory(ToTensorBase):
-    "Convenience op to convert from Numpy array to fastxtend TensorCategory."
+    "Convenience operation to convert from Numpy array to fastxtend TensorCategory."
     def __init__(self):
         super().__init__(TensorCategory)
 
-# %% ../../nbs/ffcv.operations.ipynb 18
+# %% ../../nbs/ffcv.operations.ipynb 26
 class ToTensorMultiCategory(ToTensorBase):
-    "Convenience op convert from Numpy array to fastxtend TensorMultiCategory."
+    "Convenience operation convert from Numpy array to fastxtend TensorMultiCategory."
     def __init__(self):
         super().__init__(TensorMultiCategory)
 
-# %% ../../nbs/ffcv.operations.ipynb 19
+# %% ../../nbs/ffcv.operations.ipynb 28
 class ToTensorTitledTensorScalar(ToTensorBase):
-    "Convenience op convert from Numpy array to fastai TitledTensorScalar."
+    "Convenience operation convert from Numpy array to fastai TitledTensorScalar."
     def __init__(self):
         super().__init__(TitledTensorScalar)
