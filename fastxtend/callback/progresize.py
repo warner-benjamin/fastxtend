@@ -43,13 +43,13 @@ def _evenly_divisible(final_size, current_size, increase_by, steps):
     increase_by = tensor(increase_by)
     return (((final_size-current_size) % increase_by).sum() == 0) and (((final_size-current_size) - (increase_by*steps)).sum() == 0)
 
-# %% ../../nbs/callback.progresize.ipynb 8
+# %% ../../nbs/callback.progresize.ipynb 9
 class IncreaseMode(Enum):
     "Increase mode for `ProgressiveResize`"
     Epoch = 'epoch'
     Batch = 'batch'
 
-# %% ../../nbs/callback.progresize.ipynb 9
+# %% ../../nbs/callback.progresize.ipynb 10
 class ProgressiveResize(Callback):
     "Progressively increase the size of input images during training. Starting from `initial_size` and ending at the valid image size or `final_size`."
     order = MixedPrecision.order+1 # Needs to run after MixedPrecision
@@ -307,7 +307,7 @@ class ProgressiveResize(Callback):
                 else:
                     self._null_resize = null_resize
 
-# %% ../../nbs/callback.progresize.ipynb 44
+# %% ../../nbs/callback.progresize.ipynb 45
 try:
     import wandb
 
