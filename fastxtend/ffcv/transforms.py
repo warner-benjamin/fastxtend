@@ -21,23 +21,23 @@ from ffcv.pipeline.state import State
 from ffcv.transforms.cutout import Cutout
 from ffcv.transforms.flip import RandomHorizontalFlip as _RandomHorizontalFlip
 from ffcv.transforms.random_resized_crop import RandomResizedCrop
-from ffcv.transforms.translate import RandomTranslate
+from ffcv.transforms.translate import RandomTranslate as _RandomTranslate
 from ffcv.transforms.poisoning import Poison
 from ffcv.transforms.replace_label import ReplaceLabel
 from ffcv.transforms.common import Squeeze
 
 # %% auto 0
-__all__ = ['RandomHorizontalFlip', 'RandomBrightness', 'RandomContrast', 'RandomSaturation', 'RandomLighting', 'RandomHue',
-           'RandomCutout', 'RandomErasing', 'RandomResizedCrop', 'RandomTranslate', 'Cutout', 'Poison', 'ReplaceLabel',
-           'Squeeze']
+__all__ = ['RandomHorizontalFlip', 'Translate', 'RandomBrightness', 'RandomContrast', 'RandomSaturation', 'RandomLighting',
+           'RandomHue', 'RandomCutout', 'RandomTranslate', 'RandomErasing', 'RandomResizedCrop', 'Cutout', 'Poison',
+           'ReplaceLabel', 'Squeeze']
 
 # %% ../../nbs/ffcv.transforms.ipynb 3
-_all_ = ['RandomResizedCrop', 'RandomTranslate', 'Cutout', 'Poison', 'ReplaceLabel', 'Squeeze']
+_all_ = ['RandomResizedCrop', 'Cutout', 'Poison', 'ReplaceLabel', 'Squeeze']
 
-# %% ../../nbs/ffcv.transforms.ipynb 9
+# %% ../../nbs/ffcv.transforms.ipynb 12
 class RandomHorizontalFlip(_RandomHorizontalFlip):
     """
-    Flip the image horizontally with probability flip_prob.
+    Flip the image horizontally with probability prob.
     Operates on raw arrays (not tensors).
 
     Parameters
@@ -50,6 +50,25 @@ class RandomHorizontalFlip(_RandomHorizontalFlip):
         super().__init__(prob)
 
 # %% ../../nbs/ffcv.transforms.ipynb 16
+class Translate(_RandomTranslate):
+    """
+    Translate each image randomly in vertical and horizontal directions
+    up to specified number of pixels.
+
+    Parameters
+    ----------
+    padding : int
+        Max number of pixels to translate in any direction.
+    fill : tuple
+        An RGB color ((0, 0, 0) by default) to fill the area outside the shifted image.
+    """
+
+    def __init__(self, padding: int, fill: Tuple[int, int, int] = (0, 0, 0)):
+        super().__init__()
+        self.padding = padding
+        self.fill = np.array(fill)
+
+# %% ../../nbs/ffcv.transforms.ipynb 26
 class RandomBrightness(Operation):
     'Randomly adjust image brightness. Supports both TorchVision and fastai style brightness transforms.'
     def __init__(self,
@@ -122,7 +141,7 @@ class RandomBrightness(Operation):
     def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
         return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
 
-# %% ../../nbs/ffcv.transforms.ipynb 17
+# %% ../../nbs/ffcv.transforms.ipynb 28
 class RandomContrast(Operation):
     'Randomly adjust image contrast. Supports both TorchVision and fastai style contrast transforms.'
     def __init__(self,
@@ -194,7 +213,7 @@ class RandomContrast(Operation):
     def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
         return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
 
-# %% ../../nbs/ffcv.transforms.ipynb 18
+# %% ../../nbs/ffcv.transforms.ipynb 30
 class RandomSaturation(Operation):
     'Randomly adjust image saturation. Supports both TorchVision and fastai style saturation transforms.'
     def __init__(self,
@@ -278,7 +297,7 @@ class RandomSaturation(Operation):
     def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
         return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
 
-# %% ../../nbs/ffcv.transforms.ipynb 19
+# %% ../../nbs/ffcv.transforms.ipynb 32
 class RandomLighting(Operation):
     '''
     Randomly adjust image brightness, contrast, and saturation.
@@ -428,7 +447,7 @@ class RandomLighting(Operation):
     def declare_state_and_memory(self, previous_state) -> Tuple[State, Optional[AllocationQuery]]:
         return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
 
-# %% ../../nbs/ffcv.transforms.ipynb 20
+# %% ../../nbs/ffcv.transforms.ipynb 34
 # RandomHue adapted from pending FFCV PR: https://github.com/libffcv/ffcv/pull/226
 
 # Code for Hue adapted from:
@@ -490,7 +509,7 @@ class RandomHue(Operation):
     def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
         return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
 
-# %% ../../nbs/ffcv.transforms.ipynb 23
+# %% ../../nbs/ffcv.transforms.ipynb 38
 class RandomCutout(Cutout):
     """Random cutout data augmentation (https://arxiv.org/abs/1708.04552).
 
@@ -524,16 +543,57 @@ class RandomCutout(Cutout):
                         np.random.randint(images.shape[1] - crop_size + 1),
                         np.random.randint(images.shape[2] - crop_size + 1),
                     )
-                    # Black out image in-place
+                    # Fill image in-place
                     images[i, coord[0]:coord[0] + crop_size, coord[1]:coord[1] + crop_size] = fill
             return images
 
         cutout_square.is_parallel = True
         return cutout_square
 
-# %% ../../nbs/ffcv.transforms.ipynb 24
+# %% ../../nbs/ffcv.transforms.ipynb 40
+class RandomTranslate(_RandomTranslate):
+    """Translate each image randomly in vertical and horizontal directions
+    up to specified number of pixels.
+
+    Parameters
+    ----------
+    prob : float
+        Probability of applying on each image.
+    padding : int
+        Max number of pixels to translate in any direction.
+    fill : tuple
+        An RGB color ((0, 0, 0) by default) to fill the area outside the shifted image.
+    """
+
+    def __init__(self, prob: float, padding: int,
+                 fill: Tuple[int, int, int] = (0, 0, 0)):
+        super().__init__(padding, fill)
+        self.prob = prob
+
+    def generate_code(self) -> Callable:
+        my_range = Compiler.get_iterator()
+        pad = self.padding
+        fill = self.fill
+        prob = self.prob
+
+        def translate(images, dst):
+            n, h, w, _ = images.shape
+            dst[:] = fill
+            dst[:, pad:pad+h, pad:pad+w] = images
+            should_translate = rand(images.shape[0]) < prob
+            for i in my_range(n):
+                if should_translate[i]:
+                    y_coord = np.random.randint(low=0, high=2 * pad + 1)
+                    x_coord = np.random.randint(low=0, high=2 * pad + 1)
+                    images[i] = dst[i, y_coord:y_coord+h, x_coord:x_coord+w]
+
+            return images
+
+        translate.is_parallel = True
+        return translate
+
+# %% ../../nbs/ffcv.transforms.ipynb 43
 # Implementation inspired by fastai https://docs.fast.ai/vision.augment.html#randomerasing
-# fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
 class RandomErasing(Operation):
     """Random erasing data augmentation (https://arxiv.org/abs/1708.04896).
 
