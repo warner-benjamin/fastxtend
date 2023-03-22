@@ -9,14 +9,16 @@ jobs:
   nbdev-sync:
     runs-on: ubuntu-latest
     steps:
+      - name: Uncacheable Apt Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libturbojpeg-dev
+
       - name: Cacheable Apt Install
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: libsndfile1-dev libopencv-dev python3-opencv
           version: 1.0
-
-      - name: Uncacheable Apt Install
-        run: sudo apt-get install -y libturbojpeg-dev
 
       - name: Test Library Sync
         uses: fastai/workflows/nbdev-ci@master
@@ -34,15 +36,16 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Uncacheable Apt Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libturbojpeg-dev
+
       - name: Cacheable Apt Install
-        run: sudo apt-get update
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: libsndfile1-dev libopencv-dev python3-opencv
           version: 1.0
-
-      - name: Uncacheable Apt Install
-        run: sudo apt-get install -y libturbojpeg-dev
 
       - name: Set up Python
         uses: actions/setup-python@v4
