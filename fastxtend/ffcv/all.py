@@ -1,6 +1,5 @@
 from ffcv.fields import Field, BytesField, IntField, FloatField, NDArrayField, JSONField, TorchTensorField
 from ffcv.fields.decoders import *
-from ffcv.loader import OrderOption
 from ffcv.pipeline import *
 from ffcv.writer import DatasetWriter
 

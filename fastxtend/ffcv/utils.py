@@ -34,8 +34,8 @@ class LabelField(Enum):
 def rgb_dataset_to_ffcv(
     dataset:Dataset|Datasets, # A PyTorch Dataset or single fastai Datasets
     write_path:str|Path, # File name to store dataset in FFCV beton format
-    max_resolution:int|None=None, # Resize images to have maximum side length less or equal to before saving
-    min_resolution:int|None=None, # Resize images to have minimum side length less or equal to before saving
+    max_resolution:int|None=None, # If maximum side length is greater than `max_resolution`, resize so maximum side length equals `max_resolution`
+    min_resolution:int|None=None, # If minimum side length is greater than `min_resolution`, resize so minimum side length equals `min_resolution`
     write_mode:str='raw', # `RGBImageField` write mode: 'raw', 'jpg', 'smart', 'proportion'
     smart_threshold:int|None=None, # If `write_mode='smart'`, JPEG-compress RAW bytes is larger than `smart_threshold`
     compress_probability:float=0.50, # Probability with which image is JPEG-compressed

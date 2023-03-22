@@ -28,9 +28,12 @@ from fastai.data.core import show_batch, show_results, DataLoaders
 from ..imports import *
 
 # %% auto 0
-__all__ = ['Loader']
+__all__ = ['Loader', 'OrderOption']
 
-# %% ../../nbs/ffcv.loader.ipynb 6
+# %% ../../nbs/ffcv.loader.ipynb 5
+_all_ = ['OrderOption']
+
+# %% ../../nbs/ffcv.loader.ipynb 7
 @funcs_kwargs
 class BaseDL(GetAttr):
     "Provides callbacks for DataLoaders which inherit from `BaseLoader`"
@@ -50,7 +53,7 @@ class BaseDL(GetAttr):
         "Called after `BaseLoader` has fully read/iterated over the dataset."
         return x
 
-# %% ../../nbs/ffcv.loader.ipynb 7
+# %% ../../nbs/ffcv.loader.ipynb 8
 class Loader(BaseDL, _Loader):
     "FFCV `Loader` with fastai Transformed DataLoader `TfmdDL` batch transforms"
     def __init__(self,
