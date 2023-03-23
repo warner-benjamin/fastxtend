@@ -17,43 +17,43 @@ from ...transform import *
 from ...imports import *
 
 # %% auto 0
-__all__ = ['GrayScaleMode', 'GrayScale', 'ChannelDrop', 'RandomNoise', 'RandomErasingBatch', 'affine_transforms']
+__all__ = ['GrayscaleMode', 'Grayscale', 'ChannelDrop', 'RandomNoise', 'RandomErasingBatch', 'affine_transforms']
 
 # %% ../../../nbs/vision.augment.batch.ipynb 7
-class GrayScaleMode(Enum):
-    "GrayScaleModes for GrayScale"
+class GrayscaleMode(Enum):
+    "GrayscaleModes for Grayscale"
     Luma601 = 0
     Luma709 = 1
     Average = 2
     Random  = 3
 
 # %% ../../../nbs/vision.augment.batch.ipynb 8
-class GrayScale(BatchRandTransform):
+class Grayscale(BatchRandTransform):
     "Convert RGB image into grayscale using luma_bt.601, luma_bt.709, averaging, or randomly selected"
     order = 55 # After LightingTfms
     def __init__(self,
         p:float=0.1, # Per-item probability
-        mode:GrayScaleMode=GrayScaleMode.Random # GrayScaleMode to apply to images. Random applies all three element-wise with equal probability
+        mode:GrayscaleMode=GrayscaleMode.Random # GrayScaleMode to apply to images. Random applies all three element-wise with equal probability
     ):
         super().__init__(p=p)
         self.mode = mode
         self._luma601 = torch.tensor([0.2989, 0.5870, 0.1140])
         self._luma709 = torch.tensor([0.2126, 0.7152, 0.0722])
-        self._average = torch.tensor([0.3333, 0.3333, 0.3333])
+        self._average = torch.tensor([1/3,    1/3,    1/3   ])
 
     def encodes(self, x:TensorImage):
-        if self.mode==GrayScaleMode.Random:
+        if self.mode==GrayscaleMode.Random:
             choice = torch.stack(random.choices([self._luma601, self._luma709, self._average], k=x.shape[0]), dim=0).view(x.shape[0], -1, 1, 1)
             return (x*choice).sum(1)[:,None]
-        elif self.mode==GrayScaleMode.Luma601:
+        elif self.mode==GrayscaleMode.Luma601:
             return (x*self._luma601[...,None,None]).sum(1)[:,None]
-        elif self.mode==GrayScaleMode.Luma709:
+        elif self.mode==GrayscaleMode.Luma709:
             return (x*self._luma709[...,None,None]).sum(1)[:,None]
-        elif self.mode==GrayScaleMode.Average:
+        elif self.mode==GrayscaleMode.Average:
             return x.mean(1)[:,None]
 
     def to(self, *args, **kwargs):
-        device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
+        device, *_ = torch._C._nn._parse_to(*args, **kwargs)
         self._luma601 = self._luma601.to(device=device)
         self._luma709 = self._luma709.to(device=device)
         self._average = self._average.to(device=device)
