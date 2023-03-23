@@ -8,6 +8,8 @@
 from __future__ import annotations
 
 import math
+import random
+from enum import Enum
 import numpy as np
 from numpy.random import rand
 from typing import Callable, Optional, Tuple
@@ -28,8 +30,8 @@ from ffcv.transforms.common import Squeeze
 
 # %% auto 0
 __all__ = ['RandomHorizontalFlip', 'Translate', 'RandomBrightness', 'RandomContrast', 'RandomSaturation', 'RandomLighting',
-           'RandomHue', 'RandomCutout', 'RandomTranslate', 'RandomErasing', 'RandomResizedCrop', 'Cutout', 'Poison',
-           'ReplaceLabel', 'Squeeze']
+           'RandomHue', 'GrayscaleType', 'RandomGrayscale', 'RandomChannelDrop', 'RandomCutout', 'RandomTranslate',
+           'RandomErasing', 'RandomResizedCrop', 'Cutout', 'Poison', 'ReplaceLabel', 'Squeeze']
 
 # %% ../../nbs/ffcv.transforms.ipynb 3
 _all_ = ['RandomResizedCrop', 'Cutout', 'Poison', 'ReplaceLabel', 'Squeeze']
@@ -510,6 +512,93 @@ class RandomHue(Operation):
         return (replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype))
 
 # %% ../../nbs/ffcv.transforms.ipynb 38
+class GrayscaleType(Enum):
+    "Grayscale Types for RandomGrayscale for typo-proof and autocompletion"
+    Luma601 = 0
+    Luma709 = 1
+    Average = 2
+    Random  = 3
+
+# %% ../../nbs/ffcv.transforms.ipynb 39
+class RandomGrayscale(Operation):
+    """Random grayscale conversion augmentation.
+
+    Parameters
+    ----------
+    prob : float
+        Probability of applying on each image.
+    grayscale: GrayscaleType
+        Apply luma601, luma709, or average grayscaling. Or randomly select per image from all three.
+    """
+    def __init__(self, prob: float = 0.1, grayscale: GrayscaleType = GrayscaleType.Random):
+        super().__init__()
+        self.prob = np.clip(prob, 0., 1.)
+        grays = [
+            [0.2989, 0.5870, 0.1140], # luma601
+            [0.2126, 0.7152, 0.0722], # luma709
+            [1/3,    1/3,    1/3]     # average
+        ]
+        if grayscale != GrayscaleType.Random:
+            grays = [grays[grayscale.value]]
+        self.grays = np.array(grays).astype(np.float32)
+
+    def generate_code(self) -> Callable:
+        my_range = Compiler.get_iterator()
+        prob = self.prob
+        grays = self.grays
+        rand_gray = len(grays) > 1
+
+        def grayscale(images, dst):
+            should_grayscale = rand(images.shape[0]) < prob
+
+            for i in my_range(images.shape[0]):
+                if should_grayscale[i]:
+                    gt = random.randint(0, 2) if rand_gray else 0
+                    l_img = grays[gt][0]*images[i,:,:,0] + grays[gt][1]*images[i,:,:,1] + grays[gt][2]*images[i,:,:,2]
+                    l_img = np.clip(l_img, 0, 255).astype(np.uint8)
+                    for j in range(3):
+                        dst[i,:,:,j] = l_img
+                else:
+                    dst[i] = images[i]
+            return dst
+
+        grayscale.is_parallel = True
+        return grayscale
+
+    def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
+        return replace(previous_state, jit_mode=True), AllocationQuery(previous_state.shape, previous_state.dtype)
+
+# %% ../../nbs/ffcv.transforms.ipynb 41
+class RandomChannelDrop(Operation):
+    """Randomly replace image channel with random value.
+
+    Parameters
+    ----------
+    prob : float
+        Probability of applying on each image.
+    """
+    def __init__(self, prob: float = 0.1):
+        super().__init__()
+        self.prob = np.clip(prob, 0., 1.)
+
+    def generate_code(self) -> Callable:
+        my_range = Compiler.get_iterator()
+        prob = self.prob
+
+        def channel_drop(images, *_):
+            should_channel_drop = rand(images.shape[0]) < prob
+            for i in my_range(images.shape[0]):
+                if should_channel_drop[i]:
+                    images[i,:,:,random.randint(0, 2)] = np.uint8(random.randint(0, 255))
+            return images
+
+        channel_drop.is_parallel = True
+        return channel_drop
+
+    def declare_state_and_memory(self, previous_state: State) -> Tuple[State, Optional[AllocationQuery]]:
+        return replace(previous_state, jit_mode=True), None
+
+# %% ../../nbs/ffcv.transforms.ipynb 43
 class RandomCutout(Cutout):
     """Random cutout data augmentation (https://arxiv.org/abs/1708.04552).
 
@@ -550,7 +639,7 @@ class RandomCutout(Cutout):
         cutout_square.is_parallel = True
         return cutout_square
 
-# %% ../../nbs/ffcv.transforms.ipynb 40
+# %% ../../nbs/ffcv.transforms.ipynb 45
 class RandomTranslate(_RandomTranslate):
     """Translate each image randomly in vertical and horizontal directions
     up to specified number of pixels.
@@ -592,7 +681,7 @@ class RandomTranslate(_RandomTranslate):
         translate.is_parallel = True
         return translate
 
-# %% ../../nbs/ffcv.transforms.ipynb 43
+# %% ../../nbs/ffcv.transforms.ipynb 48
 # Implementation inspired by fastai https://docs.fast.ai/vision.augment.html#randomerasing
 class RandomErasing(Operation):
     """Random erasing data augmentation (https://arxiv.org/abs/1708.04896).
@@ -619,7 +708,7 @@ class RandomErasing(Operation):
         Default of True is ~2X faster by generating noise once per batch and randomly
         selecting slices of the noise instead of generating unique noise per each image.
     """
-    def __init__(self, prob: float, min_area: float = 0.02, max_area: float = 0.3,
+    def __init__(self, prob: float = 0.25, min_area: float = 0.02, max_area: float = 0.3,
                  min_aspect: float = 0.3, max_count: int = 1,
                  fill_mean: Tuple[int, int, int] = (124, 116, 103),
                  fill_std: Tuple[int, int, int] = (58, 57, 57),
