@@ -38,7 +38,7 @@ _all_ = ['Convert', 'View']
 class ToDevice(_ToDevice):
     "Move tensor to device and retains metadata"
     def __init__(self,
-        device:int|str|torch.device, # Device to move Tensor to
+        device:int|str|torch.device='cuda', # Device to move Tensor to
         non_blocking:bool=True # Asynchronous if copying from CPU to GPU
     ):
         device, *_ = torch._C._nn._parse_to(device=device)
