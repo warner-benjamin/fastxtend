@@ -35,6 +35,8 @@ website:
           file: ffcv.operations.ipynb
         - text: Transforms
           file: ffcv.transforms.ipynb
+        - text: Writer
+          file: ffcv.writer.ipynb
         - text: Utilities
           file: ffcv.utils.ipynb
         - text: Inference

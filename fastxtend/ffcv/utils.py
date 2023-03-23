@@ -18,9 +18,9 @@ from torch.utils.data import Dataset
 from fastai.data.core import Datasets
 
 from ffcv.fields import IntField, FloatField
-from ffcv.writer import DatasetWriter
 
 from .fields import RGBImageField
+from .writer import DatasetWriter
 
 # %% auto 0
 __all__ = ['LabelField', 'rgb_dataset_to_ffcv']
@@ -48,8 +48,8 @@ def rgb_dataset_to_ffcv(
     label_field:LabelField=LabelField.int # Use FFCV `IntField` or `FloatField` for labels
 ):
     "Writes PyTorch/fastai compatible `dataset` into FFCV format at filepath `write_path`."
-
-    write_path = str(Path(write_path))
+    if isinstance(write_path, Path):
+        write_path = str(write_path)
     writer = DatasetWriter(write_path, {
         'image': RGBImageField(write_mode=write_mode, max_resolution=max_resolution,
                                min_resolution=min_resolution, smart_threshold=smart_threshold,
