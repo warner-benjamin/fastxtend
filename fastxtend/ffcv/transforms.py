@@ -15,6 +15,8 @@ from numpy.random import rand
 from typing import Callable, Optional, Tuple
 from dataclasses import replace
 
+from fastcore.basics import ifnone
+
 from ffcv.pipeline.compiler import Compiler
 from ffcv.pipeline.allocation_query import AllocationQuery
 from ffcv.pipeline.operation import Operation
@@ -307,26 +309,24 @@ class RandomLighting(Operation):
     Supports both TorchVision and fastai style lighting transforms.
     '''
     def __init__(self,
-        prob:float|None=0.75, # Probability of changing brightness, contrast, and saturation. Set to None for individual probability.
-        max_lighting:float|None=0.2, # Maximum lighting change. Set to None for individual changes. See max_brightness, max_contrast, and max_saturation for details.
+        prob:float=0.75, # Default probability of changing brightness, contrast, and saturation. Individual probability overrides this value.
+        max_lighting:float=0.2, # Default maximum lighting change. Individual lighting overrides this value. See max_brightness, max_contrast, and max_saturation for details.
         max_brightness:float|None=None, # Maximum brightness change. Randomly choose factor on [0.5*(1-magnitude), 0.5*(1+magnitude)], or [max(0, 1-magnitude), 1+magnitude] if fastai=False.
         max_contrast:float|None=None, # Maximum contrast change. Randomly choose factor on [1-max_lighting, 1/(1-max_lighting)] in log space, or [max(0, 1-magnitude), 1+magnitude] if fastai=False.
         max_saturation:float|None=None, # Maximum saturation change. Randomly choose factor on [1-max_lighting, 1/(1-max_lighting)] in log space, or [max(0, 1-magnitude), 1+magnitude] if fastai=False.
-        prob_brightness:float|None=None, # Individual probability of changing brightness. Set to prob=None to use.
-        prob_contrast:float|None=None, # Individual probability of changing contrast. Set to prob=None to use.
-        prob_saturation:float|None=None, # Individual probability of changing saturation. Set to prob=None to use.
+        prob_brightness:float|None=None, # Individual probability of changing brightness. Set to override `prob`.
+        prob_contrast:float|None=None, # Individual probability of changing contrast. Set to override `prob`.
+        prob_saturation:float|None=None, # Individual probability of changing saturation. Set to override `prob`.
         fastai:bool=False # fastai-style transform or TorchVision. Defaults to fastai.
     ):
         super().__init__()
-        self.prob = prob
         self.fastai = fastai
-        self.max_lighting = max_lighting
-        self.max_brightness = max_brightness
-        self.max_contrast = max_contrast
-        self.max_saturation = max_saturation
-        self.prob_brightness = prob_brightness
-        self.prob_contrast = prob_contrast
-        self.prob_saturation = prob_saturation
+        self.max_brightness  = ifnone(max_brightness, max_lighting)
+        self.max_contrast    = ifnone(max_contrast, max_lighting)
+        self.max_saturation  = ifnone(max_saturation, max_lighting)
+        self.prob_brightness = ifnone(prob_brightness, prob)
+        self.prob_contrast   = ifnone(prob_contrast, prob)
+        self.prob_saturation = ifnone(prob_saturation, prob)
         self.lut = self.logit(np.arange(256)).astype(np.float32)
 
     def logit(self, x):
@@ -335,14 +335,12 @@ class RandomLighting(Operation):
 
     def generate_code(self):
         my_range = Compiler.get_iterator()
-        if self.prob is not None:
-            prob_brightness, prob_contrast, prob_saturation = self.prob, self.prob, self.prob
-        else:
-            prob_brightness, prob_contrast, prob_saturation = self.prob_brightness, self.prob_contrast, self.prob_saturation
-        if self.max_lighting is not None:
-            max_brightness, max_contrast, max_saturation = self.max_lighting, self.max_lighting, self.max_lighting
-        else:
-            max_brightness, max_contrast, max_saturation = self.max_brightness, self.max_contrast, self.max_saturation
+        prob_brightness = self.prob_brightness
+        prob_contrast   = self.prob_contrast
+        prob_saturation = self.prob_saturation
+        max_brightness  = self.max_brightness
+        max_contrast    = self.max_contrast
+        max_saturation  = self.max_saturation
         lut = self.lut
 
         if self.fastai:
