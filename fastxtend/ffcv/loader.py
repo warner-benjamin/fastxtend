@@ -194,20 +194,26 @@ class Loader(BaseDL, _Loader):
 
     @device.setter
     def device(self, device):
+        gen_code = False
         device, *_ = torch._C._nn._parse_to(device=device)
         self._device = device
-        # Device setter for Loader
+        # Device setter for FFCV Pipeline
         for p in self.pipeline_specs.values():
             for t in p.transforms:
                 if isinstance(t, _ToDevice):
+                    gen_code = not gen_code and t.device != device
                     t.device = device
-        # Device setter for FFCVDataLoader
+        # If the Pipeline device changed, need to reset states
+        if gen_code:
+            self.generate_code()
+        # Device setter for fastai batch_tfms
         if hasattr(self.after_batch, 'fs'):
             for tfm in self.after_batch.fs:
-                for a in L(getattr(tfm, 'parameters', None)):
-                    setattr(tfm, a, getattr(tfm, a).to(device))
-                if hasattr(tfm, 'to'):
+                if hasattr(tfm, 'to') and callable(tfm.to): 
                     tfm.to(device)
+                else:
+                    for a in L(getattr(tfm, 'parameters', None)):
+                        setattr(tfm, a, getattr(tfm, a).to(device))
 
     def to(self, device:int|str|torch.device):
         "Sets `self.device=device`."
