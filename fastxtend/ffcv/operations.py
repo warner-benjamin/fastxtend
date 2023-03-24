@@ -36,12 +36,15 @@ _all_ = ['Convert', 'View']
 
 # %% ../../nbs/ffcv.operations.ipynb 13
 class ToDevice(_ToDevice):
-    "Move tensor to device and retains metadata"
+    "Copy tensor to Cuda device and retains metadata"
     def __init__(self,
-        device:int|str|torch.device='cuda', # Device to move Tensor to
+        device:int|str|torch.device|None=None, # Copy tensor to this Cuda device. Defaults to fastai's `default_device()`
         non_blocking:bool=True # Asynchronous if copying from CPU to GPU
     ):
-        device, *_ = torch._C._nn._parse_to(device=device)
+        if device is not None:
+            device, *_ = torch._C._nn._parse_to(device=device)
+        else:
+            device = default_device()
         super().__init__(device, non_blocking)
 
     def generate_code(self) -> Callable:
