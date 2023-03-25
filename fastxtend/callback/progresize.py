@@ -6,7 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from fastcore.basics import detuplify
+from fastcore.basics import detuplify, in_notebook
 from fastcore.transform import Pipeline
 
 from fastai.callback.core import Callback
@@ -188,13 +188,12 @@ class ProgressiveResize(Callback):
                       f'pixels every {pct*self.n_epoch:.4g} epochs for {len(self.step_pcts)} resizes. \nStarting at epoch '\
                       f'{self.step_pcts[0]*self.n_epoch:.4g} and finishing at epoch {self.step_pcts[-1]*self.n_epoch:.4g} '\
                       f'for a final training size of {(self.current_size+(len(self.step_pcts))*self.increase_by).tolist()}.'
-                print(msg)
             else:
                 msg = f'Progressively increase the initial image size of {self.current_size.tolist()} by {self.increase_by} '\
                       f'pixels every {step_size} epoch{"s" if step_size > 1 else ""} for {len(self.step_epochs)} resizes.\nStarting '\
                       f'at epoch {start_epoch+step_size} and finishing at epoch {finish_epoch} for a final training size of '\
                       f'{(self.current_size+(len(self.step_epochs))*self.increase_by).tolist()}.'
-                print(msg)
+            print(msg) if in_notebook() else print('\n' + msg + '\n')
 
         # If not `add_resize`, check for fastai Augmentation resizes to use
         if not self.add_resize:
