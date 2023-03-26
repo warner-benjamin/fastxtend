@@ -65,6 +65,7 @@ class ProgressiveResize(Callback):
         add_resize:bool=False, # Add a separate resize step. Use for non-fastai DataLoaders or fastai DataLoader without batch_tfms
         resize_targ:bool=False, # Applies the separate resize step to targets
         empty_cache:bool=False, # Call `torch.cuda.empty_cache()` before a resizing epoch. May prevent Cuda & Magma errors. Don't use with multiple GPUs
+        preallocate:bool=False, # Preallocate GPU memory by performing a dry run at final size. May prevent stuttering during training due to memory allocation.
         verbose:bool=True, # Print a summary of the progressive resizing schedule
         logger_callback:str='wandb', # Log image size to `logger_callback` using `Callback.name` if available
     ):
@@ -87,34 +88,36 @@ class ProgressiveResize(Callback):
         self.increase_by = tensor(self.increase_by)
         self.resize_batch = self.increase_mode == IncreaseMode.Batch
 
-        # Dry run at full resolution to pre-allocate memory
+        # Optional dry run at full resolution to pre-allocate memory
         # See https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#pre-allocate-memory-in-case-of-variable-input-length
         states = get_random_states()
-        path = self.path/self.model_dir
-        path.mkdir(parents=True, exist_ok=True)
-        tmp_d = TemporaryDirectory(dir=path)
-        tmp_p = Path(tmp_d.name).stem
-        self.learn.save(f'{tmp_p}/_tmp')
+        if self.preallocate:
+            path = self.path/self.model_dir
+            path.mkdir(parents=True, exist_ok=True)
+            tmp_d = TemporaryDirectory(dir=path)
+            tmp_p = Path(tmp_d.name).stem
+            self.learn.save(f'{tmp_p}/_tmp')
         try:
             b = self.dls.valid.one_batch()
             i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
             self.learn.xb, self.learn.yb = b[:i],b[i:]
 
-            if hasattr(self.learn, 'mixed_precision'):
-                self.learn.mixed_precision.autocast.__enter__()
+            if self.preallocate:
+                if hasattr(self.learn, 'mixed_precision'):
+                    self.learn.mixed_precision.autocast.__enter__()
 
-            self.learn.pred = self.learn.model(*_cast_tensor(self.learn.xb))
-            self.learn.loss = self.learn.loss_func(self.learn.pred, *_cast_tensor(self.learn.yb))
+                self.learn.pred = self.learn.model(*_cast_tensor(self.learn.xb))
+                self.learn.loss = self.learn.loss_func(self.learn.pred, *_cast_tensor(self.learn.yb))
 
-            if hasattr(self.learn, 'mixed_precision'):
-                self.learn.mixed_precision.autocast.__exit__(None, None, None)
+                if hasattr(self.learn, 'mixed_precision'):
+                    self.learn.mixed_precision.autocast.__exit__(None, None, None)
 
-            self.learn.loss.backward()
-            self.learn.opt.zero_grad()
-
+                self.learn.loss.backward()
+                self.learn.opt.zero_grad()
         finally:
-            self.learn.load(f'{tmp_p}/_tmp', with_opt=True)
-            tmp_d.cleanup()
+            if self.preallocate:
+                self.learn.load(f'{tmp_p}/_tmp', with_opt=True)
+                tmp_d.cleanup()
             set_random_states(**states)
 
         # Try to automatically determine the input size
