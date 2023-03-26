@@ -1,0 +1,108 @@
+# Options
+verbose: false  # Print non-default options, excluding Weights and Biases options.
+
+# Model
+model: xresnext50  # ResNet model architecture to train
+act_cls: relu  # Activation function for fastxtend XResNet. Not case sensitive
+dropout: 0.0  # Dropout for fastxtend XResNet
+stoch_depth: 0.0  # Stochastic depth for fastxtend XResNet
+stem_pool: maxpool  # Stem pooling layer for fastxtend XResNet. Not case sensitive
+block_pool: avgpool  # ResBlock pooling layer for fastxtend XResNet. Not case sensitive
+
+# Optimizer
+optimizer: ranger  # Which optimizer to use. Make sure to set learning rate if changed. Not case sensitive.
+weight_decay: null  # Weight decay for Optimizer. If null, use optimizer's default.
+decouple_wd: true  # Apply true (decoupled) weight decay if true, or L2 regularization if false. Doesn't apply to Adan or Lion.
+fused_opt: true  # Use faster For Each fused Optimizer if true, or the slower standard fastai Optimizer if false.
+mom: null  # Gradient moving average (β1) coefficient. If null, use optimizer's default.
+sqr_mom: null  # Gradient squared moving average (β2) coefficient. If null, use optimizer's default.
+beta1: null  # Adan: Gradient moving average (β1) coefficient. Lion: Update gradient moving average (β1) coefficient. If null, use optimizer's default.
+beta2: null  # Adan: Gradient difference moving average (β2) coefficient. Lion: Gradient moving average (β2) coefficient. If null, use optimizer's default.
+beta3: null  # Adan: Gradient squared moving average (β3) coefficient. If null, use optimizer's default.
+eps: null  # Added for numerical stability. If null, use optimizer's default.
+paper_init: false  # Adan: Initialize prior gradient with current gradient per paper if true, or zeroes if false.
+
+# Scheduler
+scheduler: flat_cos  # Which fastai or fastxtend scheduler to use. one_cycle, flat_cos, flat_warmup, or cos_anneal.
+epochs: 20  # Number of epochs to train for.
+learning_rate: 8e-3  # Max Learning rate for the scheduler. Make sure to change if optimizer is changed.
+pct_start: null  # Scheduler's percent start. Uses scheduler's default if null.
+warm_pct: 0.2  # Learning rate warmup in percent of training steps. Only applies to cos_warmup or cos_anneal.
+warm_epoch: 5  # Learning rate warmup in training epochs. Only applies to cos_warmup or cos_anneal.
+warm_mode: auto  # Warmup using 'epoch', 'pct', or min of epoch/pct if 'auto'. Only applies to cos_warmup or cos_anneal.
+warm_sched: schedcos  # Learning rate warmup schedule
+div_start: 0.25  # Initial learning rate: `lr/div_start`.
+div_final: 1e+5  # Final learning rate: `lr/div_final`.
+
+# Training
+label_smoothing: 0.1  # nn.CrossEntropyLoss label_smoothing amount.
+seed: 42  # Random seed to use. Note: fastxtend+ffcv item transforms are not seeded.
+channels_last: true  # Train in channels last format. Requires a modern GPU (RTX 2000, Turing, Volta, or newer).
+profile: false  # Profile training speed using fastxtend's Throughput profiler.
+
+# Dataset
+image_size: 224  # Image size. Automatically downloads and creates dataset if it doesn't exist.
+batch_size: 64  # Batch size. Increase learning rate to 1e-2 (for ranger) if batch size is 128.
+imagenette: true  # Train on Imagenette if true or ImageWoof if false.
+
+# Progressive Resizing
+prog_resize: true  # Use the automatic Progressive Resizing callback. Significantly faster. May need to train for a few more epochs for same accuracy.
+increase_by: 16  # Pixel increase amount for resizing step. 16 is good for 20-25 epochs. Requires setting `prog_resize: true`.
+initial_size: 0.5  # Staring size relative to size. Requires setting `prog_resize: true`.
+resize_start: 0.5  # Earliest upsizing epoch in percent of training time. Requires setting `prog_resize: true`.
+resize_finish: 0.75  # Last upsizing epoch in percent of training time. Requires setting `prog_resize: true`.
+preallocate: false  #Preallocate GPU memory by performing a dry run at final size. May prevent stuttering during training due to memory allocation. Requires `prog_resize: true`.
+
+# Dataloader
+use_ffcv: true  # Use fastxtend+ffcv dataloader instead of the fastai dataloader. fastxtend+ffcv can be significantly faster.
+max_workers: 16  # Maximum number of workers to use for multiprocessing. Chooses number of CPUs if lower.
+device: null  # Device to train on. If not set, uses the fastai default device. Must be Cuda device if `use_ffcv: true`.
+center_crop: true  # Center crop validation images with the fastai dataloader. True matches fastxtend+ffcv dataloader.
+
+# Training
+label_smoothing: 0.1  # nn.CrossEntropyLoss label_smoothing amount.
+seed: 42  # Random seed to use. Note: fastxtend+ffcv item transforms are not seeded.
+channels_last: true  # Train in channels last format. Requires a modern GPU (RTX 2000, Turing, Volta, or newer).
+profile: false  # Profile training speed using fastxtend's Throughput profiler.
+
+# FFCV Dataloader
+item_transforms: false  # Where possible, use fastxtend+ffcv Numba compliled item transforms instead of GPU batch transforms.
+batches_ahead: 1  # Number of batches prepared in advance by fastxtend+ffcv dataloader. Balances latency and memory usage.
+quasi_random: false  # Use Quasi-Random loading with fastxtend+ffcv dataloader. Use on low memory machine.
+
+# Transform Options
+flip: true  # Randomly flip the image horizontally
+flip_vert: false  # Randomly flip the image vertically
+max_rotate: 10.0  # Maximum degrees of rotation to apply to the image
+min_zoom: 1.0  # Minimum zoom level to apply to the image
+max_zoom: 1.0  # Maximum zoom level to apply to the image
+max_lighting: 0.2  # Maximum scale of brightness and contrast to apply to the image
+max_warp: 0.2  # Maximum value of warp per to apply to the image
+prob_affine: 0.75  # Probability of applying affine transformation to the image
+prob_lighting: 0.75  # Probability of changing the brightness and contrast of the image
+prob_saturation: 0  # Probability of changing the saturation of the image. If 0, is not applied.
+max_saturation: 0.2  # Maximum scale of saturationto apply to the image.
+prob_hue: 0.0  # Probability of changing the hue of the image. If 0, is not applied.
+max_hue: 0.2  # Maximum hue factor to apply to the image.
+prob_grayscale: 0.0  # Probability of changing the image to grayscale. If 0, is not applied.
+prob_channeldrop: 0.0  # Probability of replacing one channel with a single value. If 0, is not applied.
+prob_erasing: 0.0  # Probability of applying random erasing on an image. If 0, is not applied.
+
+# MixUp & CutMix
+mixup: false  # Train with MixUp. Only use if training for more than 60 epochs.
+mixup_alpha: 0.4  # MixUp's Alpha & beta parametrization for Beta distribution. Requires setting `mixup: true` or `cutmixup: true`.
+cutmix: false  # Train in CutMix. Only use if training for more than 60 epochs.
+cutmix_alpha: 1.0  # CutMix's Alpha & beta parametrization for Beta distribution. Requires setting `cutmix: true` or `cutmixup: true`.
+cutmixup: false  # Train with CutMix and MixUp. Only use if training for more than 60 epochs.
+mixup_ratio: 1.0  # MixUp ratio relative to CutMix. Requires setting `cutmixup: true`.
+cutmix_ratio: 1.0  # CutMix ratio relative to MixUp. Requires setting `cutmixup: true`.
+elementwise: false  # Elementwise CutMix and Mixup on the same batch if true, one per entire batch if false. Requires setting `cutmixup: true`.
+
+# Weights and Biases
+log_wandb: false  # Log to Weights and Biases.
+name: null  # WandB run name.
+project: null  # WandB project name.
+group: null  # WandB group name.
+tags: null  # WandB tags. String of comma seperated values.
+entity: null  # WandB entity name.
+save_code: false  # Save code to WandB. Requires setting `log_wandb: true`
