@@ -135,7 +135,8 @@ def create(
     jpeg_quality:int=typer.Option(90, help="JPEG quality if --jpeg."),
     chunk_size:int=typer.Option(100, help="Number of chunks processed by each worker. Lower to use less memory."),
 ):
-    create_ffcv_dataset(size=size, imagenette=imagenette, jpeg=jpeg, jpeg_quality=jpeg_quality, chunk_size=chunk_size)
+    create_ffcv_dataset(size=size, imagenette=imagenette, jpeg=jpeg,
+                        jpeg_quality=jpeg_quality, chunk_size=chunk_size)
 
 
 def create_ffcv_dataset(size:ImagenetteSize=ImagenetteSize.medium, imagenette:bool=False,
@@ -162,10 +163,10 @@ def create_ffcv_dataset(size:ImagenetteSize=ImagenetteSize.medium, imagenette:bo
 
 
 def get_aug_transforms(flip:bool=True, flip_vert:bool=False, max_rotate:float=10., min_zoom:float=1.,
-                       max_zoom:float=1., max_lighting:float=0.2, max_warp:float=0.2, prob_affine:float=0.75,
-                       prob_lighting:float=0.75, prob_saturation:float=0, max_saturation:float=0.2,
-                       prob_hue:float=0, max_hue:float=0.2, prob_grayscale:float=0., prob_channeldrop:float=0.,
-                       prob_erasing:float=0.):
+                       max_zoom:float=1., max_lighting:float=0.2, max_warp:float=0.2,
+                       prob_affine:float=0.75, prob_lighting:float=0.75, prob_saturation:float=0,
+                       max_saturation:float=0.2, prob_hue:float=0, max_hue:float=0.2, prob_grayscale:float=0.,
+                       prob_channeldrop:float=0., prob_erasing:float=0.):
     xtra_tfms = []
     if prob_saturation > 0:
         xtra_tfms.append(Saturation(max_lighting=max_saturation, p=prob_saturation))
@@ -181,16 +182,17 @@ def get_aug_transforms(flip:bool=True, flip_vert:bool=False, max_rotate:float=10
         xtra_tfms = None
 
     return *aug_transforms(do_flip=flip, flip_vert=flip_vert, max_rotate=max_rotate, min_zoom=min_zoom,
-                           max_zoom=max_zoom, max_lighting=max_lighting, max_warp=max_warp, p_affine=prob_affine,
-                           p_lighting=prob_lighting, xtra_tfms=xtra_tfms),
+                           max_zoom=max_zoom, max_lighting=max_lighting, max_warp=max_warp,
+                           p_affine=prob_affine, p_lighting=prob_lighting, xtra_tfms=xtra_tfms),
 
 
 def get_fastai_dls(size:int, bs:int, imagenette:bool=False, max_workers:int=16, center_crop:bool=True,
-                   device:int|str|torch.device|None=None, flip:bool=True, flip_vert:bool=False,
-                   max_rotate:float=10., min_zoom:float=1., max_zoom:float=1., max_lighting:float=0.2,
-                   max_warp:float=0.2, prob_affine:float=0.75, prob_lighting:float=0.75,
-                   prob_saturation:float=0, max_saturation:float=0.2, prob_hue:float=0, max_hue:float=0.2,
-                   prob_grayscale:float=0., prob_channeldrop:float=0., prob_erasing:float=0.):
+                   device:int|str|torch.device|None=None, double_valid:bool=False, flip:bool=True,
+                   flip_vert:bool=False, max_rotate:float=10., min_zoom:float=1., max_zoom:float=1.,
+                   max_lighting:float=0.2, max_warp:float=0.2, prob_affine:float=0.75,
+                   prob_lighting:float=0.75, prob_saturation:float=0, max_saturation:float=0.2,
+                   prob_hue:float=0, max_hue:float=0.2, prob_grayscale:float=0., prob_channeldrop:float=0.,
+                   prob_erasing:float=0.):
     if size<=144:
         path = URLs.IMAGENETTE_160 if imagenette else URLs.IMAGEWOOF_160
     elif size<=224:
@@ -203,9 +205,10 @@ def get_fastai_dls(size:int, bs:int, imagenette:bool=False, max_workers:int=16, 
 
     gpu_tfms = get_aug_transforms(flip=flip, flip_vert=flip_vert, max_rotate=max_rotate, min_zoom=min_zoom,
                                   max_zoom=max_zoom, max_lighting=max_lighting, max_warp=max_warp,
-                                  prob_affine=prob_affine, prob_lighting=prob_lighting, prob_saturation=prob_saturation,
-                                  max_saturation=max_saturation, prob_hue=prob_hue, max_hue=max_hue,
-                                  prob_grayscale=prob_grayscale, prob_channeldrop=prob_channeldrop, prob_erasing=prob_erasing)
+                                  prob_affine=prob_affine, prob_lighting=prob_lighting,
+                                  prob_saturation=prob_saturation, max_saturation=max_saturation,
+                                  prob_hue=prob_hue, max_hue=max_hue, prob_grayscale=prob_grayscale,
+                                  prob_channeldrop=prob_channeldrop, prob_erasing=prob_erasing)
 
     stats = imagenette_stats if imagenette else imagewoof_stats
     batch_tfms = [IntToFloatTensor(), *gpu_tfms, Normalize.from_stats(*stats)]
@@ -225,7 +228,7 @@ def get_fastai_dls(size:int, bs:int, imagenette:bool=False, max_workers:int=16, 
                            item_tfms=[Resize(size)],
                            batch_tfms=batch_tfms)
 
-        vls = vblock.dataloaders(source, bs=bs*2, num_workers=workers, device=device)
+        vls = vblock.dataloaders(source, bs=bs*2 if double_valid else bs, num_workers=workers, device=device)
         dls.valid = vls.valid
         vls.train = None
 
@@ -234,9 +237,9 @@ def get_fastai_dls(size:int, bs:int, imagenette:bool=False, max_workers:int=16, 
 
 def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=False, max_workers:int=16,
                  seed:int=42, batches_ahead:int=2, device:int|str|torch.device|None=None,
-                 quasi_random:bool=False, flip:bool=True, flip_vert:bool=False, max_rotate:float=10.,
-                 max_zoom:float=1., min_zoom:float=1., max_lighting:float=0.2, max_warp:float=0.2,
-                 prob_affine:float=0.75, prob_lighting:float=0.75, prob_saturation:float=0,
+                 quasi_random:bool=False, double_valid:bool=False, flip:bool=True, flip_vert:bool=False,
+                 max_rotate:float=10., max_zoom:float=1., min_zoom:float=1., max_lighting:float=0.2,
+                 max_warp:float=0.2, prob_affine:float=0.75, prob_lighting:float=0.75, prob_saturation:float=0,
                  max_saturation:float=0.2, prob_hue:float=0, max_hue:float=0.2, prob_grayscale:float=0.,
                  prob_channeldrop:float=0., prob_erasing:float=0.):
 
@@ -248,10 +251,10 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
     else:
         gpu_tfms = get_aug_transforms(flip=flip, flip_vert=flip_vert, max_rotate=max_rotate, min_zoom=min_zoom,
                                       max_zoom=max_zoom, max_lighting=max_lighting, max_warp=max_warp,
-                                      prob_affine=prob_affine, prob_lighting=prob_lighting, prob_saturation=prob_saturation,
-                                      max_saturation=max_saturation, prob_hue=prob_hue, max_hue=max_hue,
-                                      prob_grayscale=prob_grayscale, prob_channeldrop=prob_channeldrop,
-                                      prob_erasing=prob_erasing)
+                                      prob_affine=prob_affine, prob_lighting=prob_lighting,
+                                      prob_saturation=prob_saturation, max_saturation=max_saturation,
+                                      prob_hue=prob_hue, max_hue=max_hue, prob_grayscale=prob_grayscale,
+                                      prob_channeldrop=prob_channeldrop, prob_erasing=prob_erasing)
 
     stats = imagenette_stats if imagenette else imagewoof_stats
     batch_tfms = [IntToFloatTensor(), *gpu_tfms, Normalize.from_stats(*stats)]
@@ -307,7 +310,7 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
         ]
         order = OrderOption.QUASI_RANDOM if quasi_random else OrderOption.RANDOM
         loaders[name] = Loader(file,
-                               batch_size=bs if name=='train' else bs*2,
+                               batch_size=bs if (name=='train' or not double_valid) else bs*2,
                                num_workers=workers,
                                os_cache=order != OrderOption.QUASI_RANDOM,
                                order=order if name=='train' else OrderOption.SEQUENTIAL,
@@ -369,12 +372,12 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     initial_size:float=typer.Option(0.5, help="Staring size relative to --size. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
     resize_start:float=typer.Option(0.5, help="Earliest upsizing epoch in percent of training time. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
     resize_finish:float=typer.Option(0.75, help="Last upsizing epoch in percent of training time. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
-    preallocate:bool=typer.Option(False, "--preallocate", help="Preallocate GPU memory by performing a dry run at final size. May prevent stuttering during training due to memory allocation. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
     # Dataloader
     use_ffcv:bool=typer.Option(True, "--ffcv/--fastai", help="Use fastxtend+ffcv dataloader or the fastai dataloader. fastxtend+ffcv can be significantly faster.", rich_help_panel="DataLoader"),
     max_workers:int=typer.Option(16, help="Maximum number of workers to use for multiprocessing. Chooses number of CPUs if lower.", rich_help_panel="DataLoader"),
     device:Optional[str]=typer.Option(None, help="Device to train on. If not set, uses the fastai default device. Must be Cuda device if --ffcv.", rich_help_panel="DataLoader"),
     center_crop:bool=typer.Option(True, "--crop/--squish", help="Center crop or squish validation images with the fastai dataloader. --crop matches fastxtend+ffcv dataloader.", rich_help_panel="DataLoader"),
+    double_valid:bool=typer.Option(True, "--double/--same", help="Double the validation batch size or keep it the same size as the training --batch_size.", rich_help_panel="DataLoader"),
     # FFCV Dataloader
     item_transforms:bool=typer.Option(False, "--item-tfms/--batch-tfms", help="Where possible, use fastxtend+ffcv Numba compliled item transforms instead of GPU batch transforms.", rich_help_panel="fastxtend+ffcv DataLoader"),
     batches_ahead:int=typer.Option(1, help="Number of batches prepared in advance by fastxtend+ffcv dataloader. Balances latency and memory usage.", rich_help_panel="fastxtend+ffcv DataLoader"),
@@ -468,7 +471,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     if prog_resize:
         cbs += [ProgressiveResize(initial_size=initial_size, start=resize_start,
                                   finish=resize_finish, increase_by=increase_by,
-                                  preallocate=preallocate)]
+                                  preallocate_bs=batch_size if double_valid else None)]
     if mixup:
         cbs += [MixUp(mixup_alpha=mixup_alpha, interp_label=False)]
     elif cutmix:
@@ -482,20 +485,21 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
         if use_ffcv:
             dls = get_ffcv_dls(size=image_size, bs=batch_size, imagenette=imagenette,
                                item_transforms=item_transforms, max_workers=max_workers, seed=seed,
-                               batches_ahead=batches_ahead, device=device, quasi_random=quasi_random, flip=flip,
-                               flip_vert=flip_vert, max_rotate=max_rotate, min_zoom=min_zoom, max_zoom=max_zoom,
-                               max_lighting=max_lighting, max_warp=max_warp, prob_affine=prob_affine,
-                               prob_lighting=prob_lighting, prob_saturation=prob_saturation,
+                               batches_ahead=batches_ahead, device=device, quasi_random=quasi_random,
+                               double_valid=double_valid, flip=flip, flip_vert=flip_vert, max_rotate=max_rotate,
+                               min_zoom=min_zoom, max_zoom=max_zoom, max_lighting=max_lighting, max_warp=max_warp,
+                               prob_affine=prob_affine, prob_lighting=prob_lighting, prob_saturation=prob_saturation,
                                max_saturation=max_saturation, prob_hue=prob_hue, max_hue=max_hue,
                                prob_grayscale=prob_grayscale, prob_channeldrop=prob_channeldrop,
                                prob_erasing=prob_erasing)
         else:
             dls = get_fastai_dls(size=image_size, bs=batch_size, imagenette=imagenette, max_workers=max_workers,
-                                 center_crop=center_crop, device=device, flip=flip, flip_vert=flip_vert,
-                                 max_rotate=max_rotate, min_zoom=min_zoom, max_zoom=max_zoom, max_lighting=max_lighting,
-                                 max_warp=max_warp, prob_affine=prob_affine, prob_lighting=prob_lighting,
-                                 prob_saturation=prob_saturation, max_saturation=max_saturation, prob_hue=prob_hue,
-                                 max_hue=max_hue, prob_grayscale=prob_grayscale, prob_channeldrop=prob_channeldrop,
+                                 center_crop=center_crop, device=device, double_valid=double_valid, flip=flip,
+                                 flip_vert=flip_vert, max_rotate=max_rotate, min_zoom=min_zoom, max_zoom=max_zoom,
+                                 max_lighting=max_lighting, max_warp=max_warp, prob_affine=prob_affine,
+                                 prob_lighting=prob_lighting, prob_saturation=prob_saturation,
+                                 max_saturation=max_saturation, prob_hue=prob_hue, max_hue=max_hue,
+                                 prob_grayscale=prob_grayscale, prob_channeldrop=prob_channeldrop,
                                  prob_erasing=prob_erasing)
 
     # Setup Weights and Biases logging, if initalized

@@ -58,13 +58,13 @@ increase_by: 16  # Pixel increase amount for resizing step. 16 is good for 20-25
 initial_size: 0.5  # Staring size relative to size. Requires setting `prog_resize: true`.
 resize_start: 0.5  # Earliest upsizing epoch in percent of training time. Requires setting `prog_resize: true`.
 resize_finish: 0.75  # Last upsizing epoch in percent of training time. Requires setting `prog_resize: true`.
-preallocate: false  #Preallocate GPU memory by performing a dry run at final size. May prevent stuttering during training due to memory allocation. Requires `prog_resize: true`.
 
 # Dataloader
 use_ffcv: true  # Use fastxtend+ffcv dataloader instead of the fastai dataloader. fastxtend+ffcv can be significantly faster.
 max_workers: 16  # Maximum number of workers to use for multiprocessing. Chooses number of CPUs if lower.
 device: null  # Device to train on. If not set, uses the fastai default device. Must be Cuda device if `use_ffcv: true`.
 center_crop: true  # Center crop validation images with the fastai dataloader. True matches fastxtend+ffcv dataloader.
+double_valid: true # Double the validation batch size if true or keep it the same size as the training `batch_size`.
 
 # Training
 label_smoothing: 0.1  # nn.CrossEntropyLoss label_smoothing amount.
