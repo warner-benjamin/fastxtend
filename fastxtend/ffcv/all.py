@@ -2,7 +2,7 @@ from ffcv.fields import Field, BytesField, IntField, FloatField, NDArrayField, J
 from ffcv.fields.decoders import *
 from ffcv.pipeline import *
 
-import fastxtend.ffcv.ft as ft
+import fastxtend.ffcv.fx as fx
 
 from .fields import RGBImageField
 from .loader import *

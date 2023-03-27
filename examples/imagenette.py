@@ -259,29 +259,29 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
     if item_transforms:
         train_pipe = [
             RandomResizedCropRGBImageDecoder(output_size=(size,size), scale=(0.35, 1)),
-            ft.RandomLighting(prob=prob_lighting, prob_saturation=prob_saturation, max_saturation=max_saturation)
+            fx.RandomLighting(prob=prob_lighting, prob_saturation=prob_saturation, max_saturation=max_saturation)
         ]
         if prob_hue > 0:
-            train_pipe.append(ft.RandomHue(prob=prob_hue, max_hue=max_hue))
+            train_pipe.append(fx.RandomHue(prob=prob_hue, max_hue=max_hue))
         if prob_grayscale > 0:
-            train_pipe.append(ft.RandomGrayscale(prob=prob_grayscale))
+            train_pipe.append(fx.RandomGrayscale(prob=prob_grayscale))
         if prob_channeldrop > 0:
-            train_pipe.append(ft.RandomChannelDrop(prob=prob_channeldrop))
+            train_pipe.append(fx.RandomChannelDrop(prob=prob_channeldrop))
         if prob_erasing > 0:
             fill_mean = tuple([np.clip(i*255, 0, 255) for i in stats[0]])
             fill_std = tuple([np.clip(i*255, 0, 255) for i in stats[1]])
-            train_pipe.append(ft.RandomErasing(prob=prob_erasing, fill_mean=fill_mean, fill_std=fill_std))
-        train_pipe.extend([ft.ToTensorImage(), ft.ToDevice()])
+            train_pipe.append(fx.RandomErasing(prob=prob_erasing, fill_mean=fill_mean, fill_std=fill_std))
+        train_pipe.extend([fx.ToTensorImage(), fx.ToDevice()])
     else:
         train_pipe = [
             RandomResizedCropRGBImageDecoder(output_size=(size,size), scale=(0.35, 1)),
-            ft.ToTensorImage(),
-            ft.ToDevice()
+            fx.ToTensorImage(),
+            fx.ToDevice()
         ]
     valid_pipe = [
         CenterCropRGBImageDecoder(output_size=(size,size), ratio=1),
-        ft.ToTensorImage(),
-        ft.ToDevice()
+        fx.ToTensorImage(),
+        fx.ToDevice()
     ]
 
     loaders = {}
@@ -302,8 +302,8 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
             create_ffcv_dataset(ds_size, imagenette)
 
         label_pipe = [
-            IntDecoder(), ft.ToTensorCategory(),
-            ft.Squeeze(), ft.ToDevice()
+            IntDecoder(), fx.ToTensorCategory(),
+            fx.Squeeze(), fx.ToDevice()
         ]
         train = OrderOption.QUASI_RANDOM if quasi_random else OrderOption.RANDOM
         loaders[name] = Loader(file,
