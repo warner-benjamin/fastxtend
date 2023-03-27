@@ -1,3 +1,10 @@
+# This config file is for modfying the `imagenette.py` Typer CLI option defaults.
+# Load this config file by passing --config imagenette.yaml to `imagenette.py`.
+# For conciseness, any unchanged setting may be removed as `imagenette.py` will
+# use the Typer defaults. Passed CLI options to `imagenette.py` will override
+# any changes made here. Set `verbose: true` or pass --verbose from CLI to verify
+# options values.
+
 # Options
 verbose: false  # Print non-default options, excluding Weights and Biases options.
 
@@ -68,7 +75,7 @@ profile: false  # Profile training speed using fastxtend's Throughput profiler.
 # FFCV Dataloader
 item_transforms: false  # Where possible, use fastxtend+ffcv Numba compliled item transforms instead of GPU batch transforms.
 batches_ahead: 1  # Number of batches prepared in advance by fastxtend+ffcv dataloader. Balances latency and memory usage.
-quasi_random: false  # Use Quasi-Random loading with fastxtend+ffcv dataloader. Use on low memory machine.
+quasi_random: false  # Use Quasi-Random loading with fastxtend+ffcv dataloader instead of default of Random. Random caches entire dataset in memory. Quasi-Random caches random subsets.
 
 # Transform Options
 flip: true  # Randomly flip the image horizontally

@@ -194,9 +194,11 @@ class ThroughputCallback(Callback):
             bs = np.array(self._raw_values[f'{p}_bs'])
             for a in getattr(self, f'_{p}'):
                 if a == 'step':
-                    values = np.array(self._raw_values[f'{p}_draw']) + np.array(self._raw_values[f'{p}_batch'])
+                    self._raw_values[f'{p}_step'] = np.array(self._raw_values[f'{p}_draw']) + np.array(self._raw_values[f'{p}_batch'])
+                    values = self._raw_values[f'{p}_step']
                 else:
-                    values = np.array(self._raw_values[f'{p}_{a}'])
+                    self._raw_values[f'{p}_{a}'] = np.array(self._raw_values[f'{p}_{a}'])
+                    values = self._raw_values[f'{p}_{a}']
                 self._append_to_df(self._create_detail_row(p, a, values, bs))
 
         self.learn.profile_results = self.report.copy()
@@ -217,7 +219,7 @@ class ThroughputCallback(Callback):
                         s = self.report.style.set_caption("Profiling Results").hide(axis='index')
                         display(s)
                 else:
-                    print('Profiling Results')
+                    print('\nProfiling Results:')
                     print(self.report.to_string(index=False))
             if self._drop > 0:
                 print(f'Batch dropped. train and valid phases show {self._drop} less batch than fit.')
@@ -248,7 +250,7 @@ class ThroughputCallback(Callback):
             sam_per_sec = '-'
         elif action == 'draw':
             bs = np.array(bs[self._drop:])
-            batch = np.array(self._raw_values[f'{phase}_batch'][self._drop:])
+            batch = self._raw_values[f'{phase}_batch'][self._drop:]
             self._processed_samples[f'{phase}_{action}'] = -(bs/batch - bs/(input+batch))
             sam_per_sec = f'{int(np.around(self._processed_samples[f"{phase}_{action}"].mean())):,d}'
         else:
@@ -435,14 +437,17 @@ try:
         for t in self.learn.profile_results.itertuples():
             if isinstance(convert_to_int(t._6), int):
                 wandb.summary[f'{t.Phase}/{t.Action}_throughput'] = self._processed_samples[f'{t.Phase}_{t.Action}']
+            
+            if t.Phase=='fit':
+                values = self._raw_values[f'{t.Phase}']
+                log = f'{t.Phase}/duration' if t.Action == 'fit' else f'{t.Phase}/{t.Action}_duration'
+            else:
+                # Optionally drop first batch if train/valid phase
+                values = self._raw_values[f'{t.Phase}_{t.Action}'][self._drop:]
+                log = f'{t.Phase}/{t.Action}_duration'
+            wandb.summary[log] = np.array(values)
 
-            values = self._raw_values[f'{t.Phase}_{t.Action}']
-            if t.Phase in ['train', 'valid']:
-                # Optionaly drop first batch if train/valid phase
-                values = values[self._drop:]
-            wandb.summary[f'{t.Phase}/{t.Action}_duration'] = values
-
-        report = wandb.Table(dataframe=self.learn.profile_report)
+        report  = wandb.Table(dataframe=self.learn.profile_report)
         results = wandb.Table(dataframe=self.learn.profile_results)
 
         wandb.log({"profile_report": report})

@@ -305,11 +305,12 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
             IntDecoder(), fx.ToTensorCategory(),
             fx.Squeeze(), fx.ToDevice()
         ]
-        train = OrderOption.QUASI_RANDOM if quasi_random else OrderOption.RANDOM
+        order = OrderOption.QUASI_RANDOM if quasi_random else OrderOption.RANDOM
         loaders[name] = Loader(file,
                                batch_size=bs if name=='train' else bs*2,
                                num_workers=workers,
-                               order=train if name=='train' else OrderOption.SEQUENTIAL,
+                               os_cache=order != OrderOption.QUASI_RANDOM,
+                               order=order if name=='train' else OrderOption.SEQUENTIAL,
                                pipelines={'image': train_pipe if name=='train' else valid_pipe, 'label': label_pipe},
                                batch_tfms=batch_tfms,
                                batches_ahead=batches_ahead,
@@ -377,7 +378,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     # FFCV Dataloader
     item_transforms:bool=typer.Option(False, "--item-tfms/--batch-tfms", help="Where possible, use fastxtend+ffcv Numba compliled item transforms instead of GPU batch transforms.", rich_help_panel="fastxtend+ffcv DataLoader"),
     batches_ahead:int=typer.Option(1, help="Number of batches prepared in advance by fastxtend+ffcv dataloader. Balances latency and memory usage.", rich_help_panel="fastxtend+ffcv DataLoader"),
-    quasi_random:bool=typer.Option(False, "--random/--quasi", help="Use Random or Quasi-Random loading with fastxtend+ffcv dataloader. Quasi-Random is for a low memory machine.", rich_help_panel="fastxtend+ffcv DataLoader"),
+    quasi_random:bool=typer.Option(False, "--random/--quasi", help="Use Random or Quasi-Random loading with fastxtend+ffcv dataloader. Random caches entire dataset in memory. Quasi-Random caches random subsets.", rich_help_panel="fastxtend+ffcv DataLoader"),
     # Transform Options
     flip:bool=typer.Option(True, help="Randomly flip the image horizontally", rich_help_panel="Transform Options"),
     flip_vert:bool=typer.Option(False, help="Randomly flip the image vertically", rich_help_panel="Transform Options"),
