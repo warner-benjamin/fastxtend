@@ -5,7 +5,7 @@ fastxtend
 
 <div>
 
-Train fastai models faster with fastxtend (and other useful tools)
+### Train fastai models faster (and other useful tools)
 
 </div>
 

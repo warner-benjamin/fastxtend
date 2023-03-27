@@ -4,6 +4,6 @@ project:
 website:
   title: "fastxtend"
   site-url: "https://fastxtend.benjaminwarner.dev/"
-  description: "A collection of extensions and addons for fastai"
+  description: "Train fastai models faster (and other useful tools)"
   repo-branch: main
   repo-url: "https://github.com/warner-benjamin/fastxtend"
