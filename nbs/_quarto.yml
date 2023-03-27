@@ -47,7 +47,7 @@ website:
         aria-label: Twitter
   sidebar:
     style: floating
-    collapse-level: 3
+    collapse-level: 2
   page-footer:
     left: "Copyright © 2023 Benjamin Warner, MIT License"
     right:

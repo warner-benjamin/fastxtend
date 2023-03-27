@@ -4,9 +4,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps: 
-    - name: Install Prerequisite
-      run: |
-        sudo apt-get install libsndfile1-dev
-    - name: Deploy Docs to GitHub Pages
-      uses: fastai/workflows/quarto-ghp@master
+    steps:
+      - name: Uncacheable Apt Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libturbojpeg-dev
+
+      - name: Cacheable Apt Install
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libsndfile1-dev libopencv-dev python3-opencv
+          version: 1.0
+
+      - name: Deploy Docs to GitHub Pages
+        uses: fastai/workflows/quarto-ghp@master

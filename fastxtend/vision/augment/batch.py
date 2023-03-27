@@ -10,55 +10,55 @@ from __future__ import annotations
 import random
 from torch.distributions.uniform import Uniform
 
-from fastai.vision.augment import cutout_gaussian, _slice
+from fastai.vision.augment import cutout_gaussian, _slice, PadMode, Dihedral, Flip, Warp, Rotate, Zoom, RandomResizedCropGPU, setup_aug_tfms
 from fastai.vision.core import TensorImage
 
 from ...transform import *
 from ...imports import *
 
 # %% auto 0
-__all__ = ['GrayScaleMode', 'GrayScale', 'ChannelDrop', 'RandomNoise', 'RandomErasingBatch']
+__all__ = ['GrayscaleMode', 'Grayscale', 'ChannelDrop', 'RandomNoise', 'RandomErasingBatch', 'affine_transforms']
 
-# %% ../../../nbs/vision.augment.batch.ipynb 6
-class GrayScaleMode(Enum):
-    "GrayScaleModes for GrayScale"
+# %% ../../../nbs/vision.augment.batch.ipynb 7
+class GrayscaleMode(Enum):
+    "GrayscaleModes for Grayscale"
     Luma601 = 0
     Luma709 = 1
     Average = 2
     Random  = 3
 
-# %% ../../../nbs/vision.augment.batch.ipynb 7
-class GrayScale(BatchRandTransform):
+# %% ../../../nbs/vision.augment.batch.ipynb 8
+class Grayscale(BatchRandTransform):
     "Convert RGB image into grayscale using luma_bt.601, luma_bt.709, averaging, or randomly selected"
     order = 55 # After LightingTfms
     def __init__(self,
         p:float=0.1, # Per-item probability
-        mode:GrayScaleMode=GrayScaleMode.Random # GrayScaleMode to apply to images. Random applies all three element-wise with equal probability
+        mode:GrayscaleMode=GrayscaleMode.Random # GrayScaleMode to apply to images. Random applies all three element-wise with equal probability
     ):
         super().__init__(p=p)
         self.mode = mode
         self._luma601 = torch.tensor([0.2989, 0.5870, 0.1140])
         self._luma709 = torch.tensor([0.2126, 0.7152, 0.0722])
-        self._average = torch.tensor([0.3333, 0.3333, 0.3333])
+        self._average = torch.tensor([1/3,    1/3,    1/3   ])
 
     def encodes(self, x:TensorImage):
-        if self.mode==GrayScaleMode.Random:
+        if self.mode==GrayscaleMode.Random:
             choice = torch.stack(random.choices([self._luma601, self._luma709, self._average], k=x.shape[0]), dim=0).view(x.shape[0], -1, 1, 1)
             return (x*choice).sum(1)[:,None]
-        elif self.mode==GrayScaleMode.Luma601:
+        elif self.mode==GrayscaleMode.Luma601:
             return (x*self._luma601[...,None,None]).sum(1)[:,None]
-        elif self.mode==GrayScaleMode.Luma709:
+        elif self.mode==GrayscaleMode.Luma709:
             return (x*self._luma709[...,None,None]).sum(1)[:,None]
-        elif self.mode==GrayScaleMode.Average:
+        elif self.mode==GrayscaleMode.Average:
             return x.mean(1)[:,None]
 
     def to(self, *args, **kwargs):
-        device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
+        device, *_ = torch._C._nn._parse_to(*args, **kwargs)
         self._luma601 = self._luma601.to(device=device)
         self._luma709 = self._luma709.to(device=device)
         self._average = self._average.to(device=device)
 
-# %% ../../../nbs/vision.augment.batch.ipynb 9
+# %% ../../../nbs/vision.augment.batch.ipynb 11
 class ChannelDrop(BatchRandTransform):
     "Drop entire channel by replacing it with random solid value [0,1)"
     order = 65
@@ -77,7 +77,7 @@ class ChannelDrop(BatchRandTransform):
         x[torch.arange(shape[0], device=x.device), idxs, ...] = value.view(self._view)
         return x
 
-# %% ../../../nbs/vision.augment.batch.ipynb 11
+# %% ../../../nbs/vision.augment.batch.ipynb 14
 class RandomNoise(BatchRandTransform):
     "Add random guassian noise based on `stdev`"
     order = 99 # After Normalize
@@ -100,7 +100,7 @@ class RandomNoise(BatchRandTransform):
             std = self._stdev = self.stdev
         return x + torch.normal(mean=torch.zeros(shape, device=x.device), std=std)
 
-# %% ../../../nbs/vision.augment.batch.ipynb 17
+# %% ../../../nbs/vision.augment.batch.ipynb 21
 class RandomErasingBatch(BatchRandTransform):
     "Randomly selects a rectangle region in an image and randomizes its pixels."
     order = 100 # After Normalize
@@ -135,3 +135,37 @@ class RandomErasingBatch(BatchRandTransform):
             area = img_h*img_w/count
             areas = [self._bounds(area, img_h, img_w) for _ in range(count)]
             return cutout_gaussian(x, areas)
+
+# %% ../../../nbs/vision.augment.batch.ipynb 24
+def affine_transforms(
+    mult:float=1.0, # Multiplication applying to `max_rotate`,`max_warp`
+    do_flip:bool=True, # Random flipping
+    flip_vert:bool=False, # Flip vertically and horizontally
+    max_rotate:float=10., # Maximum degree of rotation
+    min_zoom:float=1., # Minimum zoom
+    max_zoom:float=1.1, # Maximum zoom
+    max_warp:float=0.2, # Maximum warp
+    p_affine:float=0.75, # Probability of applying affine transformation
+    xtra_tfms:list=None, # Custom Transformations
+    size:int|tuple=None, # Output size, duplicated if one value is specified
+    mode:str='bilinear', # PyTorch `F.grid_sample` interpolation
+    pad_mode=PadMode.Reflection, # A `PadMode`
+    align_corners=True, # PyTorch `F.grid_sample` align_corners
+    batch=False, # Apply identical transformation to entire batch
+    min_scale=1. # Minimum scale of the crop, in relation to image area
+):
+    "Utility function to easily create a list of affine transforms: flip, rotate, zoom, and warp."
+    tfms = []
+    tkwargs = dict(size=size if min_scale==1. else None, mode=mode, pad_mode=pad_mode, batch=batch, align_corners=align_corners)
+    max_rotate, max_warp = max_rotate*mult, max_warp*mult
+    if do_flip:
+        tfms.append(Dihedral(p=0.5, **tkwargs) if flip_vert else Flip(p=0.5, **tkwargs))
+    if max_warp:
+        tfms.append(Warp(magnitude=max_warp, p=p_affine, **tkwargs))
+    if max_rotate:
+        tfms.append(Rotate(max_deg=max_rotate, p=p_affine, **tkwargs))
+    if min_zoom<1 or max_zoom>1:
+        tfms.append(Zoom(min_zoom=min_zoom, max_zoom=max_zoom, p=p_affine, **tkwargs))
+    if min_scale!=1.:
+        xtra_tfms = RandomResizedCropGPU(size, min_scale=min_scale, ratio=(1,1)) + L(xtra_tfms)
+    return setup_aug_tfms(tfms + L(xtra_tfms))

@@ -136,9 +136,8 @@ class ThroughputCallback(Callback):
         self._phase, self._train, self._valid = _phase, _train_short, _valid_short
 
     def before_fit(self):
-        self.has_logger = True
-        # self.has_logger = hasattr(self.learn, self.logger_callback) and not hasattr(self.learn, 'lr_finder') and not hasattr(self, "gather_preds")
-        self._raw_values = dict()
+        self.has_logger = hasattr(self.learn, self.logger_callback) and not hasattr(self.learn, 'lr_finder') and not hasattr(self, "gather_preds")
+        self._raw_values, self._processed_samples = {}, {}
         for p in _phase:
             self._raw_values[p] = []
         for p in _epoch:
@@ -189,11 +188,11 @@ class ThroughputCallback(Callback):
             elif p == 'epoch':
                 self._append_to_df(self._create_overview_row('fit', p, self._raw_values[p], None))
             else:
-                self._append_to_df(self._create_overview_row('fit', p, self._raw_values[p], np.array(self._raw_values[f'{p}_bs']).sum()))
+                self._append_to_df(self._create_overview_row('fit', p, self._raw_values[p], np.array(self._raw_values[f'{p}_bs'])))
 
         for p in _epoch:
             bs = np.array(self._raw_values[f'{p}_bs'])
-            for i, a in enumerate(getattr(self, f'_{p}')):
+            for a in getattr(self, f'_{p}'):
                 if a == 'step':
                     values = np.array(self._raw_values[f'{p}_draw']) + np.array(self._raw_values[f'{p}_batch'])
                 else:
@@ -206,7 +205,7 @@ class ThroughputCallback(Callback):
         self.report[['Phase', 'Action']] = self.report[['Phase', 'Action']].where(~self.report[['Phase', 'Action']].duplicated(), '')
         self.report['Phase']  = self.report['Phase'].where(~self.report['Phase'].duplicated(), '')
         self.report['Action'] = self.report['Action'].where(self.report['Phase'] != self.report['Action']).fillna('')
-        self.learn.profile_results = self.report
+        self.learn.profile_report = self.report
 
     def _display_report(self):
         if self.show_report:
@@ -234,9 +233,10 @@ class ThroughputCallback(Callback):
 
     def _create_overview_row(self, phase, action, input, bs=None):
         if bs is not None:
-            draw = np.array(self._raw_values[f'{action}_draw']).sum()
-            batch = np.array(self._raw_values[f'{action}_batch']).sum()
-            sam_per_sec = f'{int(np.around(bs/(draw+batch))):,d}'
+            draw = np.array(self._raw_values[f'{action}_draw'])
+            batch = np.array(self._raw_values[f'{action}_batch'])
+            self._processed_samples[f'{phase}_{action}'] = bs/(draw+batch)
+            sam_per_sec = f'{int(np.around(self._processed_samples[f"{phase}_{action}"].mean())):,d}'
         else:
             sam_per_sec = '-'
         return [phase, action, np.mean(input), np.std(input), len(input), sam_per_sec,
@@ -247,12 +247,14 @@ class ThroughputCallback(Callback):
         if bs is None or action=='zero_grad':
             sam_per_sec = '-'
         elif action == 'draw':
-            bs = np.array(bs[self._drop:]).sum()
+            bs = np.array(bs[self._drop:])
             batch = np.array(self._raw_values[f'{phase}_batch'][self._drop:])
-            sam_per_sec = f'{-int(np.around(bs/batch.sum() - bs/(input+batch).sum())):,d}'
+            self._processed_samples[f'{phase}_{action}'] = -(bs/batch - bs/(input+batch))
+            sam_per_sec = f'{int(np.around(self._processed_samples[f"{phase}_{action}"].mean())):,d}'
         else:
-            bs = np.array(bs[self._drop:]).sum()
-            sam_per_sec = f'{int(np.around(bs/input.sum())):,d}'
+            bs = np.array(bs[self._drop:])
+            self._processed_samples[f'{phase}_{action}'] = bs/input
+            sam_per_sec = f'{int(np.around(self._processed_samples[f"{phase}_{action}"].mean())):,d}'
         return [phase, action, np.mean(input), np.std(input), len(input), sam_per_sec,
                 np.sum(input), f'{self._calc_percent(np.sum(input)):.0%}']
 
@@ -266,11 +268,12 @@ class ThroughputPostCallback(Callback):
 
     def before_fit(self):
         self.profiler = self.learn.throughput
-        self._start_logging = self.profiler._rolling_average + self.profiler._drop
         self.has_logger = self.profiler.has_logger
         self._start_train_logging, self._start_valid_logging = False, False
         self.n_train_batches = len(self.dls.train)
         self.n_valid_batches = len(self.dls.valid)
+        self._rolling_average = self.profiler._rolling_average
+        self._iter = -self.profiler._drop
 
     def after_train(self):
         self.profiler._raw_values['train'].append(time.perf_counter() - self.profiler._train_start)
@@ -282,17 +285,12 @@ class ThroughputPostCallback(Callback):
         if self.training:
             self.profiler._raw_values['train_batch'].append(time.perf_counter() - self.profiler._train_batch_start)
             self.profiler._raw_values['train_bs'].append(find_bs(self.learn.yb))
-            if self.has_logger and self._start_train_logging:
-                self.profiler._log_after_batch('train', self._train)
-            elif self.has_logger:
-                self._start_train_logging = len(self.profiler._raw_values['train_bs']) >= self._start_logging
+            if self.has_logger and self._iter >= self._rolling_average and self._iter % self._rolling_average == 0:
+                self.profiler._log_after_batch(self._train)
+            self._iter += 1
         else:
             self.profiler._raw_values['valid_batch'].append(time.perf_counter() - self.profiler._valid_batch_start)
             self.profiler._raw_values['valid_bs'].append(find_bs(self.learn.yb))
-            if self.has_logger and self._start_valid_logging:
-                self.profiler._log_after_batch('valid', self._valid)
-            elif self.has_logger:
-                self._start_valid_logging = len(self.profiler._raw_values['train_bs']) >= self._start_logging
 
     def after_epoch(self):
         self.profiler._raw_values['epoch'].append(time.perf_counter() - self.profiler._epoch_start)
@@ -416,17 +414,34 @@ def profile(self:Learner,
     return self
 
 # %% ../../nbs/callback.profiler.ipynb 42
+def convert_to_int(s):
+    try:
+        return int(s.replace(",", ""))
+    except ValueError:
+        return s
+
+# %% ../../nbs/callback.profiler.ipynb 43
 try:
     import wandb
 
     @patch
-    def _wandb_log_after_batch(self:ThroughputCallback, epoch:str, actions:list[str]):
-        bs = np.mean(self._raw_values[f'{epoch}_bs'][-self._rolling_average:])
-        logs = {f'{epoch}_throughput/{action}': self._samples_per_second(bs, action, epoch) for action in actions}
+    def _wandb_log_after_batch(self:ThroughputCallback, actions:list[str]):
+        bs = np.mean(self._raw_values[f'train_bs'][-self._rolling_average:])
+        logs = {f'throughput/{action}': self._samples_per_second(bs, action) for action in actions}
         wandb.log(logs, self.learn.wandb._wandb_step+1)
 
     @patch
     def _wandb_log_after_fit(self:ThroughputCallback):
+        for t in self.learn.profile_results.itertuples():
+            if isinstance(convert_to_int(t._6), int):
+                wandb.summary[f'{t.Phase}/{t.Action}_throughput'] = self._processed_samples[f'{t.Phase}_{t.Action}']
+
+            values = self._raw_values[f'{t.Phase}_{t.Action}']
+            if t.Phase in ['train', 'valid']:
+                # Optionaly drop first batch if train/valid phase
+                values = values[self._drop:]
+            wandb.summary[f'{t.Phase}/{t.Action}_duration'] = values
+
         report = wandb.Table(dataframe=self.learn.profile_report)
         results = wandb.Table(dataframe=self.learn.profile_results)
 

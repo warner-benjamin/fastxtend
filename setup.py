@@ -5,7 +5,7 @@ assert parse_version(setuptools.__version__)>=parse_version('36.2')
 
 # note: all settings are in settings.ini; edit there, not here
 config = ConfigParser(delimiters=['='])
-config.read('settings.ini')
+config.read('settings.ini', encoding="utf-8")
 cfg = config['DEFAULT']
 
 cfg_keys = 'version description keywords author author_email'.split()
@@ -20,17 +20,26 @@ licenses = {
     'gpl3': ('GNU General Public License v3', 'OSI Approved :: GNU General Public License v3 (GPLv3)'),
     'bsd3': ('BSD License', 'OSI Approved :: BSD License'),
 }
-statuses = [ '1 - Planning', '2 - Pre-Alpha', '3 - Alpha', '4 - Beta', '5 - Production/Stable', '6 - Mature', '7 - Inactive' ]
-py_versions = '3.7 3.8 3.9 3.10'.split()
+statuses = [ '0 - Pre-Planning', '1 - Planning', '2 - Pre-Alpha', '3 - Alpha',
+    '4 - Beta', '5 - Production/Stable', '6 - Mature', '7 - Inactive' ]
+py_versions = '3.7 3.8 3.9 3.10 3.11'.split()
 
 requirements = cfg.get('requirements','').split()
 if cfg.get('pip_requirements'): requirements += cfg.get('pip_requirements','').split()
 min_python = cfg['min_python']
 lic = licenses.get(cfg['license'].lower(), (cfg['license'], None))
+
 vision_requirements = (cfg.get('vision_requirements') or '').split()
 audio_requirements = (cfg.get('audio_requirements') or '').split()
-all_requirements = vision_requirements + audio_requirements + (cfg.get('all_requirements') or '').split()
+ffcv_requirements = vision_requirements + (cfg.get('ffcv_requirements') or '').split()
+all_requirements = ffcv_requirements + audio_requirements + (cfg.get('all_requirements') or '').split()
 dev_requirements = all_requirements + (cfg.get('dev_requirements') or '').split()
+
+project_urls = {}
+if cfg.get('doc_host'): project_urls["Documentation"] = cfg['doc_host'] + cfg.get('doc_baseurl', '')
+
+extras_require = {'all': all_requirements, 'dev': dev_requirements,
+    'vision': vision_requirements, 'ffcv': ffcv_requirements, 'audio': audio_requirements}
 
 setuptools.setup(
     name = cfg['lib_name'],
@@ -44,14 +53,15 @@ setuptools.setup(
     packages = setuptools.find_packages(),
     include_package_data = True,
     install_requires = requirements,
-    extras_require={'all': all_requirements, 'dev': dev_requirements, 'vision': vision_requirements, 'audio': audio_requirements},
+    extras_require = extras_require,
     dependency_links = cfg.get('dep_links','').split(),
     python_requires  = '>=' + cfg['min_python'],
-    long_description = open('README.md').read(),
+    long_description = open('README.md', encoding="utf8").read(),
     long_description_content_type = 'text/markdown',
     zip_safe = False,
     entry_points = {
         'console_scripts': cfg.get('console_scripts','').split(),
         'nbdev': [f'{cfg.get("lib_path")}={cfg.get("lib_path")}._modidx:d']
     },
+    project_urls = project_urls,
     **setup_cfg)

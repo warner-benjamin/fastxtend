@@ -4,11 +4,16 @@ website:
       - index.ipynb
       - section: Audio
         contents:
-        - audio.01_core.ipynb
-        - audio.02_data.ipynb
-        - audio.03_augment.ipynb
-        - audio.04_learner.ipynb
-        - audio.05_mixup.ipynb
+        - text: Core
+          file: audio.01_core.ipynb
+        - text: Data
+          file: audio.02_data.ipynb
+        - text: Augmentations
+          file: audio.03_augment.ipynb
+        - text: Learner
+          file: audio.04_learner.ipynb
+        - text: MixUp & Friends
+          file: audio.05_mixup.ipynb
       - section: Callbacks
         contents:
         - callback.channelslast.ipynb
@@ -18,6 +23,24 @@ website:
         - callback.profiler.ipynb
         - callback.progresize.ipynb
         - callback.tracker.ipynb
+      - section: FFCV [beta]
+        contents:
+        - text: Getting Started
+          file: ffcv.tutorial.ipynb
+        - text: Fields
+          file: ffcv.fields.ipynb
+        - text: Loader
+          file: ffcv.loader.ipynb
+        - text: Operations
+          file: ffcv.operations.ipynb
+        - text: Transforms
+          file: ffcv.transforms.ipynb
+        - text: Writer
+          file: ffcv.writer.ipynb
+        - text: Utilities
+          file: ffcv.utils.ipynb
+        - text: Inference
+          file: ffcv.inference.ipynb
       - section: Losses
         contents:
         - losses.ipynb

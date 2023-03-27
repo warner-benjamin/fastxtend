@@ -17,6 +17,7 @@ from fastcore.utils import ifnone
 from fastcore.xtras import is_listy
 
 from fastai.torch_core import *
+from fastxtend.torch_core import *
 from fastxtend import patches
 
 T = TypeVar('T')
