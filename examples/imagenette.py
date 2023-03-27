@@ -259,7 +259,7 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
     if item_transforms:
         train_pipe = [
             RandomResizedCropRGBImageDecoder(output_size=(size,size), scale=(0.35, 1)),
-            ft.RandomLighting(prob_lighting=prob_lighting, prob_saturation=prob_saturation, max_saturation=max_saturation)
+            ft.RandomLighting(prob=prob_lighting, prob_saturation=prob_saturation, max_saturation=max_saturation)
         ]
         if prob_hue > 0:
             train_pipe.append(ft.RandomHue(prob=prob_hue, max_hue=max_hue))
@@ -363,7 +363,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     batch_size:int=typer.Option(64, help="Batch size. Increase learning rate to 1e-2 (for ranger) if batch size is 128.", rich_help_panel="Dataset"),
     imagenette:bool=typer.Option(True, "--imagenette/--imagewoof", help="Train on Imagenette or ImageWoof", rich_help_panel="Dataset"),
     # Progressive Resizing
-    prog_resize:bool=typer.Option(True, "--prog-resize", help="Use the automatic Progressive Resizing callback. Significantly faster. May need to train for a few more epochs for same accuracy.", rich_help_panel="Progressive Resizing"),
+    prog_resize:bool=typer.Option(True, "--prog-resize/--full-size", help="Use the automatic Progressive Resizing callback. Significantly faster. May need to train for a few more epochs for same accuracy.", rich_help_panel="Progressive Resizing"),
     increase_by:int=typer.Option(16, help="Pixel increase amount for resizing step. 16 is good for 20-25 epochs. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
     initial_size:float=typer.Option(0.5, help="Staring size relative to --size. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
     resize_start:float=typer.Option(0.5, help="Earliest upsizing epoch in percent of training time. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
