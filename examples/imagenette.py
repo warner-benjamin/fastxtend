@@ -130,7 +130,7 @@ def get_dataset(size:ImagenetteSize, imagenette:bool):
 @app.command(help='Create an Imagenette or ImageWoof FFCV dataset in ~/.cache/fastxtend/')
 def create(
     size:ImagenetteSize=typer.Option(ImagenetteSize.medium, show_default=ImagenetteSize.medium.value, help="Dataset image size. small=160, medium=320, full=fullsize.", case_sensitive=False),
-    imagenette:bool=typer.Option(False, "--imagenette/--imagewoof", help="Create Imagenette or ImageWoof dataset.", rich_help_panel="Dataset"),
+    imagenette:bool=typer.Option(True, "--imagenette/--imagewoof", help="Create Imagenette or ImageWoof dataset.", rich_help_panel="Dataset"),
     jpeg:bool=typer.Option(False, "--jpeg/--raw", help="Save images as JPEGs instead of RAW. Uses less space, but not identical to fastai dataset."),
     jpeg_quality:int=typer.Option(90, help="JPEG quality if --jpeg."),
     chunk_size:int=typer.Option(100, help="Number of chunks processed by each worker. Lower to use less memory."),
