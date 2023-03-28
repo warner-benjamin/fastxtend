@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from fastcore.basics import detuplify, in_notebook
+from fastcore.dispatch import retain_types
 from fastcore.transform import Pipeline
 
 from fastai.callback.core import Callback
@@ -40,13 +41,22 @@ def _evenly_divisible(final_size, current_size, increase_by, steps):
     increase_by = tensor(increase_by)
     return (((final_size-current_size) % increase_by).sum() == 0) and (((final_size-current_size) - (increase_by*steps)).sum() == 0)
 
-# %% ../../nbs/callback.progresize.ipynb 9
+# %% ../../nbs/callback.progresize.ipynb 8
+def _batch_subset(b, subset):
+    if isinstance(b, tuple): 
+        return tuple(_batch_subset(b_, subset) for b_ in b)
+    elif isinstance(b, Tensor): 
+        return retain_types(b[:subset], b)
+    else: 
+        raise ValueError(f'Unexpected type {b}')
+
+# %% ../../nbs/callback.progresize.ipynb 10
 class IncreaseMode(Enum):
     "Increase mode for `ProgressiveResize`"
     Epoch = 'epoch'
     Batch = 'batch'
 
-# %% ../../nbs/callback.progresize.ipynb 10
+# %% ../../nbs/callback.progresize.ipynb 11
 class ProgressiveResize(Callback):
     "Progressively increase the size of input images during training. Starting from `initial_size` and ending at the valid image size or `final_size`."
     order = MixedPrecision.order+1 # Needs to run after MixedPrecision
@@ -91,10 +101,9 @@ class ProgressiveResize(Callback):
         try:
             b = self.dls.valid.one_batch()
             i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
-            if self.preallocate_bs is None:
-                self.learn.xb, self.learn.yb = b[:i], b[i:]
-            else:
-                self.learn.xb, self.learn.yb = b[:i][self.preallocate_bs], b[i:][self.preallocate_bs]
+            if isinstance(self.preallocate_bs, int):
+                b = _batch_subset(b, self.preallocate_bs)
+            self.learn.xb, self.learn.yb = b[:i], b[i:]
 
             if hasattr(self.learn, 'mixed_precision'):
                 self.learn.mixed_precision.autocast.__enter__()
@@ -300,7 +309,7 @@ class ProgressiveResize(Callback):
                 else:
                     self._null_resize = null_resize
 
-# %% ../../nbs/callback.progresize.ipynb 45
+# %% ../../nbs/callback.progresize.ipynb 46
 try:
     import wandb
 
