@@ -99,17 +99,17 @@ class CompilerCallback(Callback):
             warn(msg)
         if self.mode == 'reduce-overhead':
             warn("Using `torch.compile` & fastai with `mode='reduce-overhead'` currently doesn't appear to train.")
-            
+
         if self._recompile and isinstance(self.learn.model, dynamo.OptimizedModule):
-            if self.verbose: 
+            if self.verbose:
                 print("Recompiling model")
             dynamo.reset()
             self.learn.model = self.learn.model._orig_mod
         self._recompile = False
-        
+
         if not isinstance(self.learn.model, dynamo.OptimizedModule):
-            self.learn.model = torch.compile(self.learn.model, fullgraph=self.fullgraph, 
-                                             dynamic=self.dynamic, backend=self.backend, 
+            self.learn.model = torch.compile(self.learn.model, fullgraph=self.fullgraph,
+                                             dynamic=self.dynamic, backend=self.backend,
                                              mode=self.mode, options=self.options)
 
 # %% ../../nbs/callback.compiler.ipynb 13
@@ -125,14 +125,14 @@ def compile(self:Learner,
 ):
     "Set `Learner` to compile model using `torch.compile`."
     return self.add_cb(CompilerCallback(fullgraph=fullgraph, backend=backend,
-                                        mode=mode, options=options, 
-                                        matmul_precision=matmul_precision, 
+                                        mode=mode, options=options,
+                                        matmul_precision=matmul_precision,
                                         recompile=recompile, verbose=verbose))
 
 # %% ../../nbs/callback.compiler.ipynb 17
 @patch
 @delegates(save_model)
-def save(self:Learner, 
+def save(self:Learner,
     file:FILE_LIKE, # Save file name, path, bytes, or IO
     save_compiled:bool=False, # Save compiled model
     **kwargs
@@ -147,7 +147,7 @@ def save(self:Learner,
 
 # %% ../../nbs/callback.compiler.ipynb 19
 @patch
-def export(self:Learner, 
+def export(self:Learner,
     fname:FILE_LIKE='export.pkl', # Learner export file name, path, bytes, or IO
     pickle_module:Any=pickle, # Module used for pickling metadata and objects
     pickle_protocol:int=2 # Pickle protocol used
@@ -180,10 +180,10 @@ def load_learner(
     distrib_barrier()
     map_loc = 'cpu' if cpu else default_device()
     try: res = torch.load(fname, map_location=map_loc, pickle_module=pickle_module)
-    except AttributeError as e: 
+    except AttributeError as e:
         e.args = [f"Custom classes or functions exported with your `Learner` not available in namespace.\Re-declare/import before loading:\n\t{e.args[0]}"]
         raise
-    if cpu: 
+    if cpu:
         res.dls.cpu()
         if hasattr(res, 'channels_last'): res = res.to_contiguous(to_fp32=True)
         elif hasattr(res, 'mixed_precision'): res = res.to_fp32()
@@ -195,7 +195,7 @@ def load_learner(
 @patch
 def freeze_to(self:Learner, n:int):
     "Freeze parameter groups up to `n`"
-    if self.opt is None: 
+    if self.opt is None:
         self.create_opt()
     self.opt.freeze_to(n)
     self.opt.clear_state()
@@ -211,11 +211,11 @@ def freeze_to(self:Learner, n:int):
 # %% ../../nbs/callback.compiler.ipynb 27
 @patch
 @delegates(Learner.fit_one_cycle)
-def fine_tune(self:Learner, 
+def fine_tune(self:Learner,
     epochs:int, # Number of unfrozen epochs to train
     base_lr:float=2e-3, # Base learning rate, model head unfrozen learning rate
     freeze_epochs:int=1, # Number of frozen epochs to train
-    lr_mult:Numeric=100, # Model stem unfrozen learning rate: `base_lr/lr_mult``
+    lr_mult:Numeric=100, # Model stem unfrozen learning rate: `base_lr/lr_mult`
     pct_start:float=0.3, # Start unfrozen learning rate cosine annealing
     div:Numeric=5.0, # Initial unfrozen learning rate: `base_lr/div`
     freeze_compile:bool=False, # pct_start for unfrozen fit_one_cycle
