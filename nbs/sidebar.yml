@@ -17,6 +17,7 @@ website:
       - section: Callbacks
         contents:
         - callback.channelslast.ipynb
+        - callback.compiler.ipynb
         - callback.cutmixup.ipynb
         - callback.ema.ipynb
         - callback.lr_finder.ipynb
