@@ -209,3 +209,9 @@ from fastxtend.callback import simpleprofiler
 learn = Learner(...).profile()
 learn.fit_one_cycle(2, 3e-3)
 ```
+
+## Benchmark
+
+To run the benchmark on your own machine, see the [example
+scripts](https://github.com/warner-benjamin/fastxtend/tree/main/examples)
+for details on how to replicate.

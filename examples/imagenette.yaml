@@ -1,7 +1,7 @@
-# This config file is for modfying the `imagenette.py` Typer CLI option defaults.
-# Load this config file by passing --config imagenette.yaml to `imagenette.py`.
-# For conciseness, any unchanged setting may be removed as `imagenette.py` will
-# use the Typer defaults. Passed CLI options to `imagenette.py` will override
+# This config file is for modfying the `imagenette.py train` Typer CLI option defaults.
+# Load this config file by passing `train --config imagenette.yaml` to `imagenette.py`.
+# For conciseness, any unchanged setting may be removed as `train` will
+# use the Typer defaults. Passed CLI options to `train` will override
 # any changes made here. Set `verbose: true` or pass --verbose from CLI to verify
 # options values.
 
@@ -46,6 +46,8 @@ label_smoothing: 0.1  # nn.CrossEntropyLoss label_smoothing amount.
 seed: 42  # Random seed to use. Note: fastxtend+ffcv item transforms are not seeded.
 channels_last: true  # Train in channels last format. Requires a modern GPU (RTX 2000, Turing, Volta, or newer).
 profile: false  # Profile training speed using fastxtend's Throughput profiler.
+torch_compile: false  # Compile model using `torch.compile` via fastxtend's experimental Compiler callback.
+backend: inductor  # `torch.compile` backend to use. Requires setting `torch_compile: true`
 
 # Dataset
 image_size: 224  # Image size. Automatically downloads and creates dataset if it doesn't exist.
@@ -55,6 +57,7 @@ imagenette: true  # Train on Imagenette if true or ImageWoof if false.
 # Progressive Resizing
 prog_resize: true  # Use the automatic Progressive Resizing callback. Significantly faster. May need to train for a few more epochs for same accuracy.
 increase_by: 16  # Pixel increase amount for resizing step. 16 is good for 20-25 epochs. Requires setting `prog_resize: true`.
+increase_mode: batch  # Increase image size anytime during training or only before an epoch starts. Requires setting `prog_resize: true`.
 initial_size: 0.5  # Staring size relative to size. Requires setting `prog_resize: true`.
 resize_start: 0.5  # Earliest upsizing epoch in percent of training time. Requires setting `prog_resize: true`.
 resize_finish: 0.75  # Last upsizing epoch in percent of training time. Requires setting `prog_resize: true`.

@@ -43,11 +43,11 @@ def _evenly_divisible(final_size, current_size, increase_by, steps):
 
 # %% ../../nbs/callback.progresize.ipynb 8
 def _batch_subset(b, subset):
-    if isinstance(b, tuple): 
+    if isinstance(b, tuple):
         return tuple(_batch_subset(b_, subset) for b_ in b)
-    elif isinstance(b, Tensor): 
+    elif isinstance(b, Tensor):
         return retain_types(b[:subset], b)
-    else: 
+    else:
         raise ValueError(f'Unexpected type {b}')
 
 # %% ../../nbs/callback.progresize.ipynb 10
@@ -65,8 +65,8 @@ class ProgressiveResize(Callback):
         start:Numeric=0.5, # Earliest upsizing epoch in percent of training time or epoch (index 0)
         finish:Numeric=0.75, # Last upsizing epoch in percent of training time or epoch (index 0)
         increase_by:int=4, # Progressively increase image size by `increase_by`, or minimum increase per upsizing epoch
-        increase_mode:IncreaseMode=IncreaseMode.Batch, # Increase image size by training percent or before an epoch starts
-        resize_mode:str='bilinear', # PyTorch interpolate mode string for upsizing. Resets to existing fastai DataLoader mode at `final_size`.
+        increase_mode:IncreaseMode=IncreaseMode.Batch, # Increase image size anytime during training or only before an epoch starts
+        resize_mode:str='bilinear', # PyTorch interpolate mode string for upsizing. Resets to existing fastai DataLoader mode at `final_size`
         resize_valid:bool=True, # Apply progressive resizing to valid dataset
         final_size:tuple[int,int]|None=None, # Final image size. Set if using a non-fastai DataLoaders, automatically detected from fastai DataLoader with batch_tfms
         add_resize:bool=False, # Add a separate resize step. Use for non-fastai DataLoaders or fastai DataLoader without batch_tfms

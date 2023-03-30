@@ -362,6 +362,8 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     seed:int=typer.Option(42, help="Random seed to use. Note: fastxtend+ffcv item transforms are not seeded.", rich_help_panel="Training"),
     channels_last:bool=typer.Option(True, "--channels-last/--fp16", help="Train in channels last format or Mixed Precision. Channels Last equires a modern GPU (RTX 2000, Turing, Volta, or newer).", rich_help_panel="Training"),
     profile:bool=typer.Option(False, "--profile", help="Profile training speed using fastxtend's Throughput profiler.", rich_help_panel="Training"),
+    torch_compile:bool=typer.Option(False, "--compile", help="Compile model using `torch.compile` via fastxtend's experimental Compiler callback.", rich_help_panel="Training"),
+    backend:str=typer.Option('inductor', help="`torch.compile` backend to use. Requires --compile.", rich_help_panel="Training"),
     # Dataset
     image_size:int=typer.Option(224, help="Image size. Automatically downloads and creates dataset if it doesn't exist.", rich_help_panel="Dataset"),
     batch_size:int=typer.Option(64, help="Batch size. Increase learning rate to 1e-2 (for ranger) if batch size is 128.", rich_help_panel="Dataset"),
@@ -369,6 +371,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     # Progressive Resizing
     prog_resize:bool=typer.Option(True, "--prog-resize/--full-size", help="Use the automatic Progressive Resizing callback. Significantly faster. May need to train for a few more epochs for same accuracy.", rich_help_panel="Progressive Resizing"),
     increase_by:int=typer.Option(16, help="Pixel increase amount for resizing step. 16 is good for 20-25 epochs. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
+    increase_mode:IncreaseMode=typer.Option(IncreaseMode.Batch, show_default=IncreaseMode.Batch.value, help="Increase image size anytime during training or only before an epoch starts. Requires passing --prog-resize.", case_sensitive=False, rich_help_panel="Progressive Resizing"),
     initial_size:float=typer.Option(0.5, help="Staring size relative to --size. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
     resize_start:float=typer.Option(0.5, help="Earliest upsizing epoch in percent of training time. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
     resize_finish:float=typer.Option(0.75, help="Last upsizing epoch in percent of training time. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
@@ -443,6 +446,9 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     if profile:
         from fastxtend.callback import profiler
 
+    if torch_compile:
+        from fastxtend.callback import compiler
+
     # Grab model from global imports and test if fastai with n_out or pytorch with num_classes
     model = globals()[model.value]
     act_cls = getattr(nn, act_cls.value)
@@ -471,6 +477,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     if prog_resize:
         cbs += [ProgressiveResize(initial_size=initial_size, start=resize_start,
                                   finish=resize_finish, increase_by=increase_by,
+                                  increase_mode=increase_mode,
                                   preallocate_bs=batch_size if double_valid else None)]
     if mixup:
         cbs += [MixUp(mixup_alpha=mixup_alpha, interp_label=False)]
@@ -518,6 +525,8 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
         learn.to_channelslast() if channels_last else learn.to_fp16()
         if profile:
             learn.profile()
+        if torch_compile:
+            learn.compile(backend=backend)
 
     # Train
     start = time.perf_counter()
