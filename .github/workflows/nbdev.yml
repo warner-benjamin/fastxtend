@@ -3,7 +3,11 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths:
+      - 'fastxtend/**'
   pull_request:
+    paths:
+      - 'fastxtend/**'
 
 jobs:
   nbdev-sync:
