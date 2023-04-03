@@ -97,6 +97,10 @@ class WarmSched(str, Enum):
     SchedCos = 'SchedCos'
     SchedLin = 'SchedLin'
 
+class ResizeMode(str, Enum):
+    batch = 'batch'
+    epoch = 'epoch'
+
 # from maxb2: https://github.com/tiangolo/typer/issues/86#issuecomment-996374166
 def conf_callback(ctx: typer.Context, param: typer.CallbackParam, config: Optional[str] = None):
     if config is not None:
@@ -288,7 +292,7 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
     ]
 
     loaders = {}
-    fn_base = '.cache/fastxtend/imagenette'if imagenette else '.cache/fastxtend/imagewoof'
+    fn_base = '.cache/fastxtend/imagenette' if imagenette else '.cache/fastxtend/imagewoof'
     for name in ['valid', 'train']:
         if size<=144:
             file = Path.home()/f'{fn_base}_160_{name}.ffcv'
@@ -371,7 +375,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     # Progressive Resizing
     prog_resize:bool=typer.Option(True, "--prog-resize/--full-size", help="Use the automatic Progressive Resizing callback. Significantly faster. May need to train for a few more epochs for same accuracy.", rich_help_panel="Progressive Resizing"),
     increase_by:int=typer.Option(16, help="Pixel increase amount for resizing step. 16 is good for 20-25 epochs. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
-    increase_mode:IncreaseMode=typer.Option(IncreaseMode.Batch, show_default=IncreaseMode.Batch.value, help="Increase image size anytime during training or only before an epoch starts. Requires passing --prog-resize.", case_sensitive=False, rich_help_panel="Progressive Resizing"),
+    increase_mode:ResizeMode=typer.Option(ResizeMode.batch, show_default=ResizeMode.batch.value, help="Increase image size anytime during training or only before an epoch starts. Requires passing --prog-resize.", case_sensitive=False, rich_help_panel="Progressive Resizing"),
     initial_size:float=typer.Option(0.5, help="Staring size relative to --size. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
     resize_start:float=typer.Option(0.5, help="Earliest upsizing epoch in percent of training time. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
     resize_finish:float=typer.Option(0.75, help="Last upsizing epoch in percent of training time. Requires passing --prog-resize.", rich_help_panel="Progressive Resizing"),
@@ -475,6 +479,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     # Add any supported callbacks and their options
     cbs = []
     if prog_resize:
+        increase_mode = IncreaseMode.Batch if increase_mode==ResizeMode.batch else IncreaseMode.Epoch
         cbs += [ProgressiveResize(initial_size=initial_size, start=resize_start,
                                   finish=resize_finish, increase_by=increase_by,
                                   increase_mode=increase_mode,
