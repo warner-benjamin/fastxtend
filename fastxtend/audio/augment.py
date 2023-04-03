@@ -638,7 +638,7 @@ class FrequencyMasking(BatchRandTransform):
             return TAF.mask_along_axis(x, mask_param, mv, 1)
 
 # %% ../../nbs/audio.03_augment.ipynb 69
-class AmplitudeToDBMode(Enum):
+class AmplitudeToDBMode(str, Enum):
     "All AmplitudeToDB modes as attributes to get tab-completion and typo-proofing",
     Power = 'power'
     Magnitude = 'magnitude'

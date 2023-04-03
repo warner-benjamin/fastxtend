@@ -382,7 +382,7 @@ class SimpleProfilerPostCallback(ThroughputPostCallback):
         self._after_fit([SimpleProfilerCallback, SimpleProfilerPostCallback])
 
 # %% ../../nbs/callback.profiler.ipynb 28
-class ProfileMode(Enum):
+class ProfileMode(str, Enum):
     "Profile enum for `Learner.profile`"
     Throughput = 'throughput'
     Simple     = 'simple'

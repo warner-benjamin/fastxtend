@@ -51,7 +51,7 @@ def _batch_subset(b, subset):
         raise ValueError(f'Unexpected type {b}')
 
 # %% ../../nbs/callback.progresize.ipynb 10
-class IncreaseMode(Enum):
+class IncreaseMode(str, Enum):
     "Increase mode for `ProgressiveResize`"
     Epoch = 'epoch'
     Batch = 'batch'

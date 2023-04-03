@@ -36,14 +36,14 @@ if _torch_version < _torch_20:
     warn('Imported `fastxtend.callback.compiler`, which requires a minimum of PyTorch 2.0 to work.')
 
 # %% ../../nbs/callback.compiler.ipynb 7
-class CompileMode(Enum):
+class CompileMode(str, Enum):
     "All valid `torch.compile` modes for tab-completion and typo-proofing"
     default        = 'default'
     reduceoverhead = 'reduce-overhead'
     maxautotune    = 'max-autotune'
 
 # %% ../../nbs/callback.compiler.ipynb 9
-class MatMulPrecision(Enum):
+class MatMulPrecision(str, Enum):
     "All valid `matmul_precision` modes for tab-completion and typo-proofing"
     highest = 'highest'
     high    = 'high'
