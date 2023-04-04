@@ -2,12 +2,9 @@ name: nbdev-ci
 on:
   workflow_dispatch:
   push:
-    branches: [main]
-    paths:
-      - 'fastxtend/**'
+    paths: [ 'nbs/**', 'fastxtend/**' ]
   pull_request:
-    paths:
-      - 'fastxtend/**'
+    paths: [ 'nbs/**', 'fastxtend/**' ]
 
 jobs:
   nbdev-sync:
@@ -19,7 +16,7 @@ jobs:
           sudo apt-get install -y libturbojpeg-dev
 
       - name: Cacheable Apt Install
-        uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: awalsh128/cache-apt-pkgs-action@v1.3.0
         with:
           packages: libsndfile1-dev libopencv-dev python3-opencv
           version: 1.0
@@ -46,7 +43,7 @@ jobs:
           sudo apt-get install -y libturbojpeg-dev
 
       - name: Cacheable Apt Install
-        uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: awalsh128/cache-apt-pkgs-action@v1.3.0
         with:
           packages: libsndfile1-dev libopencv-dev python3-opencv
           version: 1.0
