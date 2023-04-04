@@ -106,7 +106,10 @@ class ProgressiveResize(Callback):
         states = get_random_states()
         try:
             if FFCV and isinstance(self.dls.train, Loader) and self.dls.train.async_tfms:
-                b = self.dls.train.one_batch(n_batches_ahead=True)
+                # With `async_tfms`, `Loader` needs to initialize all `Loader.batches_ahead` Cuda streams
+                # for the training dataloader. Since FFCV doesn't support seeded transforms and the reset
+                # random state only seeds the dataset order, this shouldn't effect training outcome.
+                b = self.dls.train.one_batch(batches_ahead=True)
             else:
                 b = self.dls.valid.one_batch()
             i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
