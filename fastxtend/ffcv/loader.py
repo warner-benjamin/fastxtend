@@ -7,14 +7,16 @@
 # %% ../../nbs/ffcv.loader.ipynb 4
 from __future__ import annotations
 
-from typing import Mapping, Sequence
 from pathlib import Path
+from typing import Mapping, Sequence
 
 import numpy as np
 
 from ffcv.fields.base import Field
+from ffcv.loader.epoch_iterator import EpochIterator
 from ffcv.loader.loader import Loader as _Loader
 from ffcv.loader.loader import OrderOption, ORDER_TYPE, DEFAULT_OS_CACHE, ORDER_MAP
+from ffcv.pipeline.compiler import Compiler
 from ffcv.pipeline.operation import Operation
 from ffcv.transforms.ops import ToDevice as _ToDevice
 
@@ -23,8 +25,9 @@ from fastcore.dispatch import retain_types, explode_types
 from fastcore.meta import funcs_kwargs
 from fastcore.transform import Pipeline
 
-from fastai.data.core import show_batch, show_results, DataLoaders
+from fastai.data.core import show_batch, show_results
 
+from .epoch_iterator import AsyncEpochIterator
 from ..imports import *
 
 # %% auto 0
@@ -68,9 +71,10 @@ class Loader(BaseDL, _Loader):
         pipelines:Mapping[str, Sequence[Operation|nn.Module]]={}, # Dictionary defining for each field the sequence of Decoders and transforms to apply
         custom_fields:Mapping[str, Field]={}, # Dictonary informing `Loader` of the types associated to fields that are using a custom type
         drop_last:bool|None=None, # Drop non-full batch in each epoch. Defaults to True if order is `SEQEUNTIAL`
-        batches_ahead:int=3, # Number of batches prepared in advance; balances latency and memory
+        batches_ahead:int=2, # Number of batches prepared in advance; balances latency and memory
         recompile:bool=False, # Recompile at every epoch. Required if FFCV augmentations change during training
         device:str|int|torch.device|None=None, # Device to place batch. Defaults to fastai's `default_device`
+        async_tfms:bool=False, # Asynchronously run `batch_tfms` before batch is drawn.
         n_inp:int|None=None, # Number of inputs to the model. Defaults to pipelines length minus 1
         split_idx:int|None=None, # Apply batch transform(s) to training (0) or validation (1) set. Defaults to valid if order is `SEQEUNTIAL`
         do_setup:bool=True, # Run `setup()` for batch transform(s)
@@ -82,9 +86,17 @@ class Loader(BaseDL, _Loader):
             else:
                 raise ValueError('Cannot pass both `after_batch` and `batch_tfms` to `FFCVDataLoader`')
 
-        kwargs['after_batch'] = Pipeline(kwargs.get('after_batch', None))
+        if split_idx is None:
+            self._split_idx = int(order==OrderOption.SEQUENTIAL)
+        else:
+            self._split_idx = split_idx
+
+        kwargs['after_batch'] = Pipeline(kwargs.get('after_batch', None), split_idx=self._split_idx)
         if do_setup:
             kwargs['after_batch'].setup(self)
+
+        self.async_tfms = async_tfms and len(kwargs['after_batch'].fs) > 0
+        self.cuda_streams = None
 
         if drop_last is None:
             drop_last != order==OrderOption.SEQUENTIAL
@@ -111,11 +123,6 @@ class Loader(BaseDL, _Loader):
         else:
             self.device = device
 
-        if split_idx is None:
-            self.split_idx = int(order==OrderOption.SEQUENTIAL)
-        else:
-            self.split_idx = split_idx
-
         if n_inp is None:
             self._n_inp = len(pipelines) - 1
         else:
@@ -134,10 +141,10 @@ class Loader(BaseDL, _Loader):
                 warn(msg)
 
 
-    def one_batch(self):
-        "Return one processed batch of input(s) and target(s)"
-        for b in self._one_batch():
-            # need to return the yield from _one_batch so `Loader` can reset to iterate the entire epoch
+    def one_batch(self, batches_ahead:bool=False):
+        "Return one processed batch of input(s) and target(s), optionally loading `batches_ahead`"
+        for b in self._n_batches(self.batches_ahead + 2 if batches_ahead else 1):
+            # need to return the yield from _n_batches so `Loader` can reset to iterate the entire epoch
             pass
         return b
 
@@ -193,7 +200,8 @@ class Loader(BaseDL, _Loader):
         return self._device
 
     @device.setter
-    def device(self, device):
+    def device(self, device:int|str|torch.device):
+        # parse device
         device, *_ = torch._C._nn._parse_to(device=device)
         self._device = device
         # Device setter for FFCV Pipeline
@@ -201,25 +209,25 @@ class Loader(BaseDL, _Loader):
             for t in p.transforms:
                 if isinstance(t, _ToDevice):
                     t.device = device
-        # Device setter for fastai batch_tfms
+        # Device setter for Loader.batch_tfms
         if hasattr(self.after_batch, 'fs'):
-            for tfm in self.after_batch.fs:
-                if hasattr(tfm, 'to') and callable(tfm.to): 
-                    tfm.to(device)
-                else:
-                    for a in L(getattr(tfm, 'parameters', None)):
-                        setattr(tfm, a, getattr(tfm, a).to(device))
+            self._pipeline_device(self.after_batch.fs)
 
     def to(self, device:int|str|torch.device):
         "Sets `self.device=device`."
         self.device = device
         return self
 
-    def before_iter(self):
-        super().before_iter()
-        f = getattr(self, 'after_batch')
-        if isinstance(f,Pipeline):
-            f.split_idx=self.split_idx
+    @property
+    def split_idx(self):
+        return self._split_idx
+
+    @split_idx.setter
+    def split_idx(self, split_idx:int):
+        "Sets fastai batch transforms to train (split_idx=0) or valid (split_idx=1)"
+        self._split_idx = split_idx
+        if isinstance(self.after_batch, Pipeline):
+            self.after_batch.split_idx = split_idx
 
     def decode(self, b):
         "Decode batch `b`"
@@ -229,10 +237,41 @@ class Loader(BaseDL, _Loader):
         "Decode up to `max_n` input(s) from batch `b`"
         return self._decode_batch(self.decode(b), max_n)
 
+    def _pipeline_device(self, pipe):
+        "Device setter for fastai pipeline"
+        for tfm in pipe:
+            if hasattr(tfm, 'to') and callable(tfm.to):
+                tfm.to(self.device, non_blocking=True)
+            else:
+                for a in L(getattr(tfm, 'parameters', None)):
+                    setattr(tfm, a, getattr(tfm, a).to(self.device, non_blocking=True))
+
+    def _iter(self):
+        Compiler.set_num_threads(self.num_workers)
+        order = self.next_traversal_order()
+        selected_order = order[:len(self) * self.batch_size]
+        self.next_epoch += 1
+
+        # Compile at the first epoch
+        if self.code is None or self.recompile:
+            self.generate_code()
+
+        # Asynchronous transforms require using the same Cuda streams for the entire run
+        if self.async_tfms:
+            if self.cuda_streams is None:
+                self.cuda_streams = [(torch.cuda.Stream() if torch.cuda.is_available() else None)
+                                      for _ in range(self.batches_ahead + 2)]
+            return AsyncEpochIterator(self, selected_order, self.cuda_streams, self.after_batch)
+        else:
+            return EpochIterator(self, selected_order)
+
     def __iter__(self):
         self.before_iter()
-        for b in super().__iter__():
-            yield self.after_batch(b)
+        if self.async_tfms:
+            yield from self._iter()
+        else:
+            for b in self._iter():
+                yield self.after_batch(b)
         self.after_iter()
         if hasattr(self, 'it'):
             del(self.it)
@@ -260,21 +299,21 @@ class Loader(BaseDL, _Loader):
             b,its = [b],L((o,) for o in its)
         return detuplify(b[:self.n_inp]),detuplify(b[self.n_inp:]),its
 
-    def _one_batch(self):
+    def _n_batches(self, num_batches:int=1):
         orig_traversal_order = self.traversal_order
         orig_indices = self.indices
         orig_drop_last = self.drop_last
 
         # Set Loader to only return one batch per epoch
         if self._args['order'] == OrderOption.SEQUENTIAL:
-            self.indices = np.arange(0, self.batch_size)
+            self.indices = np.arange(0, self.batch_size*num_batches)
         else:
-            self.indices = np.random.random_integers(0, self.reader.num_samples, self.batch_size)
+            self.indices = np.random.random_integers(0, self.reader.num_samples, self.batch_size*num_batches)
         self.traversal_order = ORDER_MAP[OrderOption.SEQUENTIAL](self)
         self.drop_last = False
 
-        # yield one batch
-        yield next(self.__iter__())
+        # yield num_batches
+        yield from self.__iter__()
 
         # Reset Loader state to its original status
         self.next_epoch -= 1

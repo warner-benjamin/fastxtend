@@ -7,7 +7,6 @@
 # %% ../../nbs/ffcv.operations.ipynb 4
 from __future__ import annotations
 
-from abc import ABCMeta
 from typing import Callable, Optional, Tuple
 from dataclasses import replace
 
@@ -15,7 +14,6 @@ import torch
 import numpy as np
 
 from fastcore.dispatch import retain_meta
-from fastcore.transform import _TfmMeta
 
 from fastai.data.transforms import IntToFloatTensor as _IntToFloatTensor
 

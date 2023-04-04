@@ -12,6 +12,12 @@ from fastai.callback.fp16 import MixedPrecision
 from fastai.learner import _cast_tensor
 from fastai.vision.augment import AffineCoordTfm, RandomResizedCropGPU
 
+try:
+    from fastxtend.ffcv.loader import Loader
+    FFCV = True
+except ImportError:
+    FFCV = False
+
 from ..imports import *
 
 # %% auto 0
@@ -99,7 +105,10 @@ class ProgressiveResize(Callback):
         # See https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#pre-allocate-memory-in-case-of-variable-input-length
         states = get_random_states()
         try:
-            b = self.dls.valid.one_batch()
+            if FFCV and isinstance(self.dls.train, Loader) and self.dls.train.async_tfms:
+                b = self.dls.train.one_batch(n_batches_ahead=True)
+            else:
+                b = self.dls.valid.one_batch()
             i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
             if isinstance(self.preallocate_bs, int):
                 b = _batch_subset(b, self.preallocate_bs)
