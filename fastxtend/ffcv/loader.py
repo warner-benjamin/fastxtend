@@ -13,7 +13,6 @@ from typing import Mapping, Sequence
 import numpy as np
 
 from ffcv.fields.base import Field
-from ffcv.loader.epoch_iterator import EpochIterator
 from ffcv.loader.loader import Loader as _Loader
 from ffcv.loader.loader import OrderOption, ORDER_TYPE, DEFAULT_OS_CACHE, ORDER_MAP
 from ffcv.pipeline.compiler import Compiler
@@ -27,7 +26,7 @@ from fastcore.transform import Pipeline
 
 from fastai.data.core import show_batch, show_results
 
-from .epoch_iterator import AsyncEpochIterator
+from .epoch_iterator import EpochIterator, AsyncEpochIterator
 from ..imports import *
 
 # %% auto 0
@@ -257,11 +256,11 @@ class Loader(BaseDL, _Loader):
             self.generate_code()
 
         # Asynchronous transforms require using the same Cuda streams for the entire run
+        if self.cuda_streams is None:
+            self.cuda_streams = [(torch.cuda.Stream() if torch.cuda.is_available() else None)
+                                  for _ in range(self.batches_ahead + 2)]
         if self.async_tfms:
-            if self.cuda_streams is None:
-                self.cuda_streams = [(torch.cuda.Stream() if torch.cuda.is_available() else None)
-                                      for _ in range(self.batches_ahead + 2)]
-            return AsyncEpochIterator(self, selected_order, self.cuda_streams, self.after_batch)
+            return AsyncEpochIterator(self, selected_order, self.after_batch)
         else:
             return EpochIterator(self, selected_order)
 
