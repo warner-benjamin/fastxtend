@@ -234,9 +234,7 @@ class RAdamForEachOptimizer(ForEachOptimizer):
 
 # %% ../../nbs/optimizer.foreach.ipynb 35
 @torch.jit.script
-def lamb_jit_substep(p:Tensor, lstep:Tensor, lr:float):
-    r1 = p.pow(2).mean().sqrt()
-    r2 = lstep.pow(2).mean().sqrt()
+def lamb_jit_substep(r1:Tensor, r2:Tensor, lr:float):
     if r1 == 0 or r2 == 0:
         return -lr
     else:
@@ -275,8 +273,10 @@ def lamb_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], sqr
     lstep = torch._foreach_div(grad_avg, debias1.tolist())
     torch._foreach_div_(lstep, debias2)
 
-    # there are no implementations for foreach_pow, foreach_mean, or foreach_where/if methods
-    q = [lamb_jit_substep(pi, ls, lr) for pi, ls in zip(p, lstep)]
+    r1s = torch._foreach_norm(p, 2)
+    r2s = torch._foreach_norm(lstep, 2)
+    # there are no implementations for foreach_where/if methods so use a loop
+    q = [lamb_jit_substep(r1, r2, lr) for r1, r2 in zip(r1s, r2s)]
 
     # cannot use scalers with foreach_add & multiple tensors, so divide by one with foreach_addcdiv
     torch._foreach_addcdiv_(p, lstep, ones, scalars=q)

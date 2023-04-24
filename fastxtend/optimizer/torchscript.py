@@ -324,9 +324,9 @@ def lamb_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, mom:float, sqr_mom:flo
     debias1 = 1-mom**step
     debias2 = 1-sqr_mom**step
 
-    r1 = param.pow(2).mean().sqrt()
+    r1 = param.norm(2)
     lstep = (grad_avg/debias1) / ((sqr_avg/debias2).sqrt()+eps)
-    r2 = lstep.pow(2).mean().sqrt()
+    r2 = lstep.norm(2)
 
     if r1 == 0 or r2 == 0:
         param = param.add(lstep, alpha=-lr)
