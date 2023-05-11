@@ -268,14 +268,17 @@ class ThroughputPostCallback(Callback):
         self._log_full = False
         self._phase, self._train, self._valid = _phase, _train_short, _train_short
 
-    def before_fit(self):
-        self.profiler = self.learn.throughput
+    def _before_fit(self):
         self.has_logger = self.profiler.has_logger
         self._start_train_logging, self._start_valid_logging = False, False
         self.n_train_batches = len(self.dls.train)
         self.n_valid_batches = len(self.dls.valid)
         self._rolling_average = self.profiler._rolling_average
         self._iter = -self.profiler._drop
+
+    def before_fit(self):
+        self.profiler = self.learn.throughput
+        self._before_fit()
 
     def after_train(self):
         self.profiler._raw_values['train'].append(time.perf_counter() - self.profiler._train_start)
@@ -354,11 +357,7 @@ class SimpleProfilerPostCallback(ThroughputPostCallback):
 
     def before_fit(self):
         self.profiler = self.learn.simple_profiler
-        self._start_logging = self.profiler._rolling_average + self.profiler._drop
-        self.has_logger = self.profiler.has_logger
-        self._start_train_logging, self._start_valid_logging = False, False
-        self.n_train_batches = len(self.dls.train)
-        self.n_valid_batches = len(self.dls.valid)
+        self._before_fit()
 
     def after_pred(self):
         if self.training:
