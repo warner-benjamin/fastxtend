@@ -3,12 +3,14 @@
 # %% ../nbs/utils.ipynb 1
 # Contains code from:
 # fastai - Apache License 2.0 - Copyright (c) 2023 fast.ai
+# miniai - Apache License 2.0 - Copyright (c) 2023 fast.ai
+# ipython - BSD 3-Clause License - Copyright (c) 2008-Present IPython Development Team; 2001-2007 Fernando Perez; 2001 Janko Hauser; 2001 Nathaniel Gray
 # mish-cuda - MIT License - Copyright (c) 2019 thomasbrandon https://github.com/thomasbrandon/mish-cuda
 
 # %% ../nbs/utils.ipynb 3
 from __future__ import annotations
 
-import torch, random, gc
+import torch, random, gc, sys, traceback
 import numpy as np
 import PIL.Image as Image
 
@@ -22,13 +24,43 @@ from fastai.callback.core import set_random_states, get_random_states
 __all__ = ['free_gpu_memory', 'less_random', 'scale_time', 'pil_to_numpy']
 
 # %% ../nbs/utils.ipynb 4
+def clean_ipython_hist():
+    # Code in this function mainly copied from IPython source
+    if not 'get_ipython' in globals():
+        return
+    ip = get_ipython()
+    user_ns = ip.user_ns
+    ip.displayhook.flush()
+    pc = ip.displayhook.prompt_count + 1
+    for n in range(1, pc):
+        user_ns.pop('_i'+repr(n),None)
+    user_ns.update(dict(_i='',_ii='',_iii=''))
+    hm = ip.history_manager
+    hm.input_hist_parsed[:] = [''] * pc
+    hm.input_hist_raw[:] = [''] * pc
+    hm._i = hm._ii = hm._iii = hm._i00 = ''
+
+# %% ../nbs/utils.ipynb 5
+def clean_traceback():
+    # h/t Piotr Czapla
+    if hasattr(sys, 'last_traceback'):
+        traceback.clear_frames(sys.last_traceback)
+        delattr(sys, 'last_traceback')
+    if hasattr(sys, 'last_type'):
+        delattr(sys, 'last_type')
+    if hasattr(sys, 'last_value'):
+        delattr(sys, 'last_value')
+
+# %% ../nbs/utils.ipynb 6
 def free_gpu_memory(learn:Learner, dls:DataLoaders=None):
     "Frees GPU memory using `gc.collect` and `torch.cuda.empty_cache`"
     learn.dls, learn, dls = None, None, None
+    clean_traceback()
+    clean_ipython_hist()
     gc.collect()
     torch.cuda.empty_cache()
 
-# %% ../nbs/utils.ipynb 5
+# %% ../nbs/utils.ipynb 7
 @contextmanager
 def less_random(
     seed:int=42, # Seed for `random`, `torch`, and `numpy`
@@ -60,7 +92,7 @@ def less_random(
     finally:
         set_random_states(**states)
 
-# %% ../nbs/utils.ipynb 7
+# %% ../nbs/utils.ipynb 9
 # modified from https://github.com/thomasbrandon/mish-cuda/blob/master/test/perftest.py
 def scale_time(val:float, spec:str="#0.4G"):
     "Scale fractional second `time` values and return formatted to `spec`"
@@ -72,7 +104,7 @@ def scale_time(val:float, spec:str="#0.4G"):
     prefix = PREFIXES[exp//3 + len(PREFIXES)//2]
     return f"{val:{spec}}{prefix}s"
 
-# %% ../nbs/utils.ipynb 8
+# %% ../nbs/utils.ipynb 10
 # From https://uploadcare.com/blog/fast-import-of-pillow-images-to-numpy-opencv-arrays/
 # Up to 2.5 times faster with the same functionality and a smaller number of allocations than numpy.asarray(img)
 def pil_to_numpy(img:Image.Image) -> np.ndarray:
