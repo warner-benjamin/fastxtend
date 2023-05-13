@@ -17,12 +17,12 @@ website:
       - section: Callbacks
         contents:
         - callback.channelslast.ipynb
-        - callback.compiler.ipynb
         - callback.cutmixup.ipynb
         - callback.ema.ipynb
         - callback.lr_finder.ipynb
         - callback.profiler.ipynb
         - callback.progresize.ipynb
+        - callback.compiler.ipynb
         - callback.tracker.ipynb
       - section: FFCV [beta]
         contents:

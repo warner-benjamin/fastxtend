@@ -18,19 +18,26 @@ from packaging.version import parse
 import torch._dynamo as dynamo
 from torch.serialization import FILE_LIKE
 
-from fastai.learner import Learner, save_model, join_path_file
-from fastai.callback.core import Callback, TrainEvalCallback
+from fastai.learner import Learner, save_model, join_path_file, _cast_tensor
 from fastai.callback import schedule
+from fastai.callback.core import Callback, TrainEvalCallback, CancelFitException
+from fastai.callback.fp16 import MixedPrecision
+
+try:
+    from fastxtend.ffcv.loader import Loader
+    FFCV = True
+except ImportError:
+    FFCV = False
 
 from ..imports import *
 
 # %% auto 0
-__all__ = ['CompileMode', 'MatMulPrecision', 'CompilerCallback', 'load_learner']
+__all__ = ['CompileMode', 'MatMulPrecision', 'CompilerCallback', 'DynamoExplainCallback', 'load_learner']
 
 # %% ../../nbs/callback.compiler.ipynb 6
 _torch_version = parse(torch.__version__)
-_torch_20  = parse('2.0')
-_torch_21  = parse('2.1')
+_torch_20 = parse('2.0')
+_torch_21 = parse('2.1')
 
 if _torch_version < _torch_20:
     warn('Imported `fastxtend.callback.compiler`, which requires a minimum of PyTorch 2.0 to work.')
@@ -49,7 +56,7 @@ class MatMulPrecision(str, Enum):
     high    = 'high'
     medium  = 'medium'
 
-# %% ../../nbs/callback.compiler.ipynb 10
+# %% ../../nbs/callback.compiler.ipynb 11
 class CompilerCallback(Callback):
     "An experimental callback for `torch.compile` (beta) and fastai"
     order = TrainEvalCallback.order + 1 # Compiling needs to occur on the GPU, but before distributed training starts
@@ -77,15 +84,12 @@ class CompilerCallback(Callback):
         if _torch_version < _torch_20:
             self.run = False
             warn("Attempting to use `CompilerCallback` without PyTorch 2.0 or greater. Disabling.")
+            return
 
         if torch.cuda.get_device_capability() >= (8, 0) and torch.get_float32_matmul_precision() != self.matmul_precision:
             if self.verbose and self.matmul_precision!='highest':
                 print(f"Your GPU has modern tensor cores, automatically enabling by setting `torch.set_float32_matmul_precision('{self.matmul_precision}')`")
             torch.set_float32_matmul_precision(self.matmul_precision)
-
-        if hasattr(self.learn, 'lr_finder'):
-            self.run = False
-            return
 
         if hasattr(self.learn, 'progressive_resize') and _torch_version < _torch_21:
             warn("Using `ProgressiveResize` and `torch.compile` at the same time will result in a new compile every size change.")
@@ -112,7 +116,85 @@ class CompilerCallback(Callback):
                                              dynamic=self.dynamic, backend=self.backend,
                                              mode=self.mode, options=self.options)
 
-# %% ../../nbs/callback.compiler.ipynb 13
+# %% ../../nbs/callback.compiler.ipynb 14
+class DynamoExplainCallback(Callback):
+    "An experimental callback to find graph breaks with `torch.compile` (beta)"
+    order = MixedPrecision.order+1 # DynamoExplain occurs on the GPU before any training starts
+
+    def __init__(self,
+        print_results:bool=True, # Print enabled `torch._dynamo.explain` output(s)
+        explanation:bool=True, # Print the `explanation` output
+        out_guards:bool=False, # Print the `out_guards` output
+        graphs:bool=False, # Print the `graphs` output
+        ops_per_graph:bool=False, # Print the `ops_per_graph` output
+        break_reasons:bool=False, # Print the `break_reasons` output
+        explanation_verbose:bool=False, # Print the `explanation_verbose` output
+    ):
+        self.print_results = print_results
+        self.print_explanation = explanation
+        self.print_out_guards = out_guards
+        self.print_graphs = graphs
+        self.print_ops_per_graph = ops_per_graph
+        self.print_break_reasons = break_reasons
+        self.print_explanation_verbose = explanation_verbose
+
+    def before_fit(self):
+        if _torch_version < _torch_20:
+            self.run = False
+            warn("Attempting to use `DynamoExplainCallback` without PyTorch 2.0 or greater. Canceling training.")
+            raise CancelFitException()
+
+        self.explanation, self.out_guards, self.graphs, self.ops_per_graph, self.break_reasons, self.explanation_verbose = '','','','','',''
+        states = get_random_states()
+        try:
+            if FFCV and isinstance(self.dls.train, Loader) and self.dls.train.async_tfms:
+                # With `async_tfms`, `Loader` needs to initialize all `Loader.batches_ahead` Cuda streams
+                # for the training dataloader. Since FFCV doesn't support seeded transforms and the reset
+                # random state only seeds the dataset order, this shouldn't effect training outcome.
+                b = self.dls.train.one_batch(batches_ahead=True)
+            else:
+                b = self.dls.valid.one_batch()
+            i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
+            self.learn.xb, self.learn.yb = b[:i], b[i:]
+
+            if hasattr(self.learn, 'mixed_precision'):
+                self.learn.mixed_precision.autocast.__enter__()
+
+            self.explanation, self.out_guards, self.graphs, self.ops_per_graph, self.break_reasons, self.explanation_verbose \
+                = dynamo.explain(self.learn.model, *_cast_tensor(self.learn.xb))
+
+            if hasattr(self.learn, 'mixed_precision'):
+                self.learn.mixed_precision.autocast.__exit__(None, None, None)
+
+            self.learn.opt.zero_grad()
+        finally:
+            set_random_states(**states)
+
+        if self.print_results:
+            print('\nDynamo Explain Report')
+            if self.print_explanation:
+                print('\nExplanation:\n')
+                print(self.explanation)
+            if self.print_out_guards:
+                print('\nOut Guards:\n')
+                print(self.out_guards)
+            if self.print_graphs:
+                print('\nGraphs:\n')
+                print(self.graphs)
+            if self.print_ops_per_graph:
+                print('\nOperations per Graph:\n')
+                print(self.ops_per_graph)
+            if self.print_break_reasons:
+                print('\nBreak Reasons:\n')
+                print(self.break_reasons)
+            if self.print_explanation_verbose:
+                print('\nVerbose Explanation:\n')
+                print(self.explanation_verbose)
+            print('\n')
+
+        raise CancelFitException()
+
+# %% ../../nbs/callback.compiler.ipynb 17
 @patch
 def compile(self:Learner,
     fullgraph:bool=False, # Prevent breaking model into subgraphs
@@ -129,7 +211,7 @@ def compile(self:Learner,
                                         matmul_precision=matmul_precision,
                                         recompile=recompile, verbose=verbose))
 
-# %% ../../nbs/callback.compiler.ipynb 17
+# %% ../../nbs/callback.compiler.ipynb 21
 @patch
 @delegates(save_model)
 def save(self:Learner,
@@ -145,7 +227,7 @@ def save(self:Learner,
         save_model(file, self.model, getattr(self,'opt',None), **kwargs)
     return file
 
-# %% ../../nbs/callback.compiler.ipynb 19
+# %% ../../nbs/callback.compiler.ipynb 23
 @patch
 def export(self:Learner,
     fname:FILE_LIKE='export.pkl', # Learner export file name, path, bytes, or IO
@@ -170,7 +252,7 @@ def export(self:Learner,
     if state is not None: self.opt.load_state_dict(state)
     self.dls = old_dbunch
 
-# %% ../../nbs/callback.compiler.ipynb 21
+# %% ../../nbs/callback.compiler.ipynb 25
 def load_learner(
     fname:FILE_LIKE, # File name, path, bytes, or IO
     cpu:bool=True, # Load model to CPU
@@ -191,7 +273,7 @@ def load_learner(
         if hasattr(res, 'compiler'): res = res.remove_cb(CompilerCallback)
     return res
 
-# %% ../../nbs/callback.compiler.ipynb 24
+# %% ../../nbs/callback.compiler.ipynb 28
 @patch
 def freeze_to(self:Learner, n:int):
     "Freeze parameter groups up to `n`"
@@ -208,7 +290,7 @@ def freeze_to(self:Learner, n:int):
                  "\nPass `CompilerCallback(..., recompile=True)` to `Learner.cbs`"\
                  "\nor call `torch._dynamo.reset() and recompile model.")
 
-# %% ../../nbs/callback.compiler.ipynb 27
+# %% ../../nbs/callback.compiler.ipynb 31
 @patch
 @delegates(Learner.fit_one_cycle)
 def fine_tune(self:Learner,
@@ -224,7 +306,7 @@ def fine_tune(self:Learner,
     "Fine tune with `Learner.freeze` for `freeze_epochs`, then with `Learner.unfreeze` for `epochs`, using discriminative LR."
     self.freeze()
     if _torch_version >= _torch_20 and hasattr(self, 'compiler') and not freeze_compile:
-            self.compiler.run = isinstance(self.model, dynamo.OptimizedModule)
+        self.compiler.run = isinstance(self.model, dynamo.OptimizedModule)
     self.fit_one_cycle(freeze_epochs, slice(base_lr), pct_start=0.99, **kwargs)
     base_lr /= 2
     self.unfreeze()
