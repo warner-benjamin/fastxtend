@@ -76,7 +76,7 @@ class SGDForEachOptimizer(ForEachOptimizer):
                         if hyper['mom'] != 0:
                             state['grad_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                         if not self.decouple_wd:
-                            state['ones'] = torch.ones_like(p, memory_format=torch.preserve_format)
+                            state['ones'] = torch.ones(1, dtype=p.dtype, device=p.device)
                         state['setup'] = True
 
                     pl.append(p)
@@ -140,7 +140,7 @@ class AdamForEachOptimizer(ForEachOptimizer):
                         state['grad_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                         state['sqr_avg']  = torch.zeros_like(p, memory_format=torch.preserve_format)
                         if not self.decouple_wd:
-                            state['ones'] = torch.ones_like(p, memory_format=torch.preserve_format)
+                            state['ones'] = torch.ones(1, dtype=p.dtype, device=p.device)
                         state['step'] = 0
 
                     state['step'] += 1
@@ -216,7 +216,7 @@ class RAdamForEachOptimizer(ForEachOptimizer):
                     if 'step' not in state:
                         state['grad_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                         state['sqr_avg']  = torch.zeros_like(p, memory_format=torch.preserve_format)
-                        state['ones']     = torch.ones_like(p, memory_format=torch.preserve_format)
+                        state['ones']     = torch.ones(1, dtype=p.dtype, device=p.device)
                         state['step']     = 0
 
                     state['step'] += 1
@@ -324,7 +324,7 @@ class RangerForEachOptimizer(ForEachOptimizer):
                     if 'step' not in state:
                         state['grad_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                         state['sqr_avg']  = torch.zeros_like(p, memory_format=torch.preserve_format)
-                        state['ones']     = torch.ones_like(p, memory_format=torch.preserve_format)
+                        state['ones']     = torch.ones(1, dtype=p.dtype, device=p.device)
                         state['slow_p']   = p.data.clone()
                         state['step']     = 0
 
