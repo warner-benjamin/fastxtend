@@ -4,7 +4,7 @@
 # Memory and operations reduction ported from the official Adan implementation
 # https://github.com/sail-sg/Adan - Apache License 2.0 - Copyright 2022 Xingyu Xie et al
 
-# %% ../../nbs/optimizer.adan.ipynb 3
+# %% ../../nbs/optimizer.adan.ipynb 4
 from __future__ import annotations
 from typing import Optional, Dict
 
@@ -19,12 +19,12 @@ from ..imports import *
 # %% auto 0
 __all__ = ['Adan', 'adan', 'AdanLargeBatchLR']
 
-# %% ../../nbs/optimizer.adan.ipynb 5
+# %% ../../nbs/optimizer.adan.ipynb 6
 def debias(beta:float, step:int):
     "Simple debias calculation"
     return 1-beta**step
 
-# %% ../../nbs/optimizer.adan.ipynb 7
+# %% ../../nbs/optimizer.adan.ipynb 8
 def adan_setup(p:Tensor, step:int=0, grad_avg:Tensor|None=None, diff_avg:Tensor|None=None,
                sqr_avg:Tensor|None=None, prior_grad:Tensor|None=None, paper_init:bool=False, **kwargs):
     "Handles Adan setup and keeps track of steps"
@@ -42,7 +42,7 @@ def adan_setup(p:Tensor, step:int=0, grad_avg:Tensor|None=None, diff_avg:Tensor|
         step += 1
         return {'step':step}
 
-# %% ../../nbs/optimizer.adan.ipynb 8
+# %% ../../nbs/optimizer.adan.ipynb 9
 def adan_step(p:Tensor, lr:float, eps:float, wd:float, beta1:float, beta2:float, beta3:float,
               step:int, grad_avg:Tensor, diff_avg:Tensor, sqr_avg:Tensor, prior_grad:Tensor,
               do_wd:bool=True, **kwargs):
@@ -83,7 +83,7 @@ def adan_step(p:Tensor, lr:float, eps:float, wd:float, beta1:float, beta2:float,
 
 adan_step.defaults = dict(beta1=0.98, beta2=0.92, beta3=0.99)
 
-# %% ../../nbs/optimizer.adan.ipynb 10
+# %% ../../nbs/optimizer.adan.ipynb 11
 @torch.jit.script
 def adan_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, beta1:float, beta2:float, beta3:float, eps:float,
                   paper_init:bool, grad_avg:Optional[Tensor]=None, diff_avg:Optional[Tensor]=None,
@@ -144,7 +144,7 @@ def adan_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, beta1:float, beta2:flo
 
     return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg':grad_avg, 'diff_avg':diff_avg, 'sqr_avg':sqr_avg, 'prior_grad':prior_grad, 'step':step})
 
-# %% ../../nbs/optimizer.adan.ipynb 12
+# %% ../../nbs/optimizer.adan.ipynb 13
 def adan_foreach_step(p:list[Tensor], grad:list[Tensor], grad_avg:list[Tensor], diff_avg:list[Tensor],
                       sqr_avg:list[Tensor], prior_grad:list[Tensor], steps:np.ndarray[Any, int],
                       do_wd:np.ndarray[Any, bool], lr:float, wd:float, beta1:float, beta2:float,
@@ -190,7 +190,7 @@ def adan_foreach_step(p:list[Tensor], grad:list[Tensor], grad_avg:list[Tensor], 
     torch._foreach_zero_(prior_grad)
     torch._foreach_add_(prior_grad, grad, alpha=-1)
 
-# %% ../../nbs/optimizer.adan.ipynb 13
+# %% ../../nbs/optimizer.adan.ipynb 14
 class AdanForEachOptimizer(ForEachOptimizer):
     "An `Optimizer` with a modified step for Adan ForEach"
     def __init__(self,

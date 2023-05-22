@@ -4,7 +4,7 @@
 # Lion implementation based on the paper's code release
 # https://github.com/google/automl/tree/master/lion - Apache License 2.0 - Copyright 2020 Google Research
 
-# %% ../../nbs/optimizer.lion.ipynb 3
+# %% ../../nbs/optimizer.lion.ipynb 4
 from __future__ import annotations
 
 import numpy as np
@@ -17,7 +17,7 @@ from ..imports import *
 # %% auto 0
 __all__ = ['Lion', 'lion']
 
-# %% ../../nbs/optimizer.lion.ipynb 6
+# %% ../../nbs/optimizer.lion.ipynb 7
 def lion_step(p:Tensor, lr:float, wd:float, beta1:float, beta2:float,
               grad_avg:Tensor|None=None, do_wd:bool=True, **kwargs):
 
@@ -39,7 +39,7 @@ def lion_step(p:Tensor, lr:float, wd:float, beta1:float, beta2:float,
 
 lion_step.defaults = dict(beta1=0.9, beta2=0.99)
 
-# %% ../../nbs/optimizer.lion.ipynb 8
+# %% ../../nbs/optimizer.lion.ipynb 9
 def lion_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor],
                       do_wd:np.ndarray[Any, bool], lr:float, wd:float, beta1:float,
                       beta2:float, **kwargs):
@@ -59,7 +59,7 @@ def lion_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor],
     torch._foreach_mul_(grad_avg, scalar=beta2)
     torch._foreach_add_(grad_avg, g, alpha=1-beta2)
 
-# %% ../../nbs/optimizer.lion.ipynb 9
+# %% ../../nbs/optimizer.lion.ipynb 10
 class LionForEachOptimizer(ForEachOptimizer):
     "An `Optimizer` with a modified step for Lion ForEach"
     def __init__(self,
