@@ -58,6 +58,8 @@ website:
           file: optimizer.adan.ipynb
         - text: Lion Optimizer
           file: optimizer.lion.ipynb
+        - text: StableAdamW Optimizer
+          file: optimizer.stableadam.ipynb
       - section: Vision
         contents:
         - section: Augmentations
