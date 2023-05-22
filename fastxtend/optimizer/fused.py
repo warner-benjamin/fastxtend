@@ -124,7 +124,7 @@ def adam(
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-5, # Added for numerical stability
     wd:float=0.01, # Optional weight decay (true or L2)
-    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    decouple_wd:bool=True, # Apply true weight decay (AdamW) or L2 regularization (Adam)
     foreach:bool=False, # Use fused ForEach implementation
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|AdamForEachOptimizer|JitOptimizer:
@@ -166,7 +166,7 @@ def radam(
     eps:float=1e-5, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
     beta:float=0., # Set to enable SAdam with native fastai RAdam
-    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    decouple_wd:bool=True, # Apply true weight decay (RAdamW) or L2 regularization (RAdam)
     foreach:bool=False, # Use fused ForEach implementation
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|RAdamForEachOptimizer|JitOptimizer:
@@ -204,7 +204,7 @@ def qhadam(
     nu_2:float=1.0, # QH momentum discount factor
     eps:float=1e-8, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
-    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    decouple_wd:bool=True, # Apply true weight decay (QHAdamW) or L2 regularization (QHAdam)
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|JitOptimizer:
     "Partial function for the QHAdam/QHAdamW optimizer with a fused TorchScript implementation"
@@ -241,7 +241,7 @@ def larc(
     trust_coeff:float=0.02, # Trust coeffiecnet for calculating layerwise LR
     eps:float=1e-8, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
-    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    decouple_wd:bool=True, # Apply true weight decay or L2 regularization
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|JitOptimizer:
     "Partial function for the LARC/LARS optimizer with a fused TorchScript implementation"
@@ -278,7 +278,7 @@ def lamb(
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-5, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
-    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
+    decouple_wd:bool=True, # Apply true weight decay or L2 regularization
     foreach:bool=False, # Use fused ForEach implementation
     jit:bool=False # Use fused TorchScript implementation
 ) -> Optimizer|LambForEachOptimizer|JitOptimizer:
