@@ -15,16 +15,15 @@ from torch.nn import CrossEntropyLoss
 
 from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
-from fastai.callback.schedule import SchedCos, _Annealer
 from fastai.losses import CrossEntropyLossFlat, LabelSmoothingCrossEntropy, LabelSmoothingCrossEntropyFlat
-from fastai.optimizer import Optimizer
+from fastai.optimizer import Optimizer, _update
 
 from .foreach import ForEachOptimizer
 
 from ..imports import *
 
 # %% auto 0
-__all__ = ['Sophia', 'sophia', 'SophiaHessian', 'SophiaCallback']
+__all__ = ['Sophia', 'sophia', 'SophiaCallback']
 
 # %% ../../nbs/optimizer.sophia.ipynb 5
 def sophia_step(p:Tensor, lr:float, eps:float, wd:float, mom:float, hess_mom:float,
@@ -36,8 +35,7 @@ def sophia_step(p:Tensor, lr:float, eps:float, wd:float, mom:float, hess_mom:flo
         hessian  = torch.zeros_like(p, memory_format=torch.preserve_format)
 
     if hessian_step:
-        hessian.mul_(hess_mom).addcmul_(p.grad.data, p.grad, p.grad, alpha=1-hess_mom)
-        return {'hessian':hessian}
+        hessian.mul_(hess_mom).addcmul_(p.grad.data, p.grad.data, value=1-hess_mom)
     else:
         if wd!=0 and do_wd:
             p.data.mul_(1-lr*wd)
@@ -49,9 +47,9 @@ def sophia_step(p:Tensor, lr:float, eps:float, wd:float, mom:float, hess_mom:flo
         ratio = grad_avg.abs().div(hessian.mul(rho * bs).add(eps)).clamp(None, 1)
 
         # sophia update step
-        p.data.addcdiv_(grad_avg.sign(), ratio, value=-lr)
+        p.data.addcmul_(grad_avg.sign(), ratio, value=-lr)
 
-        return {'grad_avg':grad_avg}
+    return {'grad_avg': grad_avg, 'hessian': hessian}
 
 sophia_step.defaults = dict(mom=0.9, hess_mom=0.99)
 
@@ -66,8 +64,15 @@ class SophiaOptimizer(Optimizer):
         self.update_sophia_hypers(0, False)
 
     def update_sophia_hypers(self, bs, hessian_step):
-        self.hypers['bs'] = bs
-        self.hypers['hessian_step'] = hessian_step
+        self._bs = bs
+        self._hessian_step = hessian_step
+
+    def step(self, closure=None):
+        if closure is not None: raise NotImplementedError("fastai optimizers currently do not support closure")
+        for p,pg,state,hyper in self.all_params(with_grad=True):
+            for cb in self.cbs:
+                state = _update(state, cb(p, **{**state, **hyper}, bs=self._bs, hessian_step=self._hessian_step))
+            self.state[p] = state
 
     def clear_state(self):
         super().clear_state()
@@ -79,22 +84,25 @@ def sophia_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor], h
                         eps:float, rho:float, bs:int, hessian_step:bool, **kwargs):
     if hessian_step:
         torch._foreach_mul_(hessian, scalar=hess_mom)
-        torch._foreach_addcmul_(hessian, g, g, alpha=1-hess_mom)
+        torch._foreach_addcmul_(hessian, g, g, value=1-hess_mom)
     else:
         # weight_decay
         if wd != 0:
             wd = np.where(do_wd, 1-lr*wd, 1.)
             torch._foreach_mul_(p, scalars=wd.tolist())
 
+        # update moving average
         torch._foreach_mul_(grad_avg, scalar=mom)
         torch._foreach_add_(grad_avg, g, alpha=1-mom)
 
+        # compute sophia update ratio
         ratio = torch._foreach_abs(grad_avg)
         temp = torch._foreach_mul(hessian, scalar=rho*bs)
         torch._foreach_add_(temp, scalar=eps)
         torch._foreach_div_(ratio, temp)
         torch._foreach_clamp_max_(ratio, scalar=1)
 
+        # sophia update step
         temp = [ga.sign() for ga in grad_avg]
         torch._foreach_addcmul_(p, temp, ratio, value=-lr)
 
@@ -104,10 +112,9 @@ class SophiaForEachOptimizer(ForEachOptimizer):
     def __init__(self,
         params:Listified[Tensor], # Model parameters
         opt_step:Callable, # `ForEachOptimizer` optimizer step
-        decouple_wd:bool=True, # Use true weight decay or L2 regularization, if applicable
         **defaults # Optimizer specific hyper parameters default values
     ):
-        super().__init__(params, opt_step, decouple_wd, **defaults)
+        super().__init__(params, opt_step, True, **defaults)
         self.update_sophia_hypers(0, False)
 
     def update_sophia_hypers(self, bs, hessian_step):
@@ -149,9 +156,9 @@ def Sophia(
     lr:float, # Default learning rate
     mom:float=0.965, # Gradient moving average (β1) coefficient
     hess_mom:float=0.99, # Hessian moving average (β2) coefficient
-    rho:float=0.4, # Maximum update size
+    rho:float=0.4, # Maximum update size, set higher for more agressive updates
     eps:float=1e-15, # Added for numerical stability
-    wd:float=0.1, # Optional weight decay
+    wd:float=0.01, # Optional weight decay
     foreach:bool=False, # Use fused ForEach implementation
 ) -> SophiaOptimizer|SophiaForEachOptimizer:
     "A fastai Sophia optimizer with a fused ForEach implementation"
@@ -166,9 +173,9 @@ def Sophia(
 def sophia(
     mom:float=0.965, # Gradient moving average (β1) coefficient
     hess_mom:float=0.99, # Hessian moving average (β2) coefficient
-    rho:float=0.4,
+    rho:float=0.4, # Maximum update size, set higher for more agressive updates
     eps:float=1e-15, # Added for numerical stability
-    wd:float=0.1, # Optional weight decay
+    wd:float=0.01, # Optional weight decay
     foreach:bool=False, # Use fused ForEach implementation
 ) -> SophiaOptimizer|SophiaForEachOptimizer:
     "Partial function for the Sophia optimizer with a fused ForEach implementation"
@@ -186,9 +193,8 @@ class SophiaCallback(Callback):
     order,run_valid = MixedPrecision.order+1,False
     def __init__(self,
         hessian_update:int=10, # Update Sophia's Hessian estimate every `hessian_update` Optimizer steps
-        hessian_est:str|SophiaHessian=SophiaHessian.sophiag # Sophia's Hessian estimator. Defaults to SophiaG's Gauss-Newton-Bartlett
+        # hessian_est:str|SophiaHessian=SophiaHessian.sophiag # Sophia's Hessian estimator. Defaults to SophiaG's Gauss-Newton-Bartlett
     ):
-        hessian_est = SophiaHessian(hessian_est)
         store_attr()
 
     def before_fit(self):
