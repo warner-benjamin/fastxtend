@@ -19,12 +19,12 @@ from ..imports import *
 # %% auto 0
 __all__ = ['Adan', 'adan', 'AdanLargeBatchLR']
 
-# %% ../../nbs/optimizer.adan.ipynb 6
+# %% ../../nbs/optimizer.adan.ipynb 5
 def debias(beta:float, step:int):
     "Simple debias calculation"
     return 1-beta**step
 
-# %% ../../nbs/optimizer.adan.ipynb 8
+# %% ../../nbs/optimizer.adan.ipynb 7
 def adan_setup(p:Tensor, step:int=0, grad_avg:Tensor|None=None, diff_avg:Tensor|None=None,
                sqr_avg:Tensor|None=None, prior_grad:Tensor|None=None, paper_init:bool=False, **kwargs):
     "Handles Adan setup and keeps track of steps"
@@ -42,7 +42,7 @@ def adan_setup(p:Tensor, step:int=0, grad_avg:Tensor|None=None, diff_avg:Tensor|
         step += 1
         return {'step':step}
 
-# %% ../../nbs/optimizer.adan.ipynb 9
+# %% ../../nbs/optimizer.adan.ipynb 8
 def adan_step(p:Tensor, lr:float, eps:float, wd:float, beta1:float, beta2:float, beta3:float,
               step:int, grad_avg:Tensor, diff_avg:Tensor, sqr_avg:Tensor, prior_grad:Tensor,
               do_wd:bool=True, **kwargs):
@@ -83,7 +83,7 @@ def adan_step(p:Tensor, lr:float, eps:float, wd:float, beta1:float, beta2:float,
 
 adan_step.defaults = dict(beta1=0.98, beta2=0.92, beta3=0.99)
 
-# %% ../../nbs/optimizer.adan.ipynb 11
+# %% ../../nbs/optimizer.adan.ipynb 10
 @torch.jit.script
 def adan_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, beta1:float, beta2:float, beta3:float, eps:float,
                   paper_init:bool, grad_avg:Optional[Tensor]=None, diff_avg:Optional[Tensor]=None,
@@ -144,7 +144,7 @@ def adan_jit_step(p:Tensor, g:Tensor, lr:float, wd:float, beta1:float, beta2:flo
 
     return torch.jit.annotate(Dict[str, Union[Tensor, int]], {'grad_avg':grad_avg, 'diff_avg':diff_avg, 'sqr_avg':sqr_avg, 'prior_grad':prior_grad, 'step':step})
 
-# %% ../../nbs/optimizer.adan.ipynb 13
+# %% ../../nbs/optimizer.adan.ipynb 12
 def adan_foreach_step(p:list[Tensor], grad:list[Tensor], grad_avg:list[Tensor], diff_avg:list[Tensor],
                       sqr_avg:list[Tensor], prior_grad:list[Tensor], steps:np.ndarray[Any, int],
                       do_wd:np.ndarray[Any, bool], lr:float, wd:float, beta1:float, beta2:float,
@@ -190,7 +190,7 @@ def adan_foreach_step(p:list[Tensor], grad:list[Tensor], grad_avg:list[Tensor], 
     torch._foreach_zero_(prior_grad)
     torch._foreach_add_(prior_grad, grad, alpha=-1)
 
-# %% ../../nbs/optimizer.adan.ipynb 14
+# %% ../../nbs/optimizer.adan.ipynb 13
 class AdanForEachOptimizer(ForEachOptimizer):
     "An `Optimizer` with a modified step for Adan ForEach"
     def __init__(self,
@@ -235,7 +235,7 @@ class AdanForEachOptimizer(ForEachOptimizer):
             self.opt_step(p=pl, grad=gl, grad_avg=grad_avg, diff_avg=diff_avg, sqr_avg=sqr_avg,
                           prior_grad=prior_grad, steps=np.array(steps, dtype=np.int32), do_wd=np.array(do_wd, dtype=bool), **hyper)
 
-# %% ../../nbs/optimizer.adan.ipynb 16
+# %% ../../nbs/optimizer.adan.ipynb 15
 def Adan(
     params:Listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
@@ -259,7 +259,7 @@ def Adan(
         cbs = [partial(adan_setup, paper_init=paper_init), adan_step]
         return Optimizer(params, cbs, lr=lr, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd)
 
-# %% ../../nbs/optimizer.adan.ipynb 17
+# %% ../../nbs/optimizer.adan.ipynb 16
 def adan(
     beta1:float=0.98, # Gradient moving average (β1) coefficient
     beta2:float=0.92, # Gradient difference moving average (β2) coefficient
@@ -274,7 +274,7 @@ def adan(
     return partialler(Adan, beta1=beta1, beta2=beta2, beta3=beta3, eps=eps, wd=wd,
                       paper_init=paper_init, foreach=foreach, jit=jit)
 
-# %% ../../nbs/optimizer.adan.ipynb 19
+# %% ../../nbs/optimizer.adan.ipynb 18
 def AdanLargeBatchLR(bs:int) -> float:
     "Square root rule for scaling `Adan` learning rate for large-batch training"
     return math.sqrt(bs/256)*6.25e-3

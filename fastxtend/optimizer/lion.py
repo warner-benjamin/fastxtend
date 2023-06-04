@@ -17,7 +17,7 @@ from ..imports import *
 # %% auto 0
 __all__ = ['Lion', 'lion']
 
-# %% ../../nbs/optimizer.lion.ipynb 7
+# %% ../../nbs/optimizer.lion.ipynb 6
 def lion_step(p:Tensor, lr:float, wd:float, beta1:float, beta2:float,
               grad_avg:Tensor|None=None, do_wd:bool=True, **kwargs):
 
@@ -39,7 +39,7 @@ def lion_step(p:Tensor, lr:float, wd:float, beta1:float, beta2:float,
 
 lion_step.defaults = dict(beta1=0.9, beta2=0.99)
 
-# %% ../../nbs/optimizer.lion.ipynb 9
+# %% ../../nbs/optimizer.lion.ipynb 8
 def lion_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor],
                       do_wd:np.ndarray[Any, bool], lr:float, wd:float, beta1:float,
                       beta2:float, **kwargs):
@@ -59,7 +59,7 @@ def lion_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tensor],
     torch._foreach_mul_(grad_avg, scalar=beta2)
     torch._foreach_add_(grad_avg, g, alpha=1-beta2)
 
-# %% ../../nbs/optimizer.lion.ipynb 10
+# %% ../../nbs/optimizer.lion.ipynb 9
 class LionForEachOptimizer(ForEachOptimizer):
     "An `Optimizer` with a modified step for Lion ForEach"
     def __init__(self,
@@ -89,7 +89,7 @@ class LionForEachOptimizer(ForEachOptimizer):
 
             self.opt_step(p=pl, g=gl, grad_avg=grad_avg, do_wd=np.array(do_wd, dtype=bool), **hyper)
 
-# %% ../../nbs/optimizer.lion.ipynb 12
+# %% ../../nbs/optimizer.lion.ipynb 11
 def Lion(
     params:Listified[Tensor], # Model parameters or parameter groups
     lr:float, # Default learning rate
@@ -105,7 +105,7 @@ def Lion(
     else:
         return Optimizer(params, [lion_step], lr=lr, beta1=beta1, beta2=beta2, wd=wd)
 
-# %% ../../nbs/optimizer.lion.ipynb 13
+# %% ../../nbs/optimizer.lion.ipynb 12
 def lion(
     beta1:float=0.9, # Update gradient moving average (β1) coefficient
     beta2:float=0.99, # Gradient moving average (β2) coefficient
