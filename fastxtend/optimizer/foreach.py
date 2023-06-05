@@ -69,7 +69,7 @@ class SGDForEachOptimizer(ForEachOptimizer):
             pl, gl, grad_avg, ones, do_wd = [], [], [], [], []
 
             for p in pg:
-                if hasattr(p, 'grad') and p.grad is not None:
+                if p.grad is not None:
                     state = self.state[p]
 
                     if 'setup' not in state:
@@ -133,7 +133,7 @@ class AdamForEachOptimizer(ForEachOptimizer):
             pl, gl, grad_avg, sqr_avg, ones, steps, do_wd = [], [], [], [], [], [], []
 
             for p in pg:
-                if hasattr(p, 'grad') and p.grad is not None:
+                if p.grad is not None:
                     state = self.state[p]
 
                     if 'step' not in state:
@@ -210,7 +210,7 @@ class RAdamForEachOptimizer(ForEachOptimizer):
             pl, gl, grad_avg, sqr_avg, steps, ones, do_wd = [], [], [], [], [], [], []
 
             for p in pg:
-                if hasattr(p, 'grad') and p.grad is not None:
+                if p.grad is not None:
                     state = self.state[p]
 
                     if 'step' not in state:
@@ -318,7 +318,7 @@ class RangerForEachOptimizer(ForEachOptimizer):
         for pg, hyper in zip(self.param_lists, self.hypers):
             pl, gl, grad_avg, sqr_avg, slow_p, steps, ones, do_wd = [], [], [], [], [], [], [], []
             for p in pg:
-                if hasattr(p, 'grad') and p.grad is not None:
+                if p.grad is not None:
                     state = self.state[p]
 
                     if 'step' not in state:

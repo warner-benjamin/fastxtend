@@ -115,7 +115,7 @@ class StableAdamForEachOptimizer(ForEachOptimizer):
             pl, gl, grad_avg, sqr_avg, ones, steps, do_wd = [], [], [], [], [], [], []
 
             for p in pg:
-                if hasattr(p, 'grad') and p.grad is not None:
+                if p.grad is not None:
                     state = self.state[p]
 
                     if 'step' not in state:

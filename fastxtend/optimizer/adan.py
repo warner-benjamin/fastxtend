@@ -209,7 +209,7 @@ class AdanForEachOptimizer(ForEachOptimizer):
             pl, gl, grad_avg, diff_avg, sqr_avg, prior_grad, steps, do_wd = [], [], [], [], [], [], [], []
 
             for p in pg:
-                if hasattr(p, 'grad') and p.grad is not None:
+                if p.grad is not None:
                     state = self.state[p]
 
                     if 'step' not in state:

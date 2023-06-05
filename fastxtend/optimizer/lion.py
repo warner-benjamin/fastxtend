@@ -76,7 +76,7 @@ class LionForEachOptimizer(ForEachOptimizer):
             pl, gl, grad_avg, do_wd = [], [], [], []
 
             for p in pg:
-                if hasattr(p, 'grad') and p.grad is not None:
+                if p.grad is not None:
                     state = self.state[p]
 
                     if 'grad_avg' not in state:

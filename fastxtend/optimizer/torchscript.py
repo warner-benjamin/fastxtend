@@ -49,7 +49,7 @@ class JitOptimizer(Optimizer):
             raise NotImplementedError("fastai optimizers currently do not support closure")
         for pg, hyper in zip(self.param_lists, self.hypers):
             for p in pg:
-                if hasattr(p, 'grad') and p.grad is not None:
+                if p.grad is not None:
                     state = self.state[p]
                     _update(state, self.opt_step(p=p, g=p.grad, decouple_wd=self.decouple_wd, **{**state, **hyper}))
 
@@ -357,7 +357,7 @@ class JitLookahead(JitOptimizer):
         if closure is not None: raise NotImplementedError("fastai optimizers currently do not support closure")
         for pg, hyper in zip(self.param_lists, self.hypers):
             for p in pg:
-                if hasattr(p, 'grad') and p.grad is not None:
+                if p.grad is not None:
                     _update(self.state[p], self.opt_step(p, p.grad, decouple_wd=self.decouple_wd, **{**self.state[p], **hyper}, count=self.count))
 
     def clear_state(self):
