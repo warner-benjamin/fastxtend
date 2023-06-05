@@ -136,7 +136,7 @@ class SophiaForEachOptimizer(ForEachOptimizer):
                 if hasattr(p, 'grad') and p.grad is not None:
                     state = self.state[p]
 
-                    if 'grad_avg' not in state.keys():
+                    if 'grad_avg' not in state:
                         state['grad_avg'] = torch.zeros_like(p, memory_format=torch.preserve_format)
                         state['hessian']  = torch.zeros_like(p, memory_format=torch.preserve_format)
 
@@ -200,10 +200,10 @@ class SophiaCallback(Callback):
     def before_fit(self):
         if not isinstance(self.learn.opt, (SophiaOptimizer, SophiaForEachOptimizer)):
             raise ValueError("`SophiaCallback` only supports the `Sophia` optimizer")
-        if not isinstance(self.learn.loss_fn, (CrossEntropyLoss, CrossEntropyLossFlat,
-                                               LabelSmoothingCrossEntropy,
-                                               LabelSmoothingCrossEntropyFlat)):
-            warn('Non-CrossEntropy loss detected, SophiaG assumes data is in a categorical distrobution.')
+        if not isinstance(self.learn.loss_func, (CrossEntropyLoss, CrossEntropyLossFlat,
+                                                 LabelSmoothingCrossEntropy,
+                                                 LabelSmoothingCrossEntropyFlat)):
+            warn('Non-CrossEntropy loss detected, SophiaG assumes data is in a categorical distribution.')
         self._step_iter = 0
         self._hessian_step = False
 
