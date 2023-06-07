@@ -75,12 +75,14 @@ class Pooling(str, Enum):
     maxblurpool = 'MaxBlurPool'
 
 class OptimizerChoice(str, Enum):
-    adam   = 'adam'
-    ranger = 'ranger'
-    adan   = 'adan'
-    lamb   = 'lamb'
-    sgd    = 'sgd'
-    lion   = 'lion'
+    adan       = 'adan'
+    adam       = 'adam'
+    lamb       = 'lamb'
+    lion       = 'lion'
+    ranger     = 'ranger'
+    sgd        = 'sgd'
+    sophia     = 'sophia'
+    stableadam = 'stableadam'
 
 class Scheduler(str, Enum):
     onecycle  = 'one_cycle'
@@ -162,7 +164,7 @@ def create_ffcv_dataset(size:ImagenetteSize=ImagenetteSize.medium, imagenette:bo
     dataset = get_dataset(size, imagenette)
 
     for ds, fn in zip([dataset.train, dataset.valid], [train_fn, valid_fn]):
-        rgb_dataset_to_ffcv(ds, fn, write_mode='jpeg' if jpeg else 'raw',
+        rgb_dataset_to_ffcv(ds, fn, write_mode='jpg' if jpeg else 'raw',
                             jpeg_quality=jpeg_quality, chunk_size=chunk_size)
 
 
@@ -245,7 +247,7 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
                  max_rotate:float=10., max_zoom:float=1., min_zoom:float=1., max_lighting:float=0.2,
                  max_warp:float=0.2, prob_affine:float=0.75, prob_lighting:float=0.75, prob_saturation:float=0,
                  max_saturation:float=0.2, prob_hue:float=0, max_hue:float=0.2, prob_grayscale:float=0.,
-                 prob_channeldrop:float=0., prob_erasing:float=0.):
+                 prob_channeldrop:float=0., prob_erasing:float=0., async_tfms:bool=False):
 
     workers = min(max_workers, num_cpus())
     if item_transforms:
@@ -292,7 +294,7 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
     ]
 
     loaders = {}
-    fn_base = '.cache/fastxtend/imagenette' if imagenette else '.cache/fastxtend/imagewoof'
+    fn_base = '.cache/fastxtend/imagenette'if imagenette else '.cache/fastxtend/imagewoof'
     for name in ['valid', 'train']:
         if size<=144:
             file = Path.home()/f'{fn_base}_160_{name}.ffcv'
@@ -312,6 +314,7 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
             IntDecoder(), fx.ToTensorCategory(),
             fx.Squeeze(), fx.ToDevice()
         ]
+        _async_tfms = async_tfms if async_tfms and name=='train' else False
         order = OrderOption.QUASI_RANDOM if quasi_random else OrderOption.RANDOM
         loaders[name] = Loader(file,
                                batch_size=bs if (name=='train' or not double_valid) else bs*2,
@@ -322,7 +325,8 @@ def get_ffcv_dls(size:int, bs:int, imagenette:bool=False, item_transforms:bool=F
                                batch_tfms=batch_tfms,
                                batches_ahead=batches_ahead,
                                seed=seed,
-                               device=device)
+                               device=device,
+                               async_tfms=_async_tfms)
     return DataLoaders(loaders['train'], loaders['valid'])
 
 
@@ -341,13 +345,16 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     # Optimizer
     optimizer:OptimizerChoice=typer.Option(OptimizerChoice.ranger, show_default=OptimizerChoice.ranger.value, help="Which optimizer to use. Make sure to set learning rate if changed.", case_sensitive=False, rich_help_panel="Optimizer"),
     weight_decay:Optional[float]=typer.Option(None, help="Weight decay for Optimizer. If None, use optimizer's default.", rich_help_panel="Optimizer"),
-    decouple_wd:bool=typer.Option(True, "--true-wd/--l2-wd", help="Apply true (decoupled) weight decay or L2 regularization. Doesn't apply to Adan or Lion.", rich_help_panel="Optimizer"),
+    decouple_wd:bool=typer.Option(True, "--true-wd/--l2-wd", help="Apply true (decoupled) weight decay or L2 regularization. Doesn't apply to Adan, Lion, or Sophia.", rich_help_panel="Optimizer"),
     fused_opt:bool=typer.Option(True, "--fused/--standard", help="Use faster For Each fused Optimizer or slower standard fastai Optimizer.", rich_help_panel="Optimizer"),
+    eight_bit:bool=typer.Option(False, "--eight-bit", help="Use bitsandbytes 8-bit optimizer. Avalible for Adam, LAMB, Lion, & SGD with Momentum.", rich_help_panel="Optimizer"),
     mom:Optional[float]=typer.Option(None, help="Gradient moving average (β1) coefficient. If None, uses optimizer's default.", rich_help_panel="Optimizer"),
     sqr_mom:Optional[float]=typer.Option(None, help="Gradient squared moving average (β2) coefficient. If None, use optimizer's default.", rich_help_panel="Optimizer"),
     beta1:Optional[float]=typer.Option(None, help="Adan: Gradient moving average (β1) coefficient. Lion: Update gradient moving average (β1) coefficient. If None, use optimizer's default.", rich_help_panel="Optimizer"),
     beta2:Optional[float]=typer.Option(None, help="Adan: Gradient difference moving average (β2) coefficient. Lion: Gradient moving average (β2) coefficient. If None, use optimizer's default.", rich_help_panel="Optimizer"),
     beta3:Optional[float]=typer.Option(None, help="Adan: Gradient squared moving average (β3) coefficient. If None, use optimizer's default.", rich_help_panel="Optimizer"),
+    hess_mom:Optional[float]=typer.Option(None, help="Sophia: Hessian moving average (β2) coefficient. If None, use optimizer's default.", rich_help_panel="Optimizer"),
+    rho:Optional[float]=typer.Option(None, help="Sophia: Maximum update size, set higher for more agressive updates. If None, use optimizer's default.", rich_help_panel="Optimizer"),
     eps:Optional[float]=typer.Option(None, help="Added for numerical stability. If None, uses optimizer's default.", rich_help_panel="Optimizer"),
     paper_init:bool=typer.Option(False, "--paperinit/--zeroinit", help="Adan: Initialize prior gradient with current gradient per paper or zeroes.", rich_help_panel="Optimizer"),
     # Scheduler
@@ -359,7 +366,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     warm_epoch:int=typer.Option(5, help="Learning rate warmup in training epochs. Only applies to cos_warmup or cos_anneal.", rich_help_panel="Scheduler"),
     warm_mode:WarmMode=typer.Option(WarmMode.auto, show_default=WarmMode.auto.value, help="Warmup using 'epoch', 'pct', or min of epoch/pct if 'auto'. Only applies to cos_warmup or cos_anneal.", rich_help_panel="Scheduler"),
     warm_sched:WarmSched=typer.Option(WarmSched.SchedCos, show_default=WarmMode.auto.value, help="Learning rate warmup schedule. Not case sensitive.", case_sensitive=False, rich_help_panel="Scheduler"),
-    div_start:float=typer.Option(0.25, help="# Initial learning rate: `lr/div_start`.", rich_help_panel="Scheduler"),
+    div_start:float=typer.Option(25, help="# Initial learning rate: `lr/div_start`.", rich_help_panel="Scheduler"),
     div_final:float=typer.Option(1e5, help="Final learning rate: `lr/div_final`.", rich_help_panel="Scheduler"),
     # Training
     label_smoothing:float=typer.Option(0.1, help="nn.CrossEntropyLoss label_smoothing amount.", rich_help_panel="Training"),
@@ -384,11 +391,12 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     max_workers:int=typer.Option(16, help="Maximum number of workers to use for multiprocessing. Chooses number of CPUs if lower.", rich_help_panel="DataLoader"),
     device:Optional[str]=typer.Option(None, help="Device to train on. If not set, uses the fastai default device. Must be Cuda device if --ffcv.", rich_help_panel="DataLoader"),
     center_crop:bool=typer.Option(True, "--crop/--squish", help="Center crop or squish validation images with the fastai dataloader. --crop matches fastxtend+ffcv dataloader.", rich_help_panel="DataLoader"),
-    double_valid:bool=typer.Option(True, "--double/--same", help="Double the validation batch size or keep it the same size as the training --batch_size.", rich_help_panel="DataLoader"),
+    double_valid:bool=typer.Option(True, "--double-valid/--same-valid", help="Double the validation batch size or keep it the same size as the training --batch_size.", rich_help_panel="DataLoader"),
     # FFCV Dataloader
     item_transforms:bool=typer.Option(False, "--item-tfms/--batch-tfms", help="Where possible, use fastxtend+ffcv Numba compliled item transforms instead of GPU batch transforms.", rich_help_panel="fastxtend+ffcv DataLoader"),
     batches_ahead:int=typer.Option(1, help="Number of batches prepared in advance by fastxtend+ffcv dataloader. Balances latency and memory usage.", rich_help_panel="fastxtend+ffcv DataLoader"),
     quasi_random:bool=typer.Option(False, "--random/--quasi", help="Use Random or Quasi-Random loading with fastxtend+ffcv dataloader. Random caches entire dataset in memory. Quasi-Random caches random subsets.", rich_help_panel="fastxtend+ffcv DataLoader"),
+    async_tfms:bool=typer.Option(False, "--async-tfms/--normal", help="Enable asynchronous batch transforms", rich_help_panel="fastxtend+ffcv DataLoader"),
     # Transform Options
     flip:bool=typer.Option(True, help="Randomly flip the image horizontally", rich_help_panel="Transform Options"),
     flip_vert:bool=typer.Option(False, help="Randomly flip the image vertically", rich_help_panel="Transform Options"),
@@ -473,7 +481,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     opt = globals()[optimizer.value]
     opt_params = inspect.signature(opt).parameters
     opt_kwargs = {k:v for k,v in config.items() if k in opt_params.keys() and v is not None}
-    if 'foreach' in opt_kwargs.keys():
+    if 'foreach' in opt_kwargs:
         opt_kwargs.pop('foreach')
 
     # Add any supported callbacks and their options
@@ -491,6 +499,9 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     elif cutmixup:
         cbs += [CutMixUp(mixup_alpha=mixup_alpha, cutmix_alpha=cutmix_alpha, mixup_ratio=mixup_ratio,
                          cutmix_ratio=cutmix_ratio, element=elementwise, interp_label=False)]
+    if optimizer.value=='sophia':
+        print('add sophia callback')
+        cbs += [SophiaCallback()]
 
     # Create the dataloaders
     with less_random(seed):
@@ -503,7 +514,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
                                prob_affine=prob_affine, prob_lighting=prob_lighting, prob_saturation=prob_saturation,
                                max_saturation=max_saturation, prob_hue=prob_hue, max_hue=max_hue,
                                prob_grayscale=prob_grayscale, prob_channeldrop=prob_channeldrop,
-                               prob_erasing=prob_erasing)
+                               prob_erasing=prob_erasing, async_tfms=async_tfms)
         else:
             dls = get_fastai_dls(size=image_size, bs=batch_size, imagenette=imagenette, max_workers=max_workers,
                                  center_crop=center_crop, device=device, double_valid=double_valid, flip=flip,
@@ -540,13 +551,13 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
             learn.fit_flat_cos(n_epoch=epochs, lr=learning_rate, wd=weight_decay,
                                pct_start=pct_start, div_final=div_final)
         elif scheduler==Scheduler.onecycle:
-            learn.fit_one_cycle(n_epoch=epochs, lr=learning_rate, wd=weight_decay,
+            learn.fit_one_cycle(n_epoch=epochs, lr_max=learning_rate, wd=weight_decay,
                                 pct_start=pct_start, div=div_start, div_final=div_final)
         elif scheduler==Scheduler.flatwarm:
-            learn.fit_flat_warm(n_epoch=epochs, lr=learning_rate, wd=weight_decay,
-                                pct_start=pct_start, div=div_start, div_final=div_final,
-                                warm_pct=warm_pct, warm_epoch=warm_epoch,
-                                warm_mode=warm_mode.value, warm_sched=globals()[warm_sched.value])
+            learn.fit_flat_warmup(n_epoch=epochs, lr=learning_rate, wd=weight_decay,
+                                  pct_start=pct_start, div=div_start, div_final=div_final,
+                                  warm_pct=warm_pct, warm_epoch=warm_epoch,
+                                  warm_mode=warm_mode.value, warm_sched=globals()[warm_sched.value])
         elif scheduler==Scheduler.cosanneal:
             learn.fit_cos_anneal(n_epoch=epochs, lr=learning_rate, wd=weight_decay,
                                  pct_start=pct_start, div=div_start, div_final=div_final,

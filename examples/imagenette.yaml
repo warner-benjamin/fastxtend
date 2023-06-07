@@ -21,11 +21,14 @@ optimizer: ranger  # Which optimizer to use. Make sure to set learning rate if c
 weight_decay: null  # Weight decay for Optimizer. If null, use optimizer's default.
 decouple_wd: true  # Apply true (decoupled) weight decay if true, or L2 regularization if false. Doesn't apply to Adan or Lion.
 fused_opt: true  # Use faster For Each fused Optimizer if true, or the slower standard fastai Optimizer if false.
+eight_bit: false # Use bitsandbytes 8-bit optimizer. Avalible for Adam, LAMB, Lion, & SGD with Momentum.
 mom: null  # Gradient moving average (β1) coefficient. If null, use optimizer's default.
 sqr_mom: null  # Gradient squared moving average (β2) coefficient. If null, use optimizer's default.
 beta1: null  # Adan: Gradient moving average (β1) coefficient. Lion: Update gradient moving average (β1) coefficient. If null, use optimizer's default.
 beta2: null  # Adan: Gradient difference moving average (β2) coefficient. Lion: Gradient moving average (β2) coefficient. If null, use optimizer's default.
 beta3: null  # Adan: Gradient squared moving average (β3) coefficient. If null, use optimizer's default.
+hess_mom: null # Sophia: Hessian moving average (β2) coefficient. If None, use optimizer's default.
+rho: null # Sophia: Maximum update size, set higher for more agressive updates. If None, use optimizer's default.
 eps: null  # Added for numerical stability. If null, use optimizer's default.
 paper_init: false  # Adan: Initialize prior gradient with current gradient per paper if true, or zeroes if false.
 
@@ -38,7 +41,7 @@ warm_pct: 0.2  # Learning rate warmup in percent of training steps. Only applies
 warm_epoch: 5  # Learning rate warmup in training epochs. Only applies to cos_warmup or cos_anneal.
 warm_mode: auto  # Warmup using 'epoch', 'pct', or min of epoch/pct if 'auto'. Only applies to cos_warmup or cos_anneal.
 warm_sched: schedcos  # Learning rate warmup schedule
-div_start: 0.25  # Initial learning rate: `lr/div_start`.
+div_start: 25  # Initial learning rate: `lr/div_start`.
 div_final: 1e+5  # Final learning rate: `lr/div_final`.
 
 # Training
@@ -79,6 +82,7 @@ profile: false  # Profile training speed using fastxtend's Throughput profiler.
 item_transforms: false  # Where possible, use fastxtend+ffcv Numba compliled item transforms instead of GPU batch transforms.
 batches_ahead: 1  # Number of batches prepared in advance by fastxtend+ffcv dataloader. Balances latency and memory usage.
 quasi_random: false  # Use Quasi-Random loading with fastxtend+ffcv dataloader instead of default of Random. Random caches entire dataset in memory. Quasi-Random caches random subsets.
+async_tfms: false # Enable asynchronous batch transforms
 
 # Transform Options
 flip: true  # Randomly flip the image horizontally
