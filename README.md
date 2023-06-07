@@ -26,10 +26,15 @@ DataLoader](ffcv.tutorial.html).
 
 - Drop in [fused optimizers](optimizer.fused.html), which are 21 to 293
   percent faster then fastai native optimizers.
+- Up to 75% optimizer memory savings with integrated
+  [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) [8-bit
+  optimizers](optimizer.eightbit.html).
 - Increase GPU throughput and decrease training time with the
   [Progressive Resizing](callback.progresize.html) callback.
 - Use the highly optimized [FFCV DataLoader](ffcv.tutorial.html), fully
   integrated with fastai.
+- Integrated support for `torch.compile` via the
+  [Compile](callback.compiler.html) callbacks.
 
 **General Features**
 
@@ -137,11 +142,12 @@ To easily install prerequisites for all fastxtend features, use
 [Miniconda](https://docs.conda.io/en/latest/miniconda.html):
 
 ``` bash
-conda create -n fastxtend python=3.10 pytorch torchvision \
-torchaudio pytorch-cuda=11.8 cuda fastai nbdev pkg-config \
-libjpeg-turbo opencv tqdm terminaltables psutil numpy=1.23.5 \
-numba librosa=0.9.2 timm kornia rich typer wandb -c pytorch \
--c nvidia/label/cuda-11.8.0 -c fastai -c huggingface -c conda-forge
+conda create -n fastxtend python=3.10 "pytorch>=2.0.0" \
+torchvision torchaudio pytorch-cuda=11.8 cuda fastai nbdev \
+pkg-config libjpeg-turbo opencv tqdm terminaltables psutil \
+numpy numba librosa=0.9.2 timm kornia rich typer wandb \
+-c pytorch -c nvidia/label/cuda-11.8.0 -c fastai \
+-c huggingface -c conda-forge
 
 conda activate fastxtend
 ```

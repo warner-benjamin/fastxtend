@@ -60,7 +60,7 @@ website:
           file: optimizer.lion.ipynb
         - text: Sophia Optimizer
           file: optimizer.sophia.ipynb
-        - text: StableAdamW Optimizer
+        - text: StableAdam Optimizer
           file: optimizer.stableadam.ipynb
       - section: Vision
         contents:
