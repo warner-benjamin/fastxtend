@@ -12,6 +12,13 @@ import numpy as np
 from fastai.optimizer import Optimizer
 
 from .foreach import ForEachOptimizer
+
+try:
+    from fastxtend.optimizer.eightbit import Lion8bitOptimizer
+    EIGHTBIT = True
+except ImportError:
+    EIGHTBIT = False
+
 from ..imports import *
 
 # %% auto 0
@@ -97,11 +104,19 @@ def Lion(
     beta2:float=0.99, # Gradient moving average (β2) coefficient
     wd:float=0.1, # True weight decay
     foreach:bool=False, # Use fused ForEach implementation
-) -> Optimizer|LionForEachOptimizer:
-    "A fastai Lion optimizer with a fused ForEach implementation"
+    eightbit:bool=False, # Use fused 8-bit implementation
+    **eightbitargs
+) -> Optimizer|LionForEachOptimizer|Lion8bitOptimizer:
+    "A fastai Lion optimizer with fused ForEach and 8-bit implementations"
     if foreach:
         return LionForEachOptimizer(params, lion_foreach_step, lr=lr,
                                     beta1=beta1, beta2=beta2, wd=wd)
+    elif eightbit:
+        if EIGHTBIT:
+            return Lion8bitOptimizer(params, lr=lr, beta1=beta1,
+                                     beta2=beta2, wd=wd, **eightbitargs)
+        else:
+            raise ImportError(f'{eightbit=}. bitsandbytes package not found. Run `pip install bitsandbytes`')
     else:
         return Optimizer(params, [lion_step], lr=lr, beta1=beta1, beta2=beta2, wd=wd)
 
@@ -111,6 +126,9 @@ def lion(
     beta2:float=0.99, # Gradient moving average (β2) coefficient
     wd:float=0.1, # True weight decay
     foreach:bool=False, # Use fused ForEach implementation
-) -> Optimizer|LionForEachOptimizer:
-    "Partial function for the Lion optimizer with a fused ForEach implementation"
-    return partialler(Lion, beta1=beta1, beta2=beta2, wd=wd, foreach=foreach)
+    eightbit:bool=False, # Use fused 8-bit implementation
+    **eightbitargs
+) -> Optimizer|LionForEachOptimizer|Lion8bitOptimizer:
+    "Partial function for the Lion optimizer with fused ForEach and 8-bit implementations"
+    return partialler(Lion, beta1=beta1, beta2=beta2, wd=wd, foreach=foreach,
+                      eightbit=eightbit, **eightbitargs)

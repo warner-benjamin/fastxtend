@@ -23,6 +23,13 @@ from .foreach import (SGDForEachOptimizer, sgd_foreach_step, AdamForEachOptimize
                                          LambForEachOptimizer, lamb_foreach_step, RangerForEachOptimizer,
                                          ranger_foreach_step)
 
+try:
+    from fastxtend.optimizer.eightbit import (SGD8bitOptimizer, RMSProp8bitOptimizer, AdamW8bitOptimizer,
+                                              LARS8bitOptimizer, LAMB8bitOptimizer)
+    EIGHTBIT = True
+except ImportError:
+    EIGHTBIT = False
+
 from ..imports import *
 
 # %% auto 0
@@ -37,13 +44,24 @@ def SGD(
     wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (SGDW) or L2 regularization (SGD)
     foreach:bool=False, # Use fused ForEach implementation
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|SGDForEachOptimizer|JitOptimizer:
-    "A fastai SGD/SGDW optimizer with fused ForEach and TorchScript implementations"
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation
+    **eightbitargs
+) -> Optimizer|SGDForEachOptimizer|JitOptimizer|SGD8bitOptimizer:
+    "A fastai SGD/SGDW optimizer with fused ForEach, TorchScript, & 8-bit implementations"
     if foreach:
-        return SGDForEachOptimizer(params, sgd_foreach_step, lr=lr, mom=mom, wd=wd, decouple_wd=decouple_wd)
+        return SGDForEachOptimizer(params, sgd_foreach_step, lr=lr, mom=mom,
+                                   wd=wd, decouple_wd=decouple_wd)
     elif jit:
-        return JitOptimizer(params, sgd_jit_step, lr=lr, mom=mom, wd=wd, decouple_wd=decouple_wd)
+        return JitOptimizer(params, sgd_jit_step, lr=lr, mom=mom, wd=wd,
+                            decouple_wd=decouple_wd)
+    elif eightbit:
+        if EIGHTBIT:
+            if decouple_wd and wd > 0:
+                raise NotImplementedError(f'8-bit SGD only supports L2 weight decay: {decouple_wd=}')
+            return SGD8bitOptimizer(params, lr=lr, mom=mom, wd=wd, **eightbitargs)
+        else:
+            raise ImportError(f'{eightbit=}. bitsandbytes package not found. Run `pip install bitsandbytes`.')
     else:
         cbs = [weight_decay] if decouple_wd else [l2_reg]
         if mom != 0: cbs.append(average_grad)
@@ -56,10 +74,13 @@ def sgd(
     wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (SGDW) or L2 regularization (SGD)
     foreach:bool=False, # Use fused ForEach implementation
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|SGDForEachOptimizer|JitOptimizer:
-    "Partial function for the SGD/SGDW optimizer with fused ForEach and TorchScript implementations"
-    return partialler(SGD, mom=mom, wd=wd, decouple_wd=decouple_wd, jit=jit, foreach=foreach)
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation
+    **eightbitargs
+) -> Optimizer|SGDForEachOptimizer|JitOptimizer|SGD8bitOptimizer:
+    "Partial function for the SGD/SGDW optimizer with fused ForEach, TorchScript, & 8-bit implementations"
+    return partialler(SGD, mom=mom, wd=wd, decouple_wd=decouple_wd, jit=jit,
+                      foreach=foreach, eightbit=eightbit, **eightbitargs)
 
 # %% ../../nbs/optimizer.fused.ipynb 12
 def RMSProp(
@@ -69,13 +90,25 @@ def RMSProp(
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-8, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
-    decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|JitOptimizer:
-    "A fastai RMSProp/RMSPropW optimizer with a fused TorchScript implementation"
+    decouple_wd:bool=True, # Apply true weight decay or L2 regularization. Ignored if `eightbit=True`
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation
+    **eightbitargs
+) -> Optimizer|JitOptimizer|RMSProp8bitOptimizer:
+    "A fastai RMSProp/RMSPropW optimizer with fused TorchScript and 8-bit implementations"
     if jit:
         return JitOptimizer(params, rmsprop_jit_step, lr=lr, mom=mom, sqr_mom=sqr_mom,
                             eps=eps, wd=wd, decouple_wd=decouple_wd)
+    elif eightbit:
+        if EIGHTBIT:
+            if decouple_wd and wd > 0:
+                raise NotImplementedError(f'8-bit RMSProp only supports L2 weight decay: {decouple_wd=}')
+            if mom > 0:
+                raise NotImplementedError(f'8-bit RMSProp does not use momentum: {mom=}')
+            return RMSProp8bitOptimizer(params, lr=lr, sqr_mom=sqr_mom,
+                                        eps=eps, wd=wd, **eightbitargs)
+        else:
+            raise ImportError(f'{eightbit=}. bitsandbytes package not found. Run `pip install bitsandbytes`.')
     else:
         cbs = [weight_decay] if decouple_wd else [l2_reg]
         cbs += ([average_sqr_grad] if mom==0. else [average_grad, average_sqr_grad])
@@ -89,10 +122,14 @@ def rmsprop(
     eps:float=1e-8, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|JitOptimizer:
-    "Partial function for the RMSProp/RMSPropW optimizer with a fused TorchScript implementation"
-    return partialler(RMSProp, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd, decouple_wd=decouple_wd, jit=jit)
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation
+    **eightbitargs
+) -> Optimizer|JitOptimizer|RMSProp8bitOptimizer:
+    "Partial function for the RMSProp/RMSPropW optimizer with fused TorchScript and 8-bit implementations"
+    return partialler(RMSProp, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd,
+                      decouple_wd=decouple_wd, jit=jit, eightbit=eightbit,
+                      **eightbitargs)
 
 # %% ../../nbs/optimizer.fused.ipynb 16
 def Adam(
@@ -104,15 +141,25 @@ def Adam(
     wd:float=0.01, # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (AdamW) or L2 regularization (Adam)
     foreach:bool=False, # Use fused ForEach implementation
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|AdamForEachOptimizer|JitOptimizer:
-    "A fastai Adam/AdamW optimizer with fused ForEach and TorchScript implementations"
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation
+    **eightbitargs
+) -> Optimizer|AdamForEachOptimizer|JitOptimizer|AdamW8bitOptimizer:
+    "A fastai Adam/AdamW optimizer with fused ForEach, TorchScript, & 8-bit implementations"
     if foreach:
         return AdamForEachOptimizer(params, adam_foreach_step, lr=lr, mom=mom,
                                     sqr_mom=sqr_mom, eps=eps, wd=wd, decouple_wd=decouple_wd)
     elif jit:
         return JitOptimizer(params, adam_jit_step, lr=lr, mom=mom, sqr_mom=sqr_mom,
                             eps=eps, wd=wd, decouple_wd=decouple_wd)
+    elif eightbit:
+        if EIGHTBIT:
+            if not decouple_wd and wd > 0:
+                raise NotImplementedError(f'8-bit AdamW only supports true weight decay: {decouple_wd=}')
+            return AdamW8bitOptimizer('adam', params, lr=lr, mom=mom, sqr_mom=sqr_mom,
+                                           eps=eps, wd=wd, **eightbitargs)
+        else:
+            raise ImportError(f'{eightbit=}. bitsandbytes package not found. Run `pip install bitsandbytes`.')
     else:
         cbs = [weight_decay] if decouple_wd else [l2_reg]
         cbs += [partial(average_grad, dampening=True), average_sqr_grad, step_stat, adam_step]
@@ -126,11 +173,14 @@ def adam(
     wd:float=0.01, # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay (AdamW) or L2 regularization (Adam)
     foreach:bool=False, # Use fused ForEach implementation
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|AdamForEachOptimizer|JitOptimizer:
-    "Partial function for the Adam/AdamW optimizer with fused ForEach and TorchScript implementations"
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation
+    **eightbitargs
+) -> Optimizer|AdamForEachOptimizer|JitOptimizer|AdamW8bitOptimizer:
+    "Partial function for the Adam/AdamW optimizer with fused ForEach, TorchScript, & 8-bit implementations"
     return partialler(Adam, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd,
-                      decouple_wd=decouple_wd, foreach=foreach, jit=jit)
+                      decouple_wd=decouple_wd, foreach=foreach, jit=jit,
+                      eightbit=eightbit, **eightbitargs)
 
 # %% ../../nbs/optimizer.fused.ipynb 20
 def RAdam(
@@ -220,14 +270,25 @@ def Larc(
     trust_coeff:float=0.02, # Trust coeffiecnet for calculating layerwise LR
     eps:float=1e-8, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
-    decouple_wd:bool=True, # Apply true weight decay or L2 regularization
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|JitOptimizer:
-    "A fastai LARC/LARS optimizer with a fused TorchScript implementation"
+    decouple_wd:bool=True, # Apply true weight decay or L2 regularization. Ignored if `eightbit=True`
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation. Only supports LARS: `clip=False`
+    **eightbitargs
+) -> Optimizer|JitOptimizer|LARS8bitOptimizer:
+    "A fastai LARC/LARS optimizer with fused TorchScript & 8-bit implementations"
     if jit:
         cb = partial(larc_jit_step, clip=clip)
         return JitOptimizer(params, cb, lr=lr, mom=mom, trust_coeff=trust_coeff,
                             eps=eps, wd=wd, decouple_wd=decouple_wd)
+    elif eightbit:
+        if EIGHTBIT:
+            if clip:
+                raise NotImplementedError(f'{eightbit=} only supports the LARS optimizer. Set `clip=False`.')
+            if decouple_wd and wd > 0:
+                raise NotImplementedError(f'8-bit LARS only supports L2 weight decay: {decouple_wd=}')
+            return LARS8bitOptimizer(params, lr=lr, mom=mom, wd=wd, trust_coeff=trust_coeff, **eightbitargs)
+        else:
+            raise ImportError(f'{eightbit=}. bitsandbytes package not found. Run `pip install bitsandbytes`.')
     else:
         cbs = [weight_decay] if decouple_wd else [l2_reg]
         if mom!=0.: cbs.append(average_grad)
@@ -242,9 +303,11 @@ def larc(
     eps:float=1e-8, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay or L2 regularization
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|JitOptimizer:
-    "Partial function for the LARC/LARS optimizer with a fused TorchScript implementation"
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation. Only supports LARS
+    **eightbitargs
+) -> Optimizer|JitOptimizer|LARS8bitOptimizer:
+    "Partial function for the LARC/LARS optimizer with fused TorchScript & 8-bit implementations"
     return partialler(Larc, mom=mom, clip=clip, eps=eps, trust_coeff=trust_coeff,
                       wd=wd, decouple_wd=decouple_wd, jit=jit)
 
@@ -256,17 +319,27 @@ def Lamb(
     sqr_mom:float=0.99, # Gradient squared moving average (β2) coefficient
     eps:float=1e-5, # Added for numerical stability
     wd:float=0., # Optional weight decay (true or L2)
-    decouple_wd:bool=True, # Apply true weight decay or L2 regularization
+    decouple_wd:bool=True, # Apply true weight decay or L2 regularization. Ignored if `eightbit=True`
     foreach:bool=False, # Use fused ForEach implementation
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|LambForEachOptimizer|JitOptimizer:
-    "A fastai LAMB optimizer with fused ForEach and TorchScript implementations"
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation. Only supports true weight decay
+    **eightbitargs
+) -> Optimizer|LambForEachOptimizer|JitOptimizer|LAMB8bitOptimizer:
+    "A fastai LAMB optimizer with fused ForEach, TorchScript, & 8-bit implementations"
     if foreach:
         return LambForEachOptimizer(params, lamb_foreach_step, lr=lr, mom=mom, sqr_mom=sqr_mom,
                                     eps=eps, wd=wd, decouple_wd=decouple_wd)
-    if jit:
+    elif jit:
         return JitOptimizer(params, lamb_jit_step, lr=lr, mom=mom, sqr_mom=sqr_mom,
                             eps=eps, wd=wd, decouple_wd=decouple_wd)
+    elif eightbit:
+        if EIGHTBIT:
+            if not decouple_wd and wd > 0:
+                raise NotImplementedError(f'8-bit LAMB only supports true weight decay: {decouple_wd=}')
+            return LAMB8bitOptimizer(params, lr=lr, mom=mom, sqr_mom=sqr_mom,
+                                     eps=eps, wd=wd, **eightbitargs)
+        else:
+            raise ImportError(f'{eightbit=}. bitsandbytes package not found. Run `pip install bitsandbytes`.')
     else:
         cbs = [weight_decay] if decouple_wd else [l2_reg]
         cbs += [partial(average_grad, dampening=True), average_sqr_grad, step_stat, lamb_step]
@@ -280,11 +353,14 @@ def lamb(
     wd:float=0., # Optional weight decay (true or L2)
     decouple_wd:bool=True, # Apply true weight decay or L2 regularization
     foreach:bool=False, # Use fused ForEach implementation
-    jit:bool=False # Use fused TorchScript implementation
-) -> Optimizer|LambForEachOptimizer|JitOptimizer:
-    "Partial function for the LAMB optimizer with fused ForEach and TorchScript implementations"
+    jit:bool=False, # Use fused TorchScript implementation
+    eightbit:bool=False, # Use fused 8-bit implementation. Only supports true weight decay
+    **eightbitargs
+) -> Optimizer|LambForEachOptimizer|JitOptimizer|LAMB8bitOptimizer:
+    "Partial function for the LAMB optimizer with fused ForEach, TorchScript, & 8-bit implementations"
     return partialler(Lamb, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd,
-                      decouple_wd=decouple_wd, foreach=foreach, jit=jit)
+                      decouple_wd=decouple_wd, foreach=foreach, jit=jit,
+                      eightbit=eightbit, **eightbitargs)
 
 # %% ../../nbs/optimizer.fused.ipynb 36
 def Ranger(
