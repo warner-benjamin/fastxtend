@@ -53,7 +53,10 @@ website:
         file: data.transforms.ipynb
       - section: Optimizers
         contents:
-        - optimizer.fused.ipynb
+        - text: Fused fastai Optimizers
+          file: optimizer.fused.ipynb
+        - text: 8-Bit Optimizers
+          file: optimizer.eightbit.ipynb
         - text: Adan Optimizer
           file: optimizer.adan.ipynb
         - text: Lion Optimizer
