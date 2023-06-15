@@ -15,9 +15,11 @@ from ..imports import *
 __all__ = ['StableAdam', 'stableadam']
 
 # %% ../../nbs/optimizer.stableadam.ipynb 6
+# simplified version of:
+#   beta = beta*(1-beta**(step-1))/(1-beta**step)
 def debias(beta:float, step:int):
     "Stable Adam debias calculation"
-    return beta*(1-beta**(step-1))/(1-beta**step)
+    return (beta**step - beta)/(beta**step - 1)
 
 # %% ../../nbs/optimizer.stableadam.ipynb 7
 def stable_adam_step(p:Tensor, lr:float, eps:float, wd:float, mom:float, sqr_mom:float,
@@ -83,8 +85,8 @@ def stable_adam_foreach_step(p:list[Tensor], g:list[Tensor], grad_avg:list[Tenso
             # cannot use scalers with foreach_add & multiple tensors, so divide by one with foreach_addcdiv
 
     # calculate debiased momentum (beta) terms
-    db_mom     = mom*(1-mom**(steps-1))/(1-mom**steps)
-    db_sqr_mom = sqr_mom*(1-sqr_mom**(steps-1))/(1-sqr_mom**steps)
+    db_mom     = (mom**steps - mom)/(mom**steps - 1)
+    db_sqr_mom = (sqr_mom**steps - sqr_mom)/(sqr_mom**steps - 1)
 
     # update moving average
     torch._foreach_mul_(grad_avg, scalars=db_mom.tolist())
