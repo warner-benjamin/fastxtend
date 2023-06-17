@@ -20,6 +20,8 @@ website:
         - callback.cutmixup.ipynb
         - callback.ema.ipynb
         - callback.lr_finder.ipynb
+        - text: Mixed Precision
+          file: callback.amp.ipynb
         - callback.profiler.ipynb
         - callback.progresize.ipynb
         - callback.compiler.ipynb

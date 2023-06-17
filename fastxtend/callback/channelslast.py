@@ -7,8 +7,8 @@ from torch.cuda.amp import GradScaler
 
 from fastai.learner import Learner
 from fastai.callback.core import Callback
-from fastai.callback.fp16 import MixedPrecision
 
+from .amp import AMPMode, MixedPrecision
 from ..imports import *
 
 # %% auto 0
@@ -26,16 +26,19 @@ class ChannelsLast(Callback):
 @patch
 @delegates(GradScaler)
 def to_channelslast(self:Learner,
-    to_fp16:bool=True, # Add `MixedPrecision` callback. Recommended for full channels last performance
+    amp_mode:str|AMPMode|bool=AMPMode.FP16, # If not False, add `MixedPrecision` with `AMPMode`. Recommended for full channels last performance
     **kwargs
 ):
-    "Set `Learner` and inputs to `channels_last` format and Mixed Precision by default"
-    if to_fp16 and not hasattr(self, 'mixed_precision') and not hasattr(self, 'channels_last'):
-        return self.add_cbs([ChannelsLast(), MixedPrecision(**kwargs)])
+    "Set `Learner` and inputs to `channels_last` format and float16 Mixed Precision by default"
+    if isinstance(amp_mode, bool):
+        # backward compatibility with fastai to_channelslast
+        amp_mode = AMPMode.FP16 if amp_mode else None
+    if amp_mode is not None and not hasattr(self, 'mixed_precision') and not hasattr(self, 'channels_last'):
+        return self.add_cbs([ChannelsLast(), MixedPrecision(amp_mode, **kwargs)])
     elif not hasattr(self, 'channels_last'):
         return self.add_cb(ChannelsLast())
 
-# %% ../../nbs/callback.channelslast.ipynb 9
+# %% ../../nbs/callback.channelslast.ipynb 10
 @patch
 def to_contiguous(self:Learner, to_fp32=False):
     "Set `Learner` and inputs to `contiguous_format` (default format), optionally to single precision"
