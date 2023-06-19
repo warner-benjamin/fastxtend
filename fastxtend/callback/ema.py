@@ -13,6 +13,7 @@ from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
 from fastai.callback.schedule import SchedCos, _Annealer
 
+from .utils import CallbackScheduler
 from ..imports import *
 
 # %% auto 0
@@ -145,7 +146,7 @@ class EMACallback(Callback):
             self.learn.model_ema = self.ema_model
 
 # %% ../../nbs/callback.ema.ipynb 9
-class EMAWarmupCallback(EMACallback):
+class EMAWarmupCallback(EMACallback, CallbackScheduler):
     "Exponential Moving Average (EMA) of model weights with a warmup schedule and fused update step"
     order,run_valid = MixedPrecision.order+1,False
     def __init__(self,
@@ -164,44 +165,38 @@ class EMAWarmupCallback(EMACallback):
         skip_ema:bool=True, # Skip EMA step if callbacks, such as GradientAccumulation or MixedPrecision, skip the Optimizer update step
         logger_callback:str='wandb', # Log EMA decay to `logger_callback` using `Callback.name` if available
     ):
-        super().__init__(decay=final_decay, start=start, ema_device=ema_device,
-                         validate_ema=validate_ema, replace_weights=replace_weights,
-                         foreach=foreach, resume=resume, all_parameters=all_parameters,
-                         all_buffers=all_buffers, skip_ema=skip_ema)
-        store_attr(names='start_decay,final_decay,finish,logger_callback')
-        self.schedule = schedule(start_decay, final_decay)
+        EMACallback.__init__(self,
+            decay=final_decay,
+            start=start,
+            ema_device=ema_device,
+            validate_ema=validate_ema,
+            replace_weights=replace_weights,
+            foreach=foreach,
+            resume=resume,
+            all_parameters=all_parameters,
+            all_buffers=all_buffers,
+            skip_ema=skip_ema)
+
+        CallbackScheduler.__init__(self)
+        store_attr(names='start_decay,final_decay,finish,schedule')
+        self.logger_callback = logger_callback
 
     def before_fit(self):
-        if self.finish - self.start <= 0:
-            warn(f'EMA Warmup start={self.start} is less or equal to final={self.epoch} which negates warmup')
-
+        super().setup_schedule(self.n_epoch, len(self.dls.train), self.start_decay,
+                               self.final_decay, self.start, self.finish, self.schedule,
+                               callback_name='EMA Warmup')
         super().before_fit()
-
-        if self.finish >= 1 and isinstance(self.finish, int):
-            self.finish = self.finish/self.n_epoch
-        if self.finish >= 1:
-            warn(f'EMA Warmup finish {self.finish} is equal or greater than one and will not finish in this training run')
-
-        if self.resume and self.n_epoch < self.finish*self.n_epoch:
-            warn("Resuming EMA Warmup before the warmup is finished is not supported")
 
         # negate decay so at least one ema scheduling step will occur
         self.decay = -1*self.decay
-        self.warmup_pct = 0.
-        self._warmup_sched = 1/(len(self.dls.train) * self.n_epoch * (self.finish - self.start))
 
         self._log_ema_decay = getattr(self, f'_{self.logger_callback}_log_ema_decay', noop)
         self.has_logger = hasattr(self.learn, self.logger_callback) and self._log_ema_decay != noop
 
     def after_batch(self):
         if self._do_ema:
-            if self.pct_train >= self.start and self.decay != self.final_decay:
-                if self.pct_train >= self.finish:
-                    self.decay = self.final_decay
-                else:
-                    self.decay = self.schedule(self.warmup_pct)
-                    self.warmup_pct += self._warmup_sched
-                self.inverse_decay = 1-self.decay
+            self.decay = super().schedule_step(self.decay, self.pct_train)
+            self.inverse_decay = 1-self.decay
 
             super().after_batch()
 
