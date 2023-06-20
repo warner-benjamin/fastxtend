@@ -21,7 +21,7 @@ from fastai.data.core import DataLoaders
 from fastai.callback.core import set_random_states, get_random_states
 
 # %% auto 0
-__all__ = ['free_gpu_memory', 'less_random', 'scale_time', 'pil_to_numpy']
+__all__ = ['free_gpu_memory', 'less_random', 'scale_time', 'pil_to_numpy', 'convert_to_int']
 
 # %% ../nbs/utils.ipynb 4
 def clean_ipython_hist():
@@ -127,3 +127,10 @@ def pil_to_numpy(img:Image.Image) -> np.ndarray:
     if s < 0:
         raise RuntimeError("encoder error %d in tobytes" % s)
     return data
+
+# %% ../nbs/utils.ipynb 11
+def convert_to_int(s):
+    try:
+        return int(s.replace(",", ""))
+    except ValueError:
+        return s

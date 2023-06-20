@@ -22,8 +22,9 @@ import fastai
 from fastai.learner import Learner, Recorder
 from fastai.callback.core import *
 
+from .utils import *
 from ..imports import *
-from ..utils import scale_time
+from ..utils import scale_time, convert_to_int
 
 if in_notebook():
     from IPython.display import display
@@ -125,18 +126,20 @@ class ThroughputCallback(Callback):
         csv_name:str='throughput.csv', # CSV save location
         rolling_average:int=10, # Number of batches to average throughput over
         drop_first_batch:bool=True, # Drop the first batch from profiling
-        logger_callback='wandb' # Log report and samples/second to `logger_callback` using `Callback.name`
     ):
         store_attr(but='csv_name,average,drop_first_batch')
         self.csv_name = Path(csv_name)
         self._drop = int(drop_first_batch)
         self._rolling_average = rolling_average
-        self._log_after_batch = getattr(self, f'_{logger_callback}_log_after_batch', noop)
-        self._log_after_fit   = getattr(self, f'_{logger_callback}_log_after_fit', noop)
         self._phase, self._train, self._valid = _phase, _train_short, _valid_short
 
     def before_fit(self):
-        self.has_logger = hasattr(self.learn, self.logger_callback) and not hasattr(self.learn, 'lr_finder') and not hasattr(self, "gather_preds")
+        if hasattr(self.learn, 'wandb') and not hasattr(self.learn, 'lr_finder') and not hasattr(self, "gather_preds"):
+            self._log_summary = self.learn.log_dispatch.log_wandb_summary
+            self._log_table = self.learn.log_dispatch.log_wandb_table
+        else:
+            self._log_summary = noop
+            self._log_table = noop
         self._raw_values, self._processed_samples = {}, {}
         for p in _phase:
             self._raw_values[p] = []
@@ -260,6 +263,28 @@ class ThroughputCallback(Callback):
         return [phase, action, np.mean(input), np.std(input), len(input), sam_per_sec,
                 np.sum(input), f'{self._calc_percent(np.sum(input)):.0%}']
 
+    def _log_after_batch(self, actions):
+        bs = np.mean(self._raw_values[f'train_bs'][-self._rolling_average:])
+        self.learn._log_dict({f'throughput/{action}': self._samples_per_second(bs, action) for action in actions})
+
+    def _log_after_fit(self):
+        if self._log_summary.__name__ != 'noop' and self._log_table.__name__ != 'noop':
+            for t in self.learn.profile_results.itertuples():
+                if isinstance(convert_to_int(t._6), int):
+                    self._log_summary(f'{t.Phase}/{t.Action}_throughput', self._processed_samples[f'{t.Phase}_{t.Action}'])
+
+                if t.Phase=='fit':
+                    values = self._raw_values[f'{t.Phase}']
+                    log = f'{t.Phase}/duration' if t.Action == 'fit' else f'{t.Phase}/{t.Action}_duration'
+                else:
+                    # Optionally drop first batch if train/valid phase
+                    values = self._raw_values[f'{t.Phase}_{t.Action}'][self._drop:]
+                    log = f'{t.Phase}/{t.Action}_duration'
+                self._log_summary(log, np.array(values))
+
+            self._log_table("profile_report", dataframe=self.learn.profile_report)
+            self._log_table("profile_results", dataframe=self.learn.profile_results)
+
 # %% ../../nbs/callback.profiler.ipynb 23
 class ThroughputPostCallback(Callback):
     "Required pair with `ThroughputCallback` to profile training performance. Removes itself after training is over."
@@ -269,7 +294,6 @@ class ThroughputPostCallback(Callback):
         self._phase, self._train, self._valid = _phase, _train_short, _train_short
 
     def _before_fit(self):
-        self.has_logger = self.profiler.has_logger
         self._start_train_logging, self._start_valid_logging = False, False
         self.n_train_batches = len(self.dls.train)
         self.n_valid_batches = len(self.dls.valid)
@@ -290,7 +314,7 @@ class ThroughputPostCallback(Callback):
         if self.training:
             self.profiler._raw_values['train_batch'].append(time.perf_counter() - self.profiler._train_batch_start)
             self.profiler._raw_values['train_bs'].append(find_bs(self.learn.yb))
-            if self.has_logger and self._iter >= self._rolling_average and self._iter % self._rolling_average == 0:
+            if self._iter >= self._rolling_average and self._iter % self._rolling_average == 0:
                 self.profiler._log_after_batch(self._train)
             self._iter += 1
         else:
@@ -303,7 +327,7 @@ class ThroughputPostCallback(Callback):
     def _after_fit(self, callbacks):
         self.profiler._raw_values['fit'].append(time.perf_counter() - self.profiler._fit_start)
         self.profiler._generate_report()
-        if self.has_logger: self.profiler._log_after_fit()
+        self.profiler._log_after_fit()
         if not hasattr(self.learn, 'lr_finder'):
             self.profiler._display_report()
             self.learn.remove_cbs(callbacks)
@@ -329,11 +353,9 @@ class SimpleProfilerCallback(ThroughputCallback):
         csv_name:str='simpleprofiler.csv', # CSV save location
         rolling_average:int=10, # Number of batches to average throughput over
         drop_first_batch:bool=True, # Drop the first batch from profiling
-        logger_callback='wandb' # Log report and samples/second to `logger_callback` using `Callback.name`
     ):
         super().__init__(show_report=show_report, plain=plain, markdown=markdown, save_csv=save_csv,
-                         csv_name=csv_name, rolling_average=rolling_average, drop_first_batch=drop_first_batch,
-                         logger_callback=logger_callback)
+                         csv_name=csv_name, rolling_average=rolling_average, drop_first_batch=drop_first_batch)
         self._phase, self._train, self._valid = _phase, _train_full, _valid_full
 
     def before_backward(self):
@@ -394,62 +416,21 @@ def profile(self:Learner,
         plain:bool=False, # For Jupyter Notebooks, display plain report
         markdown:bool=False, # Display markdown formatted report
         save_csv:bool=False,  # Save raw results to csv
-        csv_name:str='simpleprofiler.csv', # CSV save location
+        csv_name:str='profiler.csv', # CSV save location
         rolling_average:int=10, # Number of batches to average throughput over
         drop_first_batch:bool=True, # Drop the first batch from profiling
-        logger_callback='wandb' # Log report and samples/second to `logger_callback` using `Callback.name`
     ):
     "Run a fastxtend profiler which removes itself when finished training."
     if mode == ProfileMode.Throughput:
-        self.add_cbs([ThroughputCallback(show_report=show_report, plain=plain, markdown=markdown, 
-                                         save_csv=save_csv, csv_name=csv_name, rolling_average=rolling_average, 
-                                         drop_first_batch=drop_first_batch, logger_callback=logger_callback),
+        self.add_cbs([ThroughputCallback(show_report=show_report, plain=plain, markdown=markdown,
+                                         save_csv=save_csv, csv_name=csv_name, rolling_average=rolling_average,
+                                         drop_first_batch=drop_first_batch),
                       ThroughputPostCallback()
                 ])
     if mode == ProfileMode.Simple:
-        self.add_cbs([SimpleProfilerCallback(show_report=show_report, plain=plain, markdown=markdown, 
-                                             save_csv=save_csv, csv_name=csv_name, rolling_average=rolling_average, 
-                                             drop_first_batch=drop_first_batch, logger_callback=logger_callback),
+        self.add_cbs([SimpleProfilerCallback(show_report=show_report, plain=plain, markdown=markdown,
+                                             save_csv=save_csv, csv_name=csv_name, rolling_average=rolling_average,
+                                             drop_first_batch=drop_first_batch),
                       SimpleProfilerPostCallback()
                 ])
     return self
-
-# %% ../../nbs/callback.profiler.ipynb 42
-def convert_to_int(s):
-    try:
-        return int(s.replace(",", ""))
-    except ValueError:
-        return s
-
-# %% ../../nbs/callback.profiler.ipynb 43
-try:
-    import wandb
-
-    @patch
-    def _wandb_log_after_batch(self:ThroughputCallback, actions:list[str]):
-        bs = np.mean(self._raw_values[f'train_bs'][-self._rolling_average:])
-        logs = {f'throughput/{action}': self._samples_per_second(bs, action) for action in actions}
-        wandb.log(logs, self.learn.wandb._wandb_step+1)
-
-    @patch
-    def _wandb_log_after_fit(self:ThroughputCallback):
-        for t in self.learn.profile_results.itertuples():
-            if isinstance(convert_to_int(t._6), int):
-                wandb.summary[f'{t.Phase}/{t.Action}_throughput'] = self._processed_samples[f'{t.Phase}_{t.Action}']
-            
-            if t.Phase=='fit':
-                values = self._raw_values[f'{t.Phase}']
-                log = f'{t.Phase}/duration' if t.Action == 'fit' else f'{t.Phase}/{t.Action}_duration'
-            else:
-                # Optionally drop first batch if train/valid phase
-                values = self._raw_values[f'{t.Phase}_{t.Action}'][self._drop:]
-                log = f'{t.Phase}/{t.Action}_duration'
-            wandb.summary[log] = np.array(values)
-
-        report  = wandb.Table(dataframe=self.learn.profile_report)
-        results = wandb.Table(dataframe=self.learn.profile_results)
-
-        wandb.log({"profile_report": report})
-        wandb.log({"profile_results": results})
-except:
-    pass
