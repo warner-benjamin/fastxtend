@@ -3,14 +3,120 @@
 # %% ../../nbs/callback.utils.ipynb 2
 from __future__ import annotations
 
+from fastai.basics import defaults
+from fastai.callback.core import Callback
 from fastai.callback.schedule import SchedCos, _Annealer
+from fastai.learner import Learner, Recorder
+
+try:
+    import wandb
+    from fastai.callback.wandb import WandbCallback
+    WANDB = True
+except ImportError:
+    WANDB = False
+
+try:
+    import tensorboard
+    from fastai.callback.tensorboard import TensorBoardCallback
+    TENSORBOARD = True
+except ImportError:
+    TENSORBOARD = False
 
 from ..imports import *
 
 # %% auto 0
-__all__ = []
+__all__ = ['LogDispatch']
 
-# %% ../../nbs/callback.utils.ipynb 5
+# %% ../../nbs/callback.utils.ipynb 6
+# key should be the fastai callback name
+available_loggers = {
+    'wandb': WANDB,
+    'tensorboard': TENSORBOARD
+    }
+
+# %% ../../nbs/callback.utils.ipynb 7
+class LogDispatch(Callback):
+    "A default callback for dispatching additional values to loggers"
+    run_valid, order = False, Recorder.order+2
+    remove_on_fetch = True
+
+    def before_fit(self):
+        "Log additional values if a supported logger is detected"
+        self.train_values, self.valid_values = {}, {}
+        self.loggers = []
+        for logger, available in available_loggers.items():
+            if available and hasattr(self.learn, logger):
+                self.loggers.append(getattr(self, f'_log_{logger}'))
+        # only run if there are initialize loggers
+        self.run = len(self.loggers) > 0
+
+    def after_batch(self):
+        "Logs training values added by `_update_values` via `Learner.update_logger_values`"
+        if self.learn.recorder.run_train and len(self.train_values) > 0:
+            for log in self.loggers:
+                log(self.train_values)
+
+    def after_epoch(self):
+        "Logs valid values added by `_update_values` via `Learner.update_logger_values`"
+        if len(self.valid_values) > 0:
+            for log in self.loggers:
+                log(self.valid_values)
+
+    @delegates(wandb.Table if WANDB else None)
+    def log_wandb_table(self, name:str, **kwargs):
+        "Log `wandb.Table` to Weights and Biases. See `wandb.Table` for details"
+        if WANDB:
+            wandb.log({name: wandb.Table(**kwargs)})
+        else:
+            raise warn("Tried logging Weights and Biases table without wandb installed")
+
+    def log_wandb_summary(self, name:str, summary:Callable):
+        "Log Summary Metrics to Weights and Biases. See `wandb.summary` for details"
+        if WANDB:
+            wandb.summary[name] = summary
+        else:
+            raise warn("Tried logging Weights and Biases Summary Metrics without wandb installed")
+
+    def _update_values(self, **kwargs):
+        "Update log dictionaries using arguments"
+        if self.training:
+            self.train_values.update(**kwargs)
+        else:
+            self.valid_values.update(**kwargs)
+
+    def _update_dict(self, value_dict:dict):
+        "Update log dictionaries wiht a dictionary"
+        if self.training:
+            self.train_values.update(value_dict)
+        else:
+            self.valid_values.update(value_dict)
+
+    def _log_wandb(self, values:dict):
+        "Internal method to log values to Weights and Biases"
+        wandb.log(values, self.learn.wandb._wandb_step)
+
+    def _log_tensorboard(self, values:dict):
+        "Internal method to log scalers to TensorBoard"
+        for k,v in values.items():
+            self.learn.tensorboard.writer.add_scalar(k, v, self.train_iter)
+
+# %% ../../nbs/callback.utils.ipynb 10
+if LogDispatch not in defaults.callbacks:
+    defaults.callbacks.append(LogDispatch)
+
+# %% ../../nbs/callback.utils.ipynb 11
+@patch
+def _log_values(self:Learner, **kwargs):
+    "Update additional logging values from arguments using `LogDispatch`."
+    self.log_dispatch._update_values(**kwargs)
+
+# %% ../../nbs/callback.utils.ipynb 13
+@patch
+def _log_dict(self:Learner, value_dict:dict):
+    "Update additional logging values from a dictionary using `LogDispatch`."
+    self.log_dispatch._update_dict(value_dict)
+
+# %% ../../nbs/callback.utils.ipynb 16
 class CallbackScheduler():
     "A mixin for scheduling values in a Callback"
 
@@ -38,6 +144,8 @@ class CallbackScheduler():
         if resume and n_epoch < finish*n_epoch:
             raise ValueError(f"Resuming {callback_name} before the schedule is finished is not supported")
 
+        self.start = start
+        self.finish = finish
         self.final_value = final_value
         self.ndigits = ndigits
         self.schedule_pct = 0.

@@ -26,6 +26,7 @@ website:
         - callback.progresize.ipynb
         - callback.compiler.ipynb
         - callback.tracker.ipynb
+        - callback.utils.ipynb
       - section: FFCV [beta]
         contents:
         - text: Getting Started
