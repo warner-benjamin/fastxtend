@@ -13,7 +13,7 @@ from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
 from fastai.callback.schedule import SchedCos, _Annealer
 
-from .utils import CallbackScheduler
+from .utils import *
 from ..imports import *
 
 # %% auto 0
@@ -163,7 +163,6 @@ class EMAWarmupCallback(EMACallback, CallbackScheduler):
         all_parameters:bool=False, # Apply EMA step to all parameters or only those with `requires_grad`
         all_buffers:bool=False, # Apply EMA step to persistent model buffers or all buffers
         skip_ema:bool=True, # Skip EMA step if callbacks, such as GradientAccumulation or MixedPrecision, skip the Optimizer update step
-        logger_callback:str='wandb', # Log EMA decay to `logger_callback` using `Callback.name` if available
     ):
         EMACallback.__init__(self,
             decay=final_decay,
@@ -179,7 +178,6 @@ class EMAWarmupCallback(EMACallback, CallbackScheduler):
 
         CallbackScheduler.__init__(self)
         store_attr(names='start_decay,final_decay,finish,schedule')
-        self.logger_callback = logger_callback
 
     def before_fit(self):
         super().setup_schedule(self.n_epoch, len(self.dls.train), self.start_decay,
@@ -190,9 +188,6 @@ class EMAWarmupCallback(EMACallback, CallbackScheduler):
         # negate decay so at least one ema scheduling step will occur
         self.decay = -1*self.decay
 
-        self._log_ema_decay = getattr(self, f'_{self.logger_callback}_log_ema_decay', noop)
-        self.has_logger = hasattr(self.learn, self.logger_callback) and self._log_ema_decay != noop
-
     def after_batch(self):
         if self._do_ema:
             self.decay = super().schedule_step(self.decay, self.pct_train)
@@ -200,18 +195,4 @@ class EMAWarmupCallback(EMACallback, CallbackScheduler):
 
             super().after_batch()
 
-        if self.has_logger:
-            if self._do_ema:
-                self._log_ema_decay(self.decay)
-            else:
-                self._log_ema_decay(0.)
-
-# %% ../../nbs/callback.ema.ipynb 13
-try:
-    import wandb
-
-    @patch
-    def _wandb_log_ema_decay(self:EMAWarmupCallback, decay:float):
-        wandb.log({'ema_decay': decay}, self.learn.wandb._wandb_step+1)
-except:
-    pass
+        self.learn._log_values(ema_decay=self.decay if self._do_ema else 0)
