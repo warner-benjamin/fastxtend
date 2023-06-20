@@ -195,6 +195,11 @@ class Loader(BaseDL, _Loader):
         return self._n_inp
 
     @property
+    def bs(self) -> int:
+        "Number of items a batch"
+        return self.batch_size
+
+    @property
     def device(self):
         return self._device
 
