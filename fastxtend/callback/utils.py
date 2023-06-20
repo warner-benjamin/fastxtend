@@ -25,7 +25,7 @@ except ImportError:
 from ..imports import *
 
 # %% auto 0
-__all__ = ['LogDispatch']
+__all__ = ['available_loggers', 'LogDispatch', 'CallbackScheduler']
 
 # %% ../../nbs/callback.utils.ipynb 6
 # key should be the fastai callback name
