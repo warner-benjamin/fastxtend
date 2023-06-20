@@ -18,6 +18,7 @@ try:
 except ImportError:
     FFCV = False
 
+from .utils import *
 from ..imports import *
 
 # %% auto 0
@@ -80,7 +81,6 @@ class ProgressiveResize(Callback):
         preallocate_bs:int|None=None, # Preallocation batch size. Set if the valid DataLoader has a larger batch size than the train DataLoader.
         empty_cache:bool=False, # Call `torch.cuda.empty_cache()` before a resizing epoch. May prevent Cuda & Magma errors. Don't use with multiple GPUs
         verbose:bool=True, # Print a summary of the progressive resizing schedule
-        logger_callback:str='wandb', # Log image size to `logger_callback` using `Callback.name` if available
     ):
         store_attr()
         self.run_valid = resize_valid
@@ -96,8 +96,6 @@ class ProgressiveResize(Callback):
             return
 
         self._resize, self._remove_resize, self._null_resize, self._remove_cutmix = [], False, True, False
-        self._log_size = getattr(self, f'_{self.logger_callback}_log_size', noop)
-        self.has_logger = hasattr(self.learn, self.logger_callback) and self._log_size != noop
         self.increase_by = tensor(self.increase_by)
         self.resize_batch = self.increase_mode == IncreaseMode.Batch
 
@@ -263,8 +261,8 @@ class ProgressiveResize(Callback):
 
     def before_train(self):
         "Increases the image size before the training epoch if set to ProgSizeMode.Epoch"
-        if self.epoch==0 and self.has_logger:
-            self._log_size(False)
+        if self.epoch==0:
+            self._log_size()
 
         if not self.resize_batch and len(self.step_epochs) > 0 and self.epoch >= self.step_epochs[0]:
             _ = self.step_epochs.pop(0)
@@ -278,14 +276,8 @@ class ProgressiveResize(Callback):
             del self.learn.pred
             torch.cuda.empty_cache()
 
-        if self.epoch+1==self.n_epoch and self.has_logger:
-            self._log_size(False)
-
     def _increase_size(self):
         "Increase the input size"
-        if self.has_logger:
-            self._log_size(False)
-
         self.current_size += self.increase_by
         for i, resize in enumerate(self._resize):
             if (self.current_size < self.final_size).all():
@@ -307,9 +299,7 @@ class ProgressiveResize(Callback):
                 if self._remove_cutmix:
                     self.learn.cut_mix_up_augment._cutmixaugs_pipe = Pipeline([])
                     self.learn.cut_mix_up_augment._docutmixaug = False
-
-        if self.has_logger:
-            self._log_size()
+        self._log_size()
 
     def _process_pipeline(self, pipe, null_resize=None):
         'Helper method for processing augmentation pipelines'
@@ -321,13 +311,6 @@ class ProgressiveResize(Callback):
                 else:
                     self._null_resize = null_resize
 
-# %% ../../nbs/callback.progresize.ipynb 46
-try:
-    import wandb
-
-    @patch
-    def _wandb_log_size(self:ProgressiveResize, next_step=True):
+    def _log_size(self):
         size = _to_size(self.current_size)
-        wandb.log({'progressive_resize_size': size[0]}, self.learn.wandb._wandb_step+int(next_step))
-except:
-    pass
+        self.learn._log_values(progressive_resize_size=size[0])
