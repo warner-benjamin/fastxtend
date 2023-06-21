@@ -17,7 +17,7 @@ from .utils import *
 from ..imports import *
 
 # %% auto 0
-__all__ = ['EMACallback', 'EMAWarmupCallback']
+__all__ = ['EMACallback', 'EMASchedule', 'EMAWarmupCallback']
 
 # %% ../../nbs/callback.ema.ipynb 6
 class EMACallback(Callback):
@@ -146,7 +146,7 @@ class EMACallback(Callback):
             self.learn.model_ema = self.ema_model
 
 # %% ../../nbs/callback.ema.ipynb 9
-class EMAWarmupCallback(EMACallback, CallbackScheduler):
+class EMASchedule(EMACallback, CallbackScheduler):
     "Exponential Moving Average (EMA) of model weights with a warmup schedule and fused update step"
     order,run_valid = MixedPrecision.order+1,False
     def __init__(self,
@@ -182,7 +182,7 @@ class EMAWarmupCallback(EMACallback, CallbackScheduler):
     def before_fit(self):
         super().setup_schedule(self.n_epoch, len(self.dls.train), self.start_decay,
                                self.final_decay, self.start, self.finish, self.schedule,
-                               callback_name='EMA Warmup')
+                               callback_name='EMA Schedule')
         super().before_fit()
 
         # negate decay so at least one ema scheduling step will occur
@@ -196,3 +196,11 @@ class EMAWarmupCallback(EMACallback, CallbackScheduler):
             super().after_batch()
 
         self.learn._log_values(ema_decay=self.decay if self._do_ema else 0)
+
+# %% ../../nbs/callback.ema.ipynb 11
+class EMAWarmupCallback(EMASchedule):
+    "EMAWarmpCallback has been renamed to EMASchedule"
+    @delegates(EMASchedule.__init__)
+    def __init__(self, **kwargs):
+        warn("EMAWarmpCallback has been renamed to EMASchedule")
+        super().__init__(**kwargs)
