@@ -396,7 +396,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
     item_transforms:bool=typer.Option(False, "--item-tfms/--batch-tfms", help="Where possible, use fastxtend+ffcv Numba compliled item transforms instead of GPU batch transforms.", rich_help_panel="fastxtend+ffcv DataLoader"),
     batches_ahead:int=typer.Option(1, help="Number of batches prepared in advance by fastxtend+ffcv dataloader. Balances latency and memory usage.", rich_help_panel="fastxtend+ffcv DataLoader"),
     quasi_random:bool=typer.Option(False, "--random/--quasi", help="Use Random or Quasi-Random loading with fastxtend+ffcv dataloader. Random caches entire dataset in memory. Quasi-Random caches random subsets.", rich_help_panel="fastxtend+ffcv DataLoader"),
-    async_tfms:bool=typer.Option(False, "--async-tfms/--normal", help="Enable asynchronous batch transforms", rich_help_panel="fastxtend+ffcv DataLoader"),
+    async_tfms:bool=typer.Option(False, "--async-tfms/--normal-tfms", help="Enable asynchronous batch transforms", rich_help_panel="fastxtend+ffcv DataLoader"),
     # Transform Options
     flip:bool=typer.Option(True, help="Randomly flip the image horizontally", rich_help_panel="Transform Options"),
     flip_vert:bool=typer.Option(False, help="Randomly flip the image vertically", rich_help_panel="Transform Options"),
@@ -531,7 +531,7 @@ def train(ctx:typer.Context, # Typer Context to grab config for --verbose and pa
             raise ImportError(f"{log_wandb=} passed, but wandb not found. Install wandb with `pip install wandb`.")
         wandb.init(name=name, project=project, group=group,
                    tags=tags.split(",") if isinstance(tags, str) else None,
-                   entity=entity, save_code=save_code, config=config)
+                   entity=entity, save_code=save_code, config={'config':config})
         cbs += [WandbCallback(log_preds=False)]
 
     # Create Learner

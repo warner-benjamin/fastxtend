@@ -2,23 +2,12 @@ website:
   sidebar:
     contents:
       - index.ipynb
-      - section: Audio
-        contents:
-        - text: Core
-          file: audio.01_core.ipynb
-        - text: Data
-          file: audio.02_data.ipynb
-        - text: Augmentations
-          file: audio.03_augment.ipynb
-        - text: Learner
-          file: audio.04_learner.ipynb
-        - text: MixUp & Friends
-          file: audio.05_mixup.ipynb
       - section: Callbacks
         contents:
         - callback.channelslast.ipynb
         - callback.cutmixup.ipynb
         - callback.ema.ipynb
+        - callback.gradaccum.ipynb
         - callback.lr_finder.ipynb
         - text: Mixed Precision
           file: callback.amp.ipynb
@@ -80,6 +69,18 @@ website:
           - vision.models.attention_modules.ipynb
           - vision.models.pooling.ipynb
           - vision.models.xresnet.ipynb
+      - section: Audio
+        contents:
+        - text: Core
+          file: audio.01_core.ipynb
+        - text: Data
+          file: audio.02_data.ipynb
+        - text: Augmentations
+          file: audio.03_augment.ipynb
+        - text: Learner
+          file: audio.04_learner.ipynb
+        - text: MixUp & Friends
+          file: audio.05_mixup.ipynb
       - section: Utils
         contents:
         - 0_basics.ipynb

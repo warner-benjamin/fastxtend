@@ -21,7 +21,8 @@ from torch.serialization import FILE_LIKE
 from fastai.learner import Learner, save_model, join_path_file, _cast_tensor
 from fastai.callback import schedule
 from fastai.callback.core import Callback, TrainEvalCallback, CancelFitException
-from fastai.callback.fp16 import MixedPrecision
+
+from .amp import MixedPrecision
 
 try:
     from fastxtend.ffcv.loader import Loader
