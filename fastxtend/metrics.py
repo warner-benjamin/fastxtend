@@ -819,8 +819,9 @@ try:
             self._wandb_epoch += 1/self.n_iter
             hypers = {f'{k}_{i}':v for i,h in enumerate(self.opt.hypers) for k,v in h.items()}
             if self.log_smooth:
-                for n,m in zip(self.recorder.smooth_names, self.recorder.smooth_mets): hypers[n]=m.value
-            wandb.log({'epoch': self._wandb_epoch, 'train_loss': to_detach(self.smooth_loss.clone()), 'raw_loss': to_detach(self.loss.clone()), **hypers}, step=self._wandb_step)
+                for n,m in zip(self.recorder.smooth_names, self.recorder.smooth_mets):
+                    hypers[n]=m.value
+            wandb.log({'epoch': self._wandb_epoch, 'train_loss': self.smooth_loss, 'raw_loss': self.loss, **hypers}, step=self._wandb_step)
 
     @patch
     def after_epoch(self:WandbCallback):
