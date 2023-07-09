@@ -7,8 +7,6 @@
 # %% ../../nbs/callback.gradaccum.ipynb 4
 from __future__ import annotations
 
-import math
-
 from fastai.callback.core import Callback, CancelBatchException
 from fastai.callback.schedule import SchedCos, _Annealer
 
@@ -30,16 +28,31 @@ class GradientAccumulation(Callback):
     def __init__(self,
         accum_bs:int|None, # Accumulation batch size. Defaults to `n_acc` if not set
         n_acc:int=32, # Default `accum_bs` value. Used for compatability with fastai
+        micro_batch_size:int|None=None, # Manually set micro-batch size if using non-fastai or non-fastxtend dataloader
         log_accum_batch:bool=True, # Log each accumulated batch (True) or micro batch (False). False is default fastai behavior
+        drop_last:bool=True, # Drop last incomplete macro-batch. If False, macro-batch can be accumulated across two epochs (fastai default)
     ):
         accum_bs = n_acc if accum_bs is None else accum_bs
-        store_attr(but='n_acc')
+        self.micro_bs = micro_batch_size
+        store_attr(but='n_acc,micro_batch_size')
 
     def before_fit(self):
         self.count = 0
         self._loggers = []
         self.accum_loss = None
         self.wandb_epoch = False
+
+        if hasattr(self.learn.dls.train, 'bs'):
+            self.micro_bs = self.learn.dls.train.bs
+        elif hasattr(self.learn.dls.train, 'batch_size'):
+            self.micro_bs = self.learn.dls.train.batch_size
+        if self.micro_bs is None:
+            raise ValueError("Unable to automatically determine training dataloader batch"\
+                             " size. Set `micro_batch_size` to dataloader's batch size")
+        if self.accum_bs % self.micro_bs != 0:
+            raise ValueError(f"Macro-batch size {self.accum_bs} must be evenly "\
+                             f"divisible by micro-batch size {self.micro_bs}")
+
         if self.log_accum_batch:
             for logger, available in _grad_loggers.items():
                 if available and hasattr(self.learn, logger):
@@ -47,16 +60,30 @@ class GradientAccumulation(Callback):
                     if logger=='wandb':
                         self.wandb_epoch = True
 
+    def before_train(self):
+        self._samples_left = self.micro_bs * len(self.learn.dls.train)
+        if self.drop_last:
+            self.count = 0
+
+    def before_batch(self):
+        self.bs = find_bs(self.learn.yb)
+        if self.drop_last:
+            if self._samples_left < self.accum_bs:
+                if self.log_accum_batch:
+                    self._run_loggers(False)
+                raise CancelBatchException()
+            else:
+                self._samples_left -= self.bs
+
     def after_loss(self):
-        bs = find_bs(self.learn.yb)
-        self.count += bs
-        self.accum_steps = self.accum_bs // bs
+        self.accum_steps = self.accum_bs / self.bs
         self.learn.loss_grad /= self.accum_steps
         if self.accum_loss is None:
             self.accum_loss = torch.zeros_like(self.learn.loss)
 
     def before_step(self):
         "Skip weight update if we have not seen enough items"
+        self.count += self.bs
         if self.count < self.accum_bs:
             if self.log_accum_batch:
                 self.accum_loss += self.learn.loss.detach() / self.accum_steps
@@ -70,10 +97,12 @@ class GradientAccumulation(Callback):
                 self.accum_loss = torch.zeros_like(self.learn.loss)
                 self._run_loggers(True)
 
-    def after_epoch(self):
+    def after_train(self):
         "Turn on Recorder & Loggers to log final epoch metrics"
         if self.log_accum_batch:
             self._run_loggers(True)
+        if self.drop_last:
+            self.learn.opt.zero_grad()
 
     def _run_loggers(self, run_train):
         for l in self._loggers:
@@ -90,21 +119,18 @@ class GradientAccumulationSchedule(GradientAccumulation, CallbackScheduler):
         start:Numeric=0, # Start batch size schedule in percent of training steps (float) or epochs (int, index 0)
         finish:Numeric=0.3, # Finish batch size schedule in percent of training steps (float) or epochs (int, index 0)
         schedule:Callable[..., _Annealer]=SchedCos, # Batch size schedule type
+        micro_batch_size:int|None=None, # Manually set micro-batch size if using non-fastai or non-fastxtend dataloader
         log_accum_batch:bool=True, # Log each accumulated batch (True) or micro batch (False). False is default fastai behavior
-        micro_batch_size:int|None=None # Manually set micro-batch size if using non-fastai or non-fastxtend dataloader
+        drop_last:bool=True, # Drop last incomplete macro-batch. If False, macro-batch can be accumulated across two epochs (fastai default)
     ):
-        GradientAccumulation.__init__(self, accum_bs=start_accum_bs, log_accum_batch=log_accum_batch)
+        GradientAccumulation.__init__(self,
+            accum_bs=start_accum_bs, micro_batch_size=micro_batch_size,
+            log_accum_batch=log_accum_batch, drop_last=drop_last)
         CallbackScheduler.__init__(self)
         store_attr(names='start_accum_bs,final_accum_bs,start,finish,schedule')
-        self.micro_batch_size=micro_batch_size
 
     def before_fit(self):
         self._sched_accum_bs = self.accum_bs
-        if self.micro_batch_size is None:
-            self.micro_batch_size=self.dls.bs
-
-        if self.micro_batch_size > self.accum_bs:
-            raise ValueError(f"{self.accum_bs=} cannot be smaller then the dataloader batch size {self.micro_batch_size=}")
 
         super().setup_schedule(
             n_epoch=self.n_epoch,
@@ -122,7 +148,8 @@ class GradientAccumulationSchedule(GradientAccumulation, CallbackScheduler):
         self._sched_accum_bs = super().schedule_step(self._sched_accum_bs, self.pct_train)
         # Only update accum_bs if we are at the beginning of a new macro-batch
         if self.count == 0:
-            self.accum_bs = int(math.floor(self._sched_accum_bs / self.micro_batch_size) * self.micro_batch_size)
+            self.accum_bs = (self._sched_accum_bs // self.micro_bs) * self.micro_bs
+        super().before_batch()
 
     def _run_loggers(self, run_train):
         super()._run_loggers(run_train)
