@@ -1,7 +1,6 @@
 project:
   type: website
   preview:
-    port: 3000
     browser: false
 
 format:
@@ -13,6 +12,12 @@ format:
     toc-depth: 4
     highlight-style: custom.theme
     html-math-method: katex
+    fontsize: 1.1em
+    grid:
+      sidebar-width: 275px
+      body-width: 1000px
+      margin-width: 275px
+      gutter-width: 2em
 
 website:
   favicon: favicon.ico
