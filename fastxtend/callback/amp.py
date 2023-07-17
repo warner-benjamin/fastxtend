@@ -20,7 +20,7 @@ __all__ = ['AMPMode', 'MixedPrecision']
 
 # %% ../../nbs/callback.amp.ipynb 6
 class AMPMode(str, Enum):
-    "Automatic mixed precisoin modes for ease of completion"
+    "Automatic mixed precision modes for ease of completion"
     FP16 = 'fp16'
     BF16 = 'bf16'
 
@@ -30,7 +30,7 @@ class MixedPrecision(Callback):
     "Mixed precision training using Pytorch's Automatic Mixed Precision (AMP)"
     order = 10
     def __init__(self,
-        amp_mode:str|AMPMode=AMPMode.FP16, # Mixed Precision training mode. Supports FP16 and BF16.
+        amp_mode:str|AMPMode=AMPMode.FP16, # Mixed Precision training mode. Supports fp16 and bf16.
         **kwargs
     ):
         amp_mode = AMPMode(amp_mode)
@@ -48,13 +48,13 @@ class MixedPrecision(Callback):
             dtype = torch.float16
         else:
             raise ValueError(f"Unrecognized precision: {self.amp_mode=}")
-        self.scale = dtype == torch.float16
 
         # `autocast` dtype should not be set before PyTorch 1.10.
         self.autocast = autocast(dtype=dtype) if ismin_torch("1.10") else autocast()
+
         # `GradScaler` is not needed for bfloat16 as fp32 and bf16 have the same range
-        if self.scale:
-            self.learn.scaler,self.scales = GradScaler(**self.kwargs),L()
+        self.kwargs['enabled'] = dtype == torch.float16
+        self.learn.scaler,self.scales = GradScaler(**self.kwargs),L()
 
     def before_batch(self):
         self.autocast.__enter__()
@@ -66,29 +66,21 @@ class MixedPrecision(Callback):
         self.autocast.__exit__(None, None, None)
 
     def before_backward(self):
-        if self.scale:
-            self.learn.loss_grad = self.scaler.scale(self.loss_grad)
+        self.learn.loss_grad = self.scaler.scale(self.loss_grad)
 
     def before_step(self):
         "Use `self` as a fake optimizer. `self.skipped` will be set to True `after_step` if gradients overflow."
-        if self.scale:
-            self.skipped=True
-            self.scaler.step(self)
-            if self.skipped:
-                raise CancelStepException()
-            self.scales.append(self.scaler.get_scale())
+        self.skipped=True
+        self.scaler.step(self)
+        if self.skipped:
+            raise CancelStepException()
+        self.scales.append(self.scaler.get_scale())
 
     def after_step(self):
-        if self.scale:
-            self.learn.scaler.update()
+        self.learn.scaler.update()
 
     def after_fit(self):
-        self.autocast = None
-        if self.scale:
-            self.learn.scaler,self.scales = None,None
-
-    def after_cancel_fit(self):
-        self.after_fit()
+        self.autocast,self.learn.scaler,self.scales = None,None,None
 
     @property
     def param_groups(self):
