@@ -26,14 +26,12 @@ class ChannelsLast(Callback):
 @patch
 @delegates(GradScaler)
 def to_channelslast(self:Learner,
-    amp_mode:str|AMPMode|bool=AMPMode.FP16, # If not False, add `MixedPrecision` with `AMPMode`. Recommended for full channels last performance
+    use_amp:bool=True, # Add `MixedPrecision` with `amp_mode`. Recommended for full channels last performance
+    amp_mode:str|AMPMode=AMPMode.FP16, # Mixed Precision training mode. Supports fp16 and bf16.
     **kwargs
 ):
     "Set `Learner` and inputs to `channels_last` format and float16 Mixed Precision by default"
-    if isinstance(amp_mode, bool):
-        # backward compatibility with fastai to_channelslast
-        amp_mode = AMPMode.FP16 if amp_mode else None
-    if amp_mode is not None and not hasattr(self, 'mixed_precision') and not hasattr(self, 'channels_last'):
+    if use_amp and not hasattr(self, 'mixed_precision') and not hasattr(self, 'channels_last'):
         return self.add_cbs([ChannelsLast(), MixedPrecision(amp_mode, **kwargs)])
     elif not hasattr(self, 'channels_last'):
         return self.add_cb(ChannelsLast())
