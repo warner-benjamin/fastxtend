@@ -19,13 +19,7 @@ from ffcv.pipeline.compiler import Compiler
 from ffcv.pipeline.operation import Operation
 from ffcv.transforms.ops import ToDevice as _ToDevice
 
-from fastcore.basics import GetAttr, detuplify, Inf
-from fastcore.dispatch import retain_types, explode_types
-from fastcore.meta import funcs_kwargs
-from fastcore.transform import Pipeline
-
-from fastai.data.core import show_batch, show_results
-
+from ..data.loader import DataLoaderMixin
 from .epoch_iterator import EpochIterator, AsyncEpochIterator
 from ..imports import *
 
@@ -36,27 +30,7 @@ __all__ = ['Loader', 'OrderOption']
 _all_ = ['OrderOption']
 
 # %% ../../nbs/ffcv.loader.ipynb 7
-@funcs_kwargs
-class BaseDL(GetAttr):
-    "Provides callbacks for DataLoaders which inherit from `BaseLoader`"
-    _methods = 'before_iter after_batch after_iter'.split()
-    def __init__(self, **kwargs):
-        pass
-
-    def before_iter(self, x=None, *args, **kwargs):
-        "Called before `BaseLoader` starts to read/iterate over the dataset."
-        return x
-
-    def after_batch(self, x=None, *args, **kwargs):
-        "After collating mini-batch of items, the mini-batch is passed through this function."
-        return x
-
-    def after_iter(self, x=None, *args, **kwargs):
-        "Called after `BaseLoader` has fully read/iterated over the dataset."
-        return x
-
-# %% ../../nbs/ffcv.loader.ipynb 8
-class Loader(BaseDL, _Loader):
+class Loader(DataLoaderMixin, _Loader):
     "FFCV `Loader` with fastai Transformed DataLoader `TfmdDL` batch transforms"
     def __init__(self,
         fname:str|Path, # Path to the location of the dataset (FFCV beton format)
@@ -79,20 +53,8 @@ class Loader(BaseDL, _Loader):
         do_setup:bool=True, # Run `setup()` for batch transform(s)
         **kwargs
     ):
-        if 'batch_tfms' in kwargs:
-            if 'after_batch' not in kwargs:
-                kwargs['after_batch'] = kwargs.pop('batch_tfms')
-            else:
-                raise ValueError('Cannot pass both `after_batch` and `batch_tfms` to `FFCVDataLoader`')
-
         if split_idx is None:
-            self._split_idx = int(order==OrderOption.SEQUENTIAL)
-        else:
-            self._split_idx = split_idx
-
-        kwargs['after_batch'] = Pipeline(kwargs.get('after_batch', None), split_idx=self._split_idx)
-        if do_setup:
-            kwargs['after_batch'].setup(self)
+            split_idx = int(order==OrderOption.SEQUENTIAL)
 
         self.async_tfms = async_tfms and len(kwargs['after_batch'].fs) > 0
         self.cuda_streams = None
@@ -101,44 +63,16 @@ class Loader(BaseDL, _Loader):
             drop_last != order==OrderOption.SEQUENTIAL
 
         _Loader.__init__(self,
-            fname=str(Path(fname)),
-            batch_size=batch_size,
-            num_workers=num_workers,
-            os_cache=os_cache,
-            order=order,
-            distributed=distributed,
-            seed=seed,
-            indices=indices,
-            pipelines=pipelines,
-            custom_fields=custom_fields,
-            drop_last=drop_last,
-            batches_ahead=batches_ahead,
-            recompile=recompile
+            fname=str(Path(fname)), batch_size=batch_size, num_workers=num_workers,
+            os_cache=os_cache, order=order, distributed=distributed, seed=seed,
+            indices=indices, pipelines=pipelines, custom_fields=custom_fields,
+            drop_last=drop_last, batches_ahead=batches_ahead, recompile=recompile
         )
-        BaseDL.__init__(self, **kwargs)
-
-        if device is None:
-            self.device = default_device()
-        else:
-            self.device = device
-
-        if n_inp is None:
+        DataLoaderMixin.__init__(self,
+            device=device, n_inp=n_inp, split_idx=split_idx, do_setup=do_setup, **kwargs
+        )
+        if self._n_inp is None:
             self._n_inp = len(pipelines) - 1
-        else:
-            self._n_inp = n_inp
-
-        for name in ['item_tfms', 'after_item', 'before_batch']:
-            if name in kwargs:
-                if name != 'before_batch':
-                    msg = f"fastxtend's `Loader` will not call any {name} methods. " \
-                          f"{name} is for use with a fastai DataLoader.\n" \
-                          f"Instead of passing fastai Item Transforms to {name}," \
-                          f"initialize the fastxtend `Loader` pipeline with FFCV transforms."
-                else:
-                    msg = f"fastxtend's `Loader` will not call any {name} methods. " \
-                          f"{name} are for use with a fastai DataLoader."
-                warn(msg)
-
 
     def one_batch(self, batches_ahead:bool=False):
         "Return one processed batch of input(s) and target(s), optionally loading `batches_ahead`"
@@ -147,108 +81,28 @@ class Loader(BaseDL, _Loader):
             pass
         return b
 
-    def show_batch(self,
-        b=None, # Batch to show
-        max_n:int=9, # Maximum number of items to show
-        ctxs=None, # List of `ctx` objects to show data. Could be matplotlib axis, DataFrame etc
-        show:bool=True, # Whether to display data
-        unique:bool=False, # Whether to show only one
-        **kwargs
-    ):
-        "Show `max_n` input(s) and target(s) from the batch."
-        if unique:
-            old_get_idxs = self.get_idxs
-            self.get_idxs = lambda: Inf.zeros
-        if b is None:
-            b = self.one_batch()
-        if not show:
-            return self._pre_show_batch(b, max_n=max_n)
-        # Uses Type Dispatch to call the correct `show_batch` for b
-        show_batch(*self._pre_show_batch(b, max_n=max_n), ctxs=ctxs, max_n=max_n, **kwargs)
-        if unique:
-            self.get_idxs = old_get_idxs
-
-    def show_results(self,
-        b, # Batch to show results for
-        out, # Predicted output from model for the batch
-        max_n:int=9, # Maximum number of items to show
-        ctxs=None, # List of `ctx` objects to show data. Could be matplotlib axis, DataFrame etc
-        show:bool=True, # Whether to display data
-        **kwargs
-    ):
-        "Show `max_n` results with input(s), target(s) and prediction(s)."
-        x,y,its = self.show_batch(b, max_n=max_n, show=False)
-        b_out = type(b)(b[:self.n_inp] + (tuple(out) if is_listy(out) else (out,)))
-        x1,_,outs = self.show_batch(b_out, max_n=max_n, show=False)
-        if its is None:
-            res = (x, x1, None, None)
-        else:
-            res = (x, y, its, outs.itemgot(slice(self.n_inp,None)))
-        if not show:
-            return res
-        # Uses Type Dispatch to call the correct `show_results` for b
-        show_results(*res, ctxs=ctxs, max_n=max_n, **kwargs)
-
-    @property
-    def n_inp(self) -> int:
-        "Number of elements in a batch for model input"
-        return self._n_inp
-
     @property
     def bs(self) -> int:
         "Number of items a batch"
         return self.batch_size
 
     @property
-    def device(self):
-        return self._device
+    def device(self) -> torch.device:
+        return super().device
 
     @device.setter
     def device(self, device:int|str|torch.device):
         # parse device
         device, *_ = torch._C._nn._parse_to(device=device)
         self._device = device
+        # Device setter for Loader.batch_tfms
+        if hasattr(self.after_batch, 'fs'):
+            self._pipeline_device(self.after_batch.fs)
         # Device setter for FFCV Pipeline
         for p in self.pipeline_specs.values():
             for t in p.transforms:
                 if isinstance(t, _ToDevice):
-                    t.device = device
-        # Device setter for Loader.batch_tfms
-        if hasattr(self.after_batch, 'fs'):
-            self._pipeline_device(self.after_batch.fs)
-
-    def to(self, device:int|str|torch.device):
-        "Sets `self.device=device`."
-        self.device = device
-        return self
-
-    @property
-    def split_idx(self):
-        return self._split_idx
-
-    @split_idx.setter
-    def split_idx(self, split_idx:int):
-        "Sets fastai batch transforms to train (split_idx=0) or valid (split_idx=1)"
-        self._split_idx = split_idx
-        if isinstance(self.after_batch, Pipeline):
-            self.after_batch.split_idx = split_idx
-
-    def decode(self, b):
-        "Decode batch `b`"
-        return to_cpu(self.after_batch.decode(self._retain_dl(b)))
-
-    def decode_batch(self, b, max_n:int=9):
-        "Decode up to `max_n` input(s) from batch `b`"
-        return self._decode_batch(self.decode(b), max_n)
-
-    def _pipeline_device(self, pipe):
-        "Device setter for fastai pipeline"
-        for tfm in pipe:
-            if hasattr(tfm, 'to') and callable(tfm.to):
-                tfm.to(self.device, non_blocking=True)
-            else:
-                for a in L(getattr(tfm, 'parameters', None)):
-                    setattr(tfm, a, getattr(tfm, a).to(self.device, non_blocking=True))
+                    t.device = self._device
 
     def _iter(self):
         Compiler.set_num_threads(self.num_workers)
@@ -280,29 +134,6 @@ class Loader(BaseDL, _Loader):
         if hasattr(self, 'it'):
             del(self.it)
 
-    def _one_pass(self, b=None):
-        if b is None:
-            b = self.one_batch()
-        self._types = explode_types(b)
-
-    def _retain_dl(self, b):
-        if not getattr(self, '_types', None):
-            self._one_pass(b)
-        return retain_types(b, typs=self._types)
-
-    def _decode_batch(self, b, max_n=9):
-        return L(batch_to_samples(b, max_n=max_n))
-
-    def _pre_show_batch(self, b, max_n=9):
-        "Decode `b` to be ready for `show_batch`"
-        b = self.decode(b)
-        if hasattr(b, 'show'):
-            return b,None,None
-        its = self._decode_batch(b, max_n)
-        if not is_listy(b):
-            b,its = [b],L((o,) for o in its)
-        return detuplify(b[:self.n_inp]),detuplify(b[self.n_inp:]),its
-
     def _n_batches(self, num_batches:int=1):
         orig_traversal_order = self.traversal_order
         orig_indices = self.indices
@@ -324,3 +155,16 @@ class Loader(BaseDL, _Loader):
         self.indices = orig_indices
         self.drop_last = orig_drop_last
         self.traversal_order = orig_traversal_order
+
+    def _callback_warning(self, kwargs):
+        for name in ['item_tfms', 'after_item', 'before_batch']:
+            if name in kwargs:
+                if name != 'before_batch':
+                    msg = f"fastxtend's `Loader` will not call any {name} methods. " \
+                          f"{name} is for use with a fastai DataLoader.\n" \
+                          f"Instead of passing fastai Item Transforms to {name}," \
+                          f"initialize the fastxtend `Loader` pipeline with FFCV transforms."
+                else:
+                    msg = f"fastxtend's `Loader` will not call any {name} methods. " \
+                          f"{name} are for use with a fastai DataLoader."
+                warn(msg)
