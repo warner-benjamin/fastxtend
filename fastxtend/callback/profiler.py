@@ -313,13 +313,13 @@ class ThroughputPostCallback(Callback):
     def after_batch(self):
         if self.training:
             self.profiler._raw_values['train_batch'].append(time.perf_counter() - self.profiler._train_batch_start)
-            self.profiler._raw_values['train_bs'].append(find_bs(self.learn.yb))
+            self.profiler._raw_values['train_bs'].append(find_bs(self.learn.xb))
             if self._iter >= self._rolling_average and self._iter % self._rolling_average == 0:
                 self.profiler._log_after_batch(self._train)
             self._iter += 1
         else:
             self.profiler._raw_values['valid_batch'].append(time.perf_counter() - self.profiler._valid_batch_start)
-            self.profiler._raw_values['valid_bs'].append(find_bs(self.learn.yb))
+            self.profiler._raw_values['valid_bs'].append(find_bs(self.learn.xb))
 
     def after_epoch(self):
         self.profiler._raw_values['epoch'].append(time.perf_counter() - self.profiler._epoch_start)

@@ -66,7 +66,7 @@ class GradientAccumulation(Callback):
             self.count = 0
 
     def before_batch(self):
-        self.bs = find_bs(self.learn.yb)
+        self.bs = find_bs(self.learn.xb)
         if self.drop_last:
             if self._samples_left < self.accum_bs:
                 if self.log_accum_batch:
