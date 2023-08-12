@@ -69,6 +69,10 @@ website:
           - vision.models.attention_modules.ipynb
           - vision.models.pooling.ipynb
           - vision.models.xresnet.ipynb
+      - section: Text
+        contents:
+        - text: Hugging Face
+          file: text.huggingface.ipynb
       - section: Audio
         contents:
         - text: Core
