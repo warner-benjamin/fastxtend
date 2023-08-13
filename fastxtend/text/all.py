@@ -17,3 +17,5 @@ from ..multiloss import *
 from ..optimizer.all import *
 from ..schedulers import *
 from ..utils import *
+
+from .huggingface import *

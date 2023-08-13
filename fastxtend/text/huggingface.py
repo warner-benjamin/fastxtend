@@ -58,7 +58,7 @@ class HuggingFaceCallback(Callback):
     run_valid = True
     "Applies `HuggingFaceWrapper` and handles using model's built in loss or fastai `Learner` loss"
     def __init__(self,
-        labels:str='labels', # Input batch labels key
+        labels:str|None='labels', # Input batch labels key. Set to None if dataset doesn't contain labels
         loss:str='loss', # Model output loss key
         logits:str='logits', # Model output logits key
     ):
@@ -71,11 +71,10 @@ class HuggingFaceCallback(Callback):
 
     def before_batch(self):
         self._loss = None
-        if self._model_loss:
-            # Learner skips backward pass if yb isn't set
-            self.learn.yb = (1,)
-        else:
+        if self._label_key is not None:
             self.learn.yb = (self.xb[0][self._label_key],)
+        else:
+            self.learn.yb = (1,)
 
     def after_pred(self):
         outputs = self.learn.pred
