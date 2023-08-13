@@ -32,14 +32,15 @@ lic = licenses.get(cfg['license'].lower(), (cfg['license'], None))
 vision_requirements = (cfg.get('vision_requirements') or '').split()
 audio_requirements = (cfg.get('audio_requirements') or '').split()
 ffcv_requirements = vision_requirements + (cfg.get('ffcv_requirements') or '').split()
-all_requirements = ffcv_requirements + audio_requirements + (cfg.get('all_requirements') or '').split()
+text_requirements = (cfg.get('text_requirements') or '').split()
+all_requirements = ffcv_requirements + audio_requirements + text_requirements + (cfg.get('all_requirements') or '').split()
 dev_requirements = all_requirements + (cfg.get('dev_requirements') or '').split()
 
 project_urls = {}
 if cfg.get('doc_host'): project_urls["Documentation"] = cfg['doc_host'] + cfg.get('doc_baseurl', '')
 
-extras_require = {'all': all_requirements, 'dev': dev_requirements,
-    'vision': vision_requirements, 'ffcv': ffcv_requirements, 'audio': audio_requirements}
+extras_require = {'all': all_requirements, 'dev': dev_requirements, 'vision': vision_requirements,
+                  'ffcv': ffcv_requirements, 'audio': audio_requirements, 'text': text_requirements}
 
 setuptools.setup(
     name = cfg['lib_name'],
