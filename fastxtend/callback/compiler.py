@@ -43,8 +43,8 @@ __all__ = ['CompileMode', 'MatMulPrecision', 'CompilerCallback', 'DynamoExplainC
 
 # %% ../../nbs/callback.compiler.ipynb 7
 _min_torch_20 = ismin_torch('2.0')
-_only_torch_20 = ismin_torch('2.0') and notmax_torch('2.1.0dev')
-_min_torch_21 = ismin_torch('2.1.0dev')
+_only_torch_20 = ismin_torch('2.0') and notmax_torch('2.1.0')
+_min_torch_21 = ismin_torch('2.1.0')
 
 if not _min_torch_20:
     warn('Imported `fastxtend.callback.compiler`, which requires a minimum of PyTorch 2.0 to work.')
@@ -102,11 +102,11 @@ class CompilerCallback(Callback):
                 print(f"Your GPU has modern tensor cores, automatically enabling by setting `torch.set_float32_matmul_precision('{self.matmul_precision}')`")
             torch.set_float32_matmul_precision(self.matmul_precision)
 
-        if hasattr(self.learn, 'progressive_resize') and _min_torch_20:
-            warn("Using `ProgressiveResize` and `torch.compile` at the same time will result in a new compile every size change.")
+        if hasattr(self.learn, 'progressive_resize') and _only_torch_20:
+            warn("Using `ProgressiveResize` and `torch.compile` at the same time with PyTorch 2.0 will result in a new compile every size change.")
         msg = ""
-        if self.dynamic:
-            msg += "Using `torch.compile` with dynamic shapes is under active development and might fail\n"
+        if self.dynamic and _only_torch_20:
+            msg += "Using PyTorch 2.0 `compile` with dynamic shapes is under active development and might fail. Upgrade to PyTorch 2.1.\n"
         if self.mode == 'max-autotune':
             msg += "Using `torch.compile` with `mode='max-autotune'` is under active development and might fail\n"
         if msg != "":
@@ -173,8 +173,12 @@ class DynamoExplainCallback(Callback):
                 # for the training dataloader. Since FFCV doesn't support seeded transforms and the reset
                 # random state only seeds the dataset order, this shouldn't effect training outcome.
                 b = self.dls.train.one_batch(batches_ahead=True)
-            else:
+            elif hasattr(self.dls.valid, 'one_batch'):
                 b = self.dls.valid.one_batch()
+            else:
+                b = next(iter(self.dls.valid))
+                model_device = next(self.model.parameters()).device
+                b = to_device(b, model_device)
             i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
             self.learn.xb, self.learn.yb = b[:i], b[i:]
 
@@ -238,6 +242,7 @@ class DynamoExplainCallback(Callback):
 @patch
 def compile(self:Learner,
     fullgraph:bool=False, # Prevent breaking model into subgraphs
+    dynamic:bool=False, # Use dynamic shape tracing. Sets to `False` if PyTorch < 2.1
     backend:str|Callable='inductor', # `torch.compile` backend to use
     mode:str|CompileMode|None=None, # `torch.compile` mode to use
     options:Dict[str, Union[str,int,bool]]|None=None, # Extra options to pass to compile backend
@@ -246,8 +251,8 @@ def compile(self:Learner,
     verbose:bool=False, # Verbose output
 ):
     "Set `Learner` to compile model using `torch.compile` via `CompilerCallback`"
-    return self.add_cb(CompilerCallback(fullgraph=fullgraph, backend=backend,
-                                        mode=mode, options=options,
+    return self.add_cb(CompilerCallback(fullgraph=fullgraph, dynamic=dynamic if _min_torch_21 else False,
+                                        backend=backend, mode=mode, options=options,
                                         matmul_precision=matmul_precision,
                                         recompile=recompile, verbose=verbose))
 
