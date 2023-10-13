@@ -56,7 +56,7 @@ def stable_adam_step(p:Tensor, lr:float, eps:float, wd:float, mom:float, sqr_mom
     lr = lr / max(1, rms)
 
     # stable adam step
-    p.data.addcdiv_(grad_avg, root_sqr_avg.add(eps), value=-lr)
+    p.data.addcdiv_(grad_avg, root_sqr_avg.add(eps_t), value=-lr)
 
     return {'grad_avg':grad_avg, 'sqr_avg':sqr_avg, 'step':step, 'eps_t':eps_t}
 
