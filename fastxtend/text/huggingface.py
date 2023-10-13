@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader as _DataLoader
 from torch.utils.data.dataloader import _worker_init_fn_t, _collate_fn_t
 
 from transformers import PreTrainedModel
+from transformers.modeling_utils import ModuleUtilsMixin
 from transformers import logging as hf_logging
 
 from fastai.callback.core import Callback
@@ -40,18 +41,18 @@ class HuggingFaceLoss(BaseLoss):
         return tensor(0.0)
 
 # %% ../../nbs/text.huggingface.ipynb 7
-class HuggingFaceWrapper(nn.Module):
+class HuggingFaceWrapper(nn.Module, ModuleUtilsMixin):
     "A minimal compatibility wrapper between a Hugging Face model and `Learner`"
     def __init__(
         self,
         model: PreTrainedModel, # Hugging Face compatible model
     ):
         super().__init__()
-        self.model = model
-        self._forward_args = inspect.getfullargspec(self.model.forward).args
+        self.hf_model = model
+        self._forward_args = inspect.getfullargspec(self.hf_model.forward).args
 
     def forward(self, x:Dict):
-        return self.model(**{k:v for k,v in x.items() if k in self._forward_args})
+        return self.hf_model(**{k:v for k,v in x.items() if k in self._forward_args})
 
 # %% ../../nbs/text.huggingface.ipynb 9
 class HuggingFaceCallback(Callback):
@@ -72,7 +73,10 @@ class HuggingFaceCallback(Callback):
     def before_batch(self):
         self._loss = None
         if self._label_key is not None:
-            self.learn.yb = (self.xb[0][self._label_key],)
+            if not self._model_loss:
+                self.learn.yb = (self.xb[0].pop(self._label_key),)
+            else:
+                self.learn.yb = (self.xb[0][self._label_key],)
         else:
             self.learn.yb = (1,)
 
@@ -86,6 +90,8 @@ class HuggingFaceCallback(Callback):
         if self._model_loss:
             self.learn.loss_grad = self._loss
             self.learn.loss = self.learn.loss_grad.clone()
+        else:
+            self.xb[0][self._label_key] = self.learn.yb[0]
 
 # %% ../../nbs/text.huggingface.ipynb 11
 class HuggingFaceLoader(_DataLoader):

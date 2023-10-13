@@ -8,8 +8,6 @@ from packaging.version import parse
 
 import fastai
 from fastai.torch_core import _rebuild_from_type
-from fastai.data.core import TfmdDL
-from fastai.callback.training import ProgressCallback
 
 from .imports import *
 
@@ -22,6 +20,8 @@ _torch_112 = parse('1.12')
 # %% ../nbs/patches.ipynb 5
 # This has been upstreamed in fastai 2.7.11
 if parse(fastai.__version__) < parse('2.7.11'):
+    from fastai.data.core import TfmdDL
+
     @patch
     def to(self:TfmdDL, device):
         self.device = device
@@ -61,6 +61,8 @@ if parse(fastai.__version__) < parse('2.7.12'):
 
 # %% ../nbs/patches.ipynb 11
 if _torch_version >= _torch_20 and parse(fastai.__version__) < parse('2.7.12'):
+    from fastai.callback.training import ProgressCallback
+
     @patch
     def __reduce_ex__(self:TensorBase, proto):
         return super(TensorBase, self).__reduce_ex__(proto)
@@ -70,3 +72,40 @@ if _torch_version >= _torch_20 and parse(fastai.__version__) < parse('2.7.12'):
         self.pbar.update(self.iter+1)
         if hasattr(self, 'smooth_loss'):
             self.pbar.comment = f'{self.smooth_loss.item():.4f}'
+
+# %% ../nbs/patches.ipynb 13
+if parse(fastai.__version__) < parse('2.7.13'):
+    from collections.abc import MutableMapping
+    from fastcore.dispatch import retain_type
+    from fastai.basics import defaults
+    from fastai.learner import Learner
+
+    def apply(func, x, *args, **kwargs):
+        "Apply `func` recursively to `x`, passing on args"
+        if is_listy(x):
+            return type(x)([apply(func, o, *args, **kwargs) for o in x])
+        if isinstance(x, (dict, MutableMapping)):
+            return {k: apply(func, v, *args, **kwargs) for k,v in x.items()}
+        res = func(x, *args, **kwargs)
+        return res if x is None else retain_type(res, x)
+
+    def to_device(b, device=None, non_blocking=False):
+        "Recursively put `b` on `device`."
+        if defaults.use_cuda==False:
+            device='cpu'
+        elif device is None:
+            device=default_device()
+        def _inner(o):
+            if isinstance(o,Tensor):
+                return o.to(device, non_blocking=non_blocking)
+            return o
+        return apply(_inner, b)
+
+    @patch
+    def _set_device(self:Learner, b):
+        model_device = next(self.model.parameters()).device
+        dls_device = getattr(self.dls, 'device', default_device())
+        if model_device == dls_device:
+            return to_device(b, dls_device)
+        else:
+            return to_device(b, model_device)
