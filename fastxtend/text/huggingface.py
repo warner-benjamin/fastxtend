@@ -61,9 +61,11 @@ class HuggingFaceCallback(Callback):
     def __init__(self,
         labels:str|None='labels', # Input batch labels key. Set to None if dataset doesn't contain labels
         loss:str='loss', # Model output loss key
-        logits:str='logits', # Model output logits key
+        logits:str='logits', # Model output logits key,
+        unwrap:bool=True, # After training completes, unwrap the Transformers model
     ):
-        self._label_key, self._loss_key, self._logit_key = labels, loss, logits
+        self._label_key, self._loss_key = labels, loss
+        self._logit_key, self.unwrap = logits, unwrap
 
     def after_create(self):
         self._model_loss = isinstance(self.learn.loss_func, HuggingFaceLoss)
@@ -92,6 +94,13 @@ class HuggingFaceCallback(Callback):
             self.learn.loss = self.learn.loss_grad.clone()
         else:
             self.xb[0][self._label_key] = self.learn.yb[0]
+
+    def after_fit(self):
+        if self.unwrap:
+            if isinstance(self.learn.model, dynamo.OptimizedModule) and hasattr(self.learn, 'compiler'):
+                self.learn.compiler._reset_compiled()
+            if isinstance(self.model, HuggingFaceWrapper):
+                self.learn.model = self.learn.model.hf_model
 
 # %% ../../nbs/text.huggingface.ipynb 11
 class HuggingFaceLoader(_DataLoader):
