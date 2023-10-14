@@ -55,23 +55,23 @@ def is_compiled(model:nn.Module):
     return (hasattr(model, '_compiled_call_impl') and getattr(model, '_compiled_call_impl') is not None) \
             or isinstance(model, dynamo.OptimizedModule)
 
-# %% ../../nbs/callback.compiler.ipynb 10
+# %% ../../nbs/callback.compiler.ipynb 9
 class CompileMode(str, Enum):
     "All valid `torch.compile` modes for tab-completion and typo-proofing"
     default        = 'default'
     reduceoverhead = 'reduce-overhead'
     maxautotune    = 'max-autotune'
 
-# %% ../../nbs/callback.compiler.ipynb 12
+# %% ../../nbs/callback.compiler.ipynb 11
 class MatMulPrecision(str, Enum):
     "All valid `matmul_precision` modes for tab-completion and typo-proofing"
     highest = 'highest'
     high    = 'high'
     medium  = 'medium'
 
-# %% ../../nbs/callback.compiler.ipynb 14
+# %% ../../nbs/callback.compiler.ipynb 13
 class CompilerCallback(Callback):
-    "An experimental callback for `torch.compile` (beta) and fastai"
+    "A callback for using `torch.compile` (beta) with fastai"
     order = TrainEvalCallback.order + 1 # Compiling needs to occur on the GPU, but before distributed training starts
 
     def __init__(self,
@@ -118,12 +118,7 @@ class CompilerCallback(Callback):
         if self._recompile and is_compiled(self.learn.model):
             if self.verbose:
                 print("Recompiling model")
-            dynamo.reset()
-            self.learn.model._compiled_call_impl = None
-            if hasattr(self.learn.model, '_orig_forward'):
-                self.learn.model.forward = self.learn.model._orig_forward
-            if isinstance(self.learn.model, dynamo.OptimizedModule):
-                self.learn.model = self.learn.model._orig_mod
+            self._reset_compiled()
         self._recompile = False
 
         if not is_compiled(self.learn.model):
@@ -143,7 +138,16 @@ class CompilerCallback(Callback):
         else:
             warn("Model is already compiled. To recompile pass `recomple=True` to CompilerCallback.")
 
-# %% ../../nbs/callback.compiler.ipynb 17
+    def _reset_compiled(self):
+        if is_compiled(self.learn.model):
+            dynamo.reset()
+            self.learn.model._compiled_call_impl = None
+            if hasattr(self.learn.model, '_orig_forward'):
+                self.learn.model.forward = self.learn.model._orig_forward
+            if isinstance(self.learn.model, dynamo.OptimizedModule):
+                self.learn.model = self.learn.model._orig_mod
+
+# %% ../../nbs/callback.compiler.ipynb 16
 class DynamoExplainCallback(Callback):
     "An experimental callback to find graph breaks with `torch.compile` (beta)"
     order = MixedPrecision.order+1 # DynamoExplain occurs on the GPU before any training starts
@@ -238,7 +242,7 @@ class DynamoExplainCallback(Callback):
 
         raise CancelFitException()
 
-# %% ../../nbs/callback.compiler.ipynb 20
+# %% ../../nbs/callback.compiler.ipynb 19
 @patch
 def compile(self:Learner,
     fullgraph:bool=False, # Prevent breaking model into subgraphs
@@ -256,7 +260,7 @@ def compile(self:Learner,
                                         matmul_precision=matmul_precision,
                                         recompile=recompile, verbose=verbose))
 
-# %% ../../nbs/callback.compiler.ipynb 24
+# %% ../../nbs/callback.compiler.ipynb 23
 @patch
 def export(self:Learner,
     fname:FILE_LIKE='export.pkl', # Learner export file name, path, bytes, or IO
@@ -287,7 +291,7 @@ def export(self:Learner,
     if state is not None: self.opt.load_state_dict(state)
     self.dls = old_dbunch
 
-# %% ../../nbs/callback.compiler.ipynb 25
+# %% ../../nbs/callback.compiler.ipynb 24
 def load_learner(
     fname:FILE_LIKE, # File name, path, bytes, or IO
     cpu:bool=True, # Load model to CPU
@@ -312,7 +316,7 @@ def load_learner(
             res = res.remove_cb(CompilerCallback)
     return res
 
-# %% ../../nbs/callback.compiler.ipynb 28
+# %% ../../nbs/callback.compiler.ipynb 27
 @patch
 def freeze_to(self:Learner, n:int):
     "Freeze parameter groups up to `n`"
@@ -329,7 +333,7 @@ def freeze_to(self:Learner, n:int):
                  "\nPass `CompilerCallback(..., recompile=True)` to `Learner.cbs`"\
                  "\nor call `torch._dynamo.reset() and recompile model.")
 
-# %% ../../nbs/callback.compiler.ipynb 31
+# %% ../../nbs/callback.compiler.ipynb 30
 @patch
 @delegates(Learner.fit_one_cycle)
 def fine_tune(self:Learner,
