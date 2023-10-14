@@ -1,5 +1,5 @@
-conda create -n fastxtend python=3.10 "pytorch>=2.0.1" torchvision torchaudio \
-pytorch-cuda=11.8 cuda fastai nbdev pkg-config libjpeg-turbo opencv tqdm \
-terminaltables psutil numpy numba librosa=0.9.2 timm kornia rich typer \
-jupyterlab ipywidgets wandb \
--c pytorch -c nvidia/label/cuda-11.8.0 -c fastai -c huggingface -c conda-forge
+conda create -n fastxtend python=3.11 "pytorch>=2.1" torchvision torchaudio \
+pytorch-cuda=12.1 fastai nbdev pkg-config libjpeg-turbo opencv tqdm psutil \
+terminaltables numpy "numba>=0.57" librosa timm kornia rich typer wandb \
+"transformers>=4.34" "tokenizers>=0.14" "datasets>=2.14" ipykernel ipywidgets \
+"matplotlib<3.8" -c pytorch -c nvidia -c fastai -c huggingface -c conda-forge

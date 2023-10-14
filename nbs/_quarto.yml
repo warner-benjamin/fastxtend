@@ -12,12 +12,12 @@ format:
     toc-depth: 4
     highlight-style: custom.theme
     html-math-method: katex
-    fontsize: 1.1em
+    fontsize: 1.1rem
     grid:
       sidebar-width: 275px
-      body-width: 1000px
+      body-width: 1025px
       margin-width: 275px
-      gutter-width: 2em
+      gutter-width: 3rem
 
 website:
   favicon: favicon.ico

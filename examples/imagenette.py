@@ -28,7 +28,7 @@ try:
 except ImportError:
     FFCV = False
 
-app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]})
+app = typer.Typer(context_settings={"help_option_names": ["-h", "--help"]}, pretty_exceptions_show_locals=False)
 
 imagenette_stats = ([0.465,0.458,0.429],[0.285,0.280,0.301])
 imagewoof_stats  = ([0.496,0.461,0.399],[0.257,0.249,0.258])
@@ -187,9 +187,9 @@ def get_aug_transforms(flip:bool=True, flip_vert:bool=False, max_rotate:float=10
     if len(xtra_tfms) == 0:
         xtra_tfms = None
 
-    return *aug_transforms(do_flip=flip, flip_vert=flip_vert, max_rotate=max_rotate, min_zoom=min_zoom,
-                           max_zoom=max_zoom, max_lighting=max_lighting, max_warp=max_warp,
-                           p_affine=prob_affine, p_lighting=prob_lighting, xtra_tfms=xtra_tfms),
+    return aug_transforms(do_flip=flip, flip_vert=flip_vert, max_rotate=max_rotate, min_zoom=min_zoom,
+                          max_zoom=max_zoom, max_lighting=max_lighting, max_warp=max_warp,
+                          p_affine=prob_affine, p_lighting=prob_lighting, xtra_tfms=xtra_tfms)
 
 
 def get_fastai_dls(size:int, bs:int, imagenette:bool=False, max_workers:int=16, center_crop:bool=True,

@@ -59,9 +59,9 @@ class HuggingFaceCallback(Callback):
     run_valid = True
     "Applies `HuggingFaceWrapper` and handles using model's built in loss or fastai `Learner` loss"
     def __init__(self,
-        labels:str|None='labels', # Input batch labels key. Set to None if dataset doesn't contain labels
+        labels:str|None='labels', # Input batch labels key. Set to None if input doesn't contain labels
         loss:str='loss', # Model output loss key
-        logits:str='logits', # Model output logits key,
+        logits:str='logits', # Model output logits key
         unwrap:bool=True, # After training completes, unwrap the Transformers model
     ):
         self._label_key, self._loss_key = labels, loss
@@ -104,7 +104,7 @@ class HuggingFaceCallback(Callback):
 
 # %% ../../nbs/text.huggingface.ipynb 11
 class HuggingFaceLoader(_DataLoader):
-    "A minimal compatibility wrapper between a Hugging Face Dataloader and `Learner`"
+    "A minimal compatibility DataLoader between a Hugging Face and `Learner`"
     def __init__(self,
         dataset:Dataset, # dataset from which to load the data
         batch_size:int, # Batch size
