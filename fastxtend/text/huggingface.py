@@ -56,8 +56,8 @@ class HuggingFaceWrapper(nn.Module, ModuleUtilsMixin):
 
 # %% ../../nbs/text.huggingface.ipynb 9
 class HuggingFaceCallback(Callback):
+    "Provides compatibility between fastai's `Learner`, the Transformers model, & `HuggingFaceLoader`"
     run_valid = True
-    "Applies `HuggingFaceWrapper` and handles using model's built in loss or fastai `Learner` loss"
     def __init__(self,
         labels:str|None='labels', # Input batch labels key. Set to None if input doesn't contain labels
         loss:str='loss', # Model output loss key
