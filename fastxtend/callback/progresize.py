@@ -79,6 +79,7 @@ class ProgressiveResize(Callback):
         add_resize:bool=False, # Add a separate resize step. Use for non-fastai DataLoaders or fastai DataLoader without batch_tfms
         resize_targ:bool=False, # Applies the separate resize step to targets
         preallocate_bs:int|None=None, # Preallocation batch size. Set if the valid DataLoader has a larger batch size than the train DataLoader.
+        preallocate:bool=True, # Preallocate GPU memory with full size image. Can mitigate memory allocation slowdowns during training. If False set `final_size`.
         empty_cache:bool=False, # Call `torch.cuda.empty_cache()` before a resizing epoch. May prevent Cuda & Magma errors. Don't use with multiple GPUs
         verbose:bool=True, # Print a summary of the progressive resizing schedule
     ):
@@ -99,43 +100,48 @@ class ProgressiveResize(Callback):
         self.increase_by = tensor(self.increase_by)
         self.resize_batch = self.increase_mode == IncreaseMode.Batch
 
-        # Dry run at full resolution to pre-allocate memory
-        # See https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#pre-allocate-memory-in-case-of-variable-input-length
-        states = get_random_states()
-        try:
-            if FFCV and isinstance(self.dls.train, Loader) and self.dls.train.async_tfms:
-                # With `async_tfms`, `Loader` needs to initialize all `Loader.batches_ahead` Cuda streams
-                # for the training dataloader. Since FFCV doesn't support seeded transforms and the reset
-                # random state only seeds the dataset order, this shouldn't effect training outcome.
-                b = self.dls.train.one_batch(batches_ahead=True)
-            else:
-                b = self.dls.valid.one_batch()
-            i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
-            if isinstance(self.preallocate_bs, int):
-                b = _batch_subset(b, self.preallocate_bs)
-            self.learn.xb, self.learn.yb = b[:i], b[i:]
+        b, i = None, None
+        if self.preallocate:
+            # Dry run at full resolution to pre-allocate memory
+            # See https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html#pre-allocate-memory-in-case-of-variable-input-length
+            states = get_random_states()
+            try:
+                if FFCV and isinstance(self.dls.train, Loader) and self.dls.train.async_tfms:
+                    # With `async_tfms`, `Loader` needs to initialize all `Loader.batches_ahead` Cuda streams
+                    # for the training dataloader. Since FFCV doesn't support seeded transforms and the reset
+                    # random state only seeds the dataset order, this shouldn't effect training outcome.
+                    b = self.dls.train.one_batch(batches_ahead=True)
+                elif hasattr(self.dls.valid, 'one_batch'):
+                    b = self.dls.valid.one_batch()
 
-            if hasattr(self.learn, 'mixed_precision'):
-                self.learn.mixed_precision.autocast.__enter__()
+                if b is not None:
+                    i = getattr(self.dls, 'n_inp', 1 if len(b)==1 else len(b)-1)
+                    if isinstance(self.preallocate_bs, int):
+                        b = _batch_subset(b, self.preallocate_bs)
+                    self.learn.xb, self.learn.yb = b[:i], b[i:]
 
-            self.learn.pred = self.learn.model(*_cast_tensor(self.learn.xb))
-            self.learn.loss_grad = self.learn.loss_func(self.learn.pred, *_cast_tensor(self.learn.yb))
+                    if hasattr(self.learn, 'mixed_precision'):
+                        self.learn.mixed_precision.autocast.__enter__()
 
-            if hasattr(self.learn, 'mixed_precision'):
-                self.learn.mixed_precision.autocast.__exit__(None, None, None)
+                    self.learn.pred = self.learn.model(*_cast_tensor(self.learn.xb))
+                    self.learn.loss_grad = self.learn.loss_func(self.learn.pred, *_cast_tensor(self.learn.yb))
 
-            self.learn.loss_grad.backward()
-            self.learn.opt.zero_grad()
-            self.learn.opt.clear_state()
-        finally:
-            set_random_states(**states)
+                    if hasattr(self.learn, 'mixed_precision'):
+                        self.learn.mixed_precision.autocast.__exit__(None, None, None)
+
+                    self.learn.loss_grad.backward()
+                    self.learn.opt.zero_grad()
+                    self.learn.opt.clear_state()
+            finally:
+                set_random_states(**states)
 
         # Try to automatically determine the input size
         try:
-            for n in range(i):
-                x = detuplify(self.learn.xb[n])
-                if isinstance(x, TensorImageBase):
-                    self.final_size = x.shape[-2:]
+            if i is not None:
+                for n in range(i):
+                    x = detuplify(self.learn.xb[n])
+                    if isinstance(x, TensorImageBase):
+                        self.final_size = x.shape[-2:]
         finally:
             if self.final_size is None:
                 raise ValueError(f'Could not determine image size from DataLoader. Set `final_size`: {self.final_size}')
