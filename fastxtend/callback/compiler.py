@@ -149,7 +149,7 @@ class CompilerCallback(Callback):
 
 # %% ../../nbs/callback.compiler.ipynb 16
 class DynamoExplainCallback(Callback):
-    "An experimental callback to find graph breaks with `torch.compile` (beta)"
+    "A callback to automate finding graph breaks with PyTorch Compile's Dynamo Explain"
     order = MixedPrecision.order+1 # DynamoExplain occurs on the GPU before any training starts
 
     def __init__(self,

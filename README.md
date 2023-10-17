@@ -4,44 +4,61 @@
 
 ### Train fastai models faster (and other useful tools)
 
-![fastxtend accelerates fastai](nbs/images/imagenette_benchmark.png)
+![fastxtend accelerates
+fastai](https://github.com/warner-benjamin/fastxtend/blob/main/nbs/images/imagenette_benchmark.png?raw=true)
 
 Train fastai models faster with fastxtend’s [fused
-optimizers](optimizer.fused.html), [Progressive
-Resizing](callback.progresize.html) callback, and integrated [FFCV
-DataLoader](ffcv.tutorial.html).
+optimizers](https://fastxtend.benjaminwarner.dev/optimizer.fused.html),
+[Progressive
+Resizing](https://fastxtend.benjaminwarner.dev/callback.progresize.html)
+callback, integrated [FFCV
+DataLoader](https://fastxtend.benjaminwarner.dev/ffcv.tutorial.html),
+and integrated [PyTorch
+Compile](https://fastxtend.benjaminwarner.dev/callback.compiler.html)
+support.
 
 ## Feature overview
 
 **Train Models Faster**
 
-- Drop in [fused optimizers](optimizer.fused.html), which are 21 to 293
-  percent faster then fastai native optimizers.
+- Drop in [fused
+  optimizers](https://fastxtend.benjaminwarner.dev/optimizer.fused.html),
+  which are 21 to 293 percent faster then fastai native optimizers.
 - Up to 75% optimizer memory savings with integrated
   [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) [8-bit
-  optimizers](optimizer.eightbit.html).
+  optimizers](https://fastxtend.benjaminwarner.dev/optimizer.eightbit.html).
 - Increase GPU throughput and decrease training time with the
-  [Progressive Resizing](callback.progresize.html) callback.
-- Use the highly optimized [FFCV DataLoader](ffcv.tutorial.html), fully
-  integrated with fastai.
+  [Progressive
+  Resizing](https://fastxtend.benjaminwarner.dev/callback.progresize.html)
+  callback.
+- Use the highly optimized [FFCV
+  DataLoader](https://fastxtend.benjaminwarner.dev/ffcv.tutorial.html),
+  fully integrated with fastai.
 - Integrated support for `torch.compile` via the
-  [Compile](callback.compiler.html) callbacks.
+  [Compile](https://fastxtend.benjaminwarner.dev/callback.compiler.html)
+  callbacks.
 
 **General Features**
 
 - Fused implementations of modern optimizers, such as
-  [Adan](optimizer.adan.html), [Lion](optimizer.lion.html), &
-  [StableAdam](optimizer.stableadam.html).
-- Hugging Face [Transformers compatibility](text.huggingface.html) with
-  fastai
-- Flexible [metrics](metrics.html) which can log on train, valid, or
-  both. Backwards compatible with fastai metrics.
-- Easily use [multiple losses](multiloss.html) and log each individual
-  loss on train and valid.
-- [Multiple profilers](callback.profiler.html) for profiling training
-  and identifying bottlenecks.
-- A fast [Exponential Moving Average](callback.ema.html) callback for
-  smoother training.
+  [Adan](https://fastxtend.benjaminwarner.dev/optimizer.adan.html),
+  [Lion](https://fastxtend.benjaminwarner.dev/optimizer.lion.html), &
+  [StableAdam](https://fastxtend.benjaminwarner.dev/optimizer.stableadam.html).
+- Hugging Face [Transformers
+  compatibility](https://fastxtend.benjaminwarner.dev/text.huggingface.html)
+  with fastai
+- Flexible [metrics](https://fastxtend.benjaminwarner.dev/metrics.html)
+  which can log on train, valid, or both. Backwards compatible with
+  fastai metrics.
+- Easily use [multiple
+  losses](https://fastxtend.benjaminwarner.dev/multiloss.html) and log
+  each individual loss on train and valid.
+- [Multiple
+  profilers](https://fastxtend.benjaminwarner.dev/callback.profiler.html)
+  for profiling training and identifying bottlenecks.
+- A fast [Exponential Moving
+  Average](https://fastxtend.benjaminwarner.dev/callback.ema.html)
+  callback for smoother training.
 
 **Vision**
 
@@ -52,11 +69,15 @@ DataLoader](ffcv.tutorial.html).
   [`CutMixUp`](https://fastxtend.benjaminwarner.dev/callback.cutmixup.html#cutmixup)
   or
   [`CutMixUpAugment`](https://fastxtend.benjaminwarner.dev/callback.cutmixup.html#cutmixupaugment).
-- Additional [image augmentations](vision.augment.batch.html).
+- Additional [image
+  augmentations](https://fastxtend.benjaminwarner.dev/vision.augment.batch.html).
 - Support for running fastai [batch transforms on
-  CPU](vision.data.html).
-- More [attention](vision.models.attention_modules.html) and
-  [pooling](vision.models.pooling.html) modules
+  CPU](https://fastxtend.benjaminwarner.dev/vision.data.html).
+- More
+  [attention](https://fastxtend.benjaminwarner.dev/vision.models.attention_modules.html)
+  and
+  [pooling](https://fastxtend.benjaminwarner.dev/vision.models.pooling.html)
+  modules
 - A flexible implementation of fastai’s
   [`XResNet`](https://fastxtend.benjaminwarner.dev/vision.models.xresnet.html#xresnet).
 

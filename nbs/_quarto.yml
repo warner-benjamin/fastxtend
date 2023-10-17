@@ -12,7 +12,7 @@ format:
     toc-depth: 4
     highlight-style: custom.theme
     html-math-method: katex
-    fontsize: 1.1rem
+    fontsize: 1.15rem
     grid:
       sidebar-width: 275px
       body-width: 1025px
