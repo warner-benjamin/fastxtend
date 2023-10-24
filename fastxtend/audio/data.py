@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 from fastcore.dispatch import typedispatch, explode_types
 from fastcore.transform import DisplayedTransform
 
+from fastai.basics import defaults
+from fastai.torch_core import default_device
 from fastai.vision.data import get_grid
 from fastai.data.block import TransformBlock
 
@@ -56,7 +58,7 @@ class Spectrogram(DisplayedTransform):
         center:Listified[bool]=True,
         pad_mode:Listified[str]="reflect",
         onesided:Listified[bool]=True,
-        norm:Listified[str]|None=None,
+        norm:Listified[str]|None=None
     ):
         super().__init__()
         listify_store_attr()
@@ -93,9 +95,11 @@ class Spectrogram(DisplayedTransform):
             return TensorSpec.create(self.spec(x), settings=self._attrs)
 
     def to(self, *args, **kwargs):
-        device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
-        if self.multiple: self.specs.to(device)
-        else: self.spec.to(device)
+        device, *_ = torch._C._nn._parse_to(*args, **kwargs)
+        if self.multiple:
+            self.specs.to(device)
+        else:
+            self.spec.to(device)
 
     def _get_attrs(self):
         return {k:v for k,v in getattr(self,'__dict__',{}).items() if k in getattr(self,'__stored_args__',{}).keys()}
@@ -119,7 +123,6 @@ class MelSpectrogram(DisplayedTransform):
         wkwargs:Listified[dict]|None=None,
         center:Listified[bool]=True,
         pad_mode:Listified[str]="reflect",
-        onesided:Listified[bool]=True,
         norm:Listified[str]|None=None,
         mel_scale:Listified[str]="htk",
         # size:tuple[int,int]|None=None, # If set, resize MelSpectrogram to `size`
@@ -140,7 +143,7 @@ class MelSpectrogram(DisplayedTransform):
                                                        n_mels=self.n_mels[i], window_fn=self.window_fn[i], power=self.power[i],
                                                        normalized=self.normalized[i], wkwargs=self.wkwargs[i],
                                                        center=self.center[i], pad_mode=self.pad_mode[i],
-                                                       onesided=self.onesided[i], norm=self.norm[i], mel_scale=self.mel_scale[i]))
+                                                       norm=self.norm[i], mel_scale=self.mel_scale[i]))
 
                 self._attrs.append({**{k:v[i] for k,v in self._get_attrs().items()},**{'sr':self.sample_rate[i]}})
         else:
@@ -151,8 +154,7 @@ class MelSpectrogram(DisplayedTransform):
                                              hop_length=self.hop_length, f_min=self.f_min, f_max=self.f_max, pad=self.pad,
                                              n_mels=self.n_mels, window_fn=self.window_fn, power=self.power,
                                              normalized=self.normalized, wkwargs=self.wkwargs, center=self.center,
-                                             pad_mode=self.pad_mode, onesided=self.onesided, norm=self.norm,
-                                             mel_scale=self.mel_scale)
+                                             pad_mode=self.pad_mode, norm=self.norm, mel_scale=self.mel_scale)
 
             self._attrs = {**{k:v for k,v in self._get_attrs().items()},**{'sr':self.sample_rate}}
 
@@ -166,9 +168,11 @@ class MelSpectrogram(DisplayedTransform):
             return TensorMelSpec.create(self.mel(x), settings=self._attrs)
 
     def to(self, *args, **kwargs):
-        device, dtype, non_blocking, convert_to_format = torch._C._nn._parse_to(*args, **kwargs)
-        if self.multiple: self.mels.to(device)
-        else: self.mel.to(device)
+        device, *_ = torch._C._nn._parse_to(*args, **kwargs)
+        if self.multiple:
+            self.mels.to(device)
+        else:
+            self.mel.to(device)
 
     def _get_attrs(self):
         return {k:v for k,v in getattr(self,'__dict__',{}).items() if k in getattr(self,'__stored_args__',{}).keys() and k not in ['size', 'mode']}
@@ -191,15 +195,13 @@ def SpecBlock(cls=TensorAudio,
     wkwargs:Listified[dict]|None=None,
     center:Listified[bool]=True,
     pad_mode:Listified[str]="reflect",
-    onesided:Listified[bool]=True,
     norm:Listified[str]|None=None
 ):
     "A `TransformBlock` to read `TensorAudio` and then use the GPU to turn audio into one or more `Spectrogram`s"
     return TransformBlock(type_tfms=cls.create,
                           batch_tfms=[Spectrogram(n_fft=n_fft, win_length=win_length, hop_length=hop_length,
                                                   pad=pad, window_fn=window_fn, power=power, normalized=normalized,
-                                                  wkwargs=wkwargs, center=center, pad_mode=pad_mode,
-                                                  onesided=onesided, norm=norm)])
+                                                  wkwargs=wkwargs, center=center, pad_mode=pad_mode, norm=norm)])
 
 # %% ../../nbs/audio.02_data.ipynb 14
 def MelSpecBlock(cls=TensorAudio,
@@ -218,7 +220,6 @@ def MelSpecBlock(cls=TensorAudio,
     wkwargs:Listified[dict]|None=None,
     center:Listified[bool]=True,
     pad_mode:Listified[str]="reflect",
-    onesided:Listified[bool]=True,
     norm:Listified[str]|None=None,
     mel_scale:Listified[str]="htk"
 ):
@@ -228,5 +229,4 @@ def MelSpecBlock(cls=TensorAudio,
                                                      hop_length=hop_length, f_min=f_min, f_max=f_max, pad=pad,
                                                      n_mels=n_mels, window_fn=window_fn, power=power,
                                                      normalized=normalized, wkwargs=wkwargs, center=center,
-                                                     pad_mode=pad_mode, onesided=onesided, norm=norm,
-                                                     mel_scale=mel_scale)])
+                                                     pad_mode=pad_mode, norm=norm, mel_scale=mel_scale)])

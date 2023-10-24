@@ -7,6 +7,8 @@
 # %% ../../nbs/audio.01_core.ipynb 4
 from __future__ import annotations
 
+from typing import BinaryIO
+
 import torchaudio
 import inspect
 
@@ -39,7 +41,7 @@ def show_audio_signal(at, ctx, ax=None, title="", sep=0.03, **kwargs):
         step += 1 / (at.channels)
         top = sep if i==0 else 0
         ia = ax.inset_axes((0, 1-(step-top), 1, (1 / at.channels)-sep))
-        waveshow(channel.cpu().numpy(), sr=at.sr, ax=ia, x_axis='time' if i==at.channels-1 else 'none', **kwargs)
+        waveshow(channel.cpu().numpy(), sr=at.sr, ax=ia, axis='time' if i==at.channels-1 else 'none', **kwargs)
     ax.set_title(title)
 
     return ax
@@ -49,8 +51,7 @@ class TensorAudio(TensorBase):
     "Tensor for audio. Can be created from files and has extra properties. Also knows how to show itself."
 
     @classmethod
-    @delegates(torchaudio.load, keep=True)
-    def create(cls, fn, **kwargs):
+    def create(cls, fn:str|Path|BinaryIO, **kwargs):
         "Creates `TensorAudio` from file `fn`"
         sig, sr = torchaudio.load(fn, **kwargs)
         return cls(sig, sr=sr)
