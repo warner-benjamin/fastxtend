@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from copy import deepcopy
 
+from torch.utils._foreach_utils import _group_tensors_by_device_and_dtype
+
 from fastai.callback.core import Callback
 from fastai.callback.fp16 import MixedPrecision
 from fastai.callback.schedule import SchedCos, _Annealer
@@ -17,7 +19,7 @@ from .utils import *
 from ..imports import *
 
 # %% auto 0
-__all__ = ['EMACallback', 'EMASchedule', 'EMAWarmupCallback']
+__all__ = ['EMACallback', 'EMASchedule']
 
 # %% ../../nbs/callback.ema.ipynb 6
 class EMACallback(Callback):
@@ -114,8 +116,11 @@ class EMACallback(Callback):
     def after_batch(self):
         if self._do_ema:
             if self.foreach:
-                torch._foreach_mul_(self.ema_tensors, scalar=self.decay)
-                torch._foreach_add_(self.ema_tensors, self.model_tensors, alpha=self.inverse_decay)
+                # foreach methods require all tensors to be the same type
+                grouped_tensors = _group_tensors_by_device_and_dtype([self.model_tensors, self.ema_tensors])
+                for _, ((model_tensors, ema_tensors), _) in grouped_tensors.items():
+                    torch._foreach_mul_(ema_tensors, scalar=self.decay)
+                    torch._foreach_add_(ema_tensors, model_tensors, alpha=self.inverse_decay)
                 # foreach methods cannot convert non-floats back to original type and error out
                 for mb, eb in zip(self.model_buffers, self.ema_buffers):
                     eb.copy_(self.decay * eb + self.inverse_decay * mb)
@@ -196,11 +201,3 @@ class EMASchedule(EMACallback, CallbackScheduler):
             super().after_batch()
 
         self.learn._log_values(ema_decay=self.decay if self._do_ema else 0)
-
-# %% ../../nbs/callback.ema.ipynb 11
-class EMAWarmupCallback(EMASchedule):
-    "EMAWarmpCallback has been renamed to EMASchedule"
-    @delegates(EMASchedule.__init__)
-    def __init__(self, **kwargs):
-        warn("EMAWarmpCallback has been renamed to EMASchedule")
-        super().__init__(**kwargs)
