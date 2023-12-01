@@ -62,7 +62,6 @@ class LogDispatch(Callback):
             for log in self.loggers:
                 log(self.valid_values)
 
-    @delegates(wandb.Table if WANDB else None)
     def log_wandb_table(self, name:str, **kwargs):
         "Log `wandb.Table` to Weights and Biases. See `wandb.Table` for details"
         if WANDB:
