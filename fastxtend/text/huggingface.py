@@ -62,7 +62,7 @@ class HuggingFaceCallback(Callback):
         labels:str|None='labels', # Input batch labels key. Set to None if input doesn't contain labels
         loss:str='loss', # Model output loss key
         logits:str='logits', # Model output logits key
-        unwrap:bool=True, # After training completes, unwrap the Transformers model
+        unwrap:bool=False, # After training completes, unwrap the Transformers model
     ):
         self._label_key, self._loss_key = labels, loss
         self._logit_key, self.unwrap = logits, unwrap
@@ -71,6 +71,7 @@ class HuggingFaceCallback(Callback):
         self._model_loss = isinstance(self.learn.loss_func, HuggingFaceLoss)
         if not isinstance(self.model, HuggingFaceWrapper) and not isinstance(self.model, dynamo.OptimizedModule):
             self.learn.model = HuggingFaceWrapper(self.learn.model)
+            self.learn.hf_model = self.learn.model.hf_model
 
     def before_batch(self):
         self._loss = None
