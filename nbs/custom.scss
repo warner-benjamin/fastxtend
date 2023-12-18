@@ -93,7 +93,12 @@ $code-block-bg-padding: 1rem;
   font-size: 1em !important;
 }
 
-.headroom { border-bottom: 2px solid; border-color: $black; }
+.headroom {
+  border-bottom: 1px solid;
+  border-color: $black;
+  box-shadow: 0 0 .2rem #0000001a,0 .2rem .4rem #0003;
+  transition: transform .25s cubic-bezier(.1,.7,.1,1), box-shadow .25s
+}
 
 .navbar-dark .navbar-toggler-icon {
   background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path stroke='rgb(24, 24, 24)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/></svg>") !important
