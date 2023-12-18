@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Additional functionality for fastai callbacks">
+
+<title>fastxtend - Callback Utilities</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon.ico" rel="icon">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<meta property="og:title" content="fastxtend - Callback Utilities">
+<meta property="og:description" content="Additional functionality for fastai callbacks">
+<meta property="og:site-name" content="fastxtend">
+<meta name="twitter:title" content="fastxtend - Callback Utilities">
+<meta name="twitter:description" content="Additional functionality for fastai callbacks">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fastxtend</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://benjaminwarner.dev" rel="" target="">
+ <span class="menu-text">Blog</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-resources" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Resources</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-resources">    
+        <li>
+    <a class="dropdown-item" href="https://docs.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fast.ai</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://fastcore.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fastcore</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://nbdev.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">nbdev</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/warner-benjamin/fastxtend/issues" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/" rel="" target=""><i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./callback.overview.html">Callbacks</a></li><li class="breadcrumb-item"><a href="./callback.utils.html">Callback Utilities</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fastxtend</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Callbacks</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.overview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.channelslast.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Channels Last</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.cutmixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">CutMixUp &amp; Friends</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.ema.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Exponential Moving Average</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.gradaccum.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Gradient Accumulation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.lr_finder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learning Rate Finder</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.amp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Mixed Precision</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.profiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Profiler Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.progresize.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Progressive Resizing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.compiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTorch Compile</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.tracker.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tracking Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.utils.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Callback Utilities</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">FFCV [beta]</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.tutorial.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.fields.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fields</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.loader.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loader</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.operations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Operations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transforms</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.writer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Writer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utilities</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Losses</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./losses.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loss Functions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./multiloss.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MultiLoss</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./metrics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Metrics Extended</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./schedulers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Schedulers</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./data.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Splitters</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Optimizers</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.fused.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fused fastai Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.eightbit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">8-Bit Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.adan.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Adan Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.lion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lion Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.sophia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sophia Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.stableadam.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">StableAdam Optimizer</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+ <span class="menu-text">Vision</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">Augmentations</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.batch.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Additional Batch Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.itemtensor.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tensor Item Transforms</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vision Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Models</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.attention_modules.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Attention Modules</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.pooling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pooling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.xresnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">XResNet Extended</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true">
+ <span class="menu-text">Text</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./text.huggingface.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true">
+ <span class="menu-text">Audio</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.01_core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.02_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.03_augment.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.04_learner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.05_mixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MixUp &amp; Friends</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true">
+ <span class="menu-text">Utils</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./basics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Basics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./transform.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transform</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utility</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#log-values-from-callbacks" id="toc-log-values-from-callbacks" class="nav-link active" data-scroll-target="#log-values-from-callbacks">Log Values From Callbacks</a>
+  <ul>
+  <li><a href="#weights-and-biases-features" id="toc-weights-and-biases-features" class="nav-link" data-scroll-target="#weights-and-biases-features">Weights and Biases Features</a></li>
+  <li><a href="#logdispatch" id="toc-logdispatch" class="nav-link" data-scroll-target="#logdispatch">LogDispatch</a></li>
+  <li><a href="#logdispatch.log_wandb_table" id="toc-logdispatch.log_wandb_table" class="nav-link" data-scroll-target="#logdispatch.log_wandb_table">LogDispatch.log_wandb_table</a></li>
+  <li><a href="#logdispatch.log_wandb_summary" id="toc-logdispatch.log_wandb_summary" class="nav-link" data-scroll-target="#logdispatch.log_wandb_summary">LogDispatch.log_wandb_summary</a></li>
+  <li><a href="#learner._log_values" id="toc-learner._log_values" class="nav-link" data-scroll-target="#learner._log_values">Learner._log_values</a></li>
+  <li><a href="#learner._log_dict" id="toc-learner._log_dict" class="nav-link" data-scroll-target="#learner._log_dict">Learner._log_dict</a></li>
+  </ul></li>
+  <li><a href="#callback-scheduler" id="toc-callback-scheduler" class="nav-link" data-scroll-target="#callback-scheduler">Callback Scheduler</a>
+  <ul>
+  <li><a href="#callbackscheduler" id="toc-callbackscheduler" class="nav-link" data-scroll-target="#callbackscheduler">CallbackScheduler</a></li>
+  <li><a href="#callbackscheduler.setup_schedule" id="toc-callbackscheduler.setup_schedule" class="nav-link" data-scroll-target="#callbackscheduler.setup_schedule">CallbackScheduler.setup_schedule</a></li>
+  <li><a href="#callbackscheduler.schedule_step" id="toc-callbackscheduler.schedule_step" class="nav-link" data-scroll-target="#callbackscheduler.schedule_step">CallbackScheduler.schedule_step</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/warner-benjamin/fastxtend/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Callback Utilities</h1>
+</div>
+
+<div>
+  <div class="description">
+    Additional functionality for fastai callbacks
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+<script src="https://static.cloudflareinsights.com/beacon.min.js?token=62f27bdcb8964407a52676798db9edfa" defer=""></script>
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<section id="log-values-from-callbacks" class="level2">
+<h2 class="anchored" data-anchor-id="log-values-from-callbacks">Log Values From Callbacks</h2>
+<p>fastxtend adds the ability to log additional values from callbacks via <a href="https://fastxtend.benjaminwarner.dev/callback.utils.html#logdispatch"><code>LogDispatch</code></a> callback and <a href="https://fastxtend.benjaminwarner.dev/callback.utils.html#learner._log_values"><code>Learner._log_values</code></a> &amp; <a href="https://fastxtend.benjaminwarner.dev/callback.utils.html#learner._log_dict"><code>Learner._log_dict</code></a>.</p>
+<p>To log additional values to a supported logger, import <code>LogDispatch</code> and then pass values as arguments to <code>self.learn._log_values</code> or as a dictionary to <code>self.learn._log_dict</code> in <code>after_batch</code> for training values and <code>after_epoch</code> for validation values.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastxtend.callback.utils <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ExampleCallback(Callback)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> after_batch(<span class="va">self</span>):</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.learn._log_values(train_value1<span class="op">=</span>value1, train_value2<span class="op">=</span>value2)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> after_epoch(<span class="va">self</span>):</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.learn._log_dict({<span class="st">'valid/value1'</span>:value1, <span class="st">'valid/value2'</span>:value2})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><code>LogDispatch</code> will update a train and valid dictionary using the argument names as keys, and will call each supported logger’s update method after <code>Recorder</code> runs.</p>
+<p>If imported <code>LogDispatch</code> will automatically be added to the default fastai callbacks.</p>
+<p>Supported loggers:</p>
+<ul>
+<li><a href="https://docs.fast.ai/callback.wandb.html#wandbcallback"><code>fastai.callback.wandb.WandbCallback</code></a></li>
+<li><a href="https://docs.fast.ai/callback.tensorboard.html#tensorboardcallback"><code>fastai.callback.tensorboard.TensorBoardCallback</code></a></li>
+</ul>
+<p>fastxtend uses <code>LogDispatch</code> across multiple callbacks, such as <code>EMAWarmupCallback</code> and <a href="https://fastxtend.benjaminwarner.dev/callback.progresize.html#progressiveresize"><code>ProgressiveResize</code></a>, to log additional information.</p>
+<p>PRs to add additional supported loggers are welcome.</p>
+<section id="weights-and-biases-features" class="level3">
+<h3 class="anchored" data-anchor-id="weights-and-biases-features">Weights and Biases Features</h3>
+<p><a href="https://fastxtend.benjaminwarner.dev/callback.utils.html#logdispatch.log_wandb_table"><code>LogDispatch.log_wandb_table</code></a> allows logging a <a href="https://docs.wandb.ai/guides/track/log/log-tables">Weights and Biases Table</a> in a callback.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ExampleCallback(Callback)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> after_fit(<span class="va">self</span>):</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.learn.log_dispatch.log_wandb_table(name<span class="op">=</span><span class="st">'pandas_df'</span>, dataframe<span class="op">=</span>pandas_df)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><a href="https://fastxtend.benjaminwarner.dev/callback.utils.html#logdispatch.log_wandb_summary"><code>LogDispatch.log_wandb_summary</code></a> allows logging <a href="https://docs.wandb.ai/guides/track/log/log-summary">Weights and Biases Summary Metrics</a> in a callback.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ExampleCallback(Callback)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> after_fit(<span class="va">self</span>):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.learn.log_dispatch.log_wandb_summary(name<span class="op">=</span><span class="st">'summary_metric'</span>, summary<span class="op">=</span>summary_metric)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/callback/utils.py#L38" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="logdispatch" class="level3">
+<h3 class="anchored" data-anchor-id="logdispatch">LogDispatch</h3>
+<blockquote class="blockquote">
+<pre><code> LogDispatch (after_create=None, before_fit=None, before_epoch=None,
+              before_train=None, before_batch=None, after_pred=None,
+              after_loss=None, before_backward=None,
+              after_cancel_backward=None, after_backward=None,
+              before_step=None, after_cancel_step=None, after_step=None,
+              after_cancel_batch=None, after_batch=None,
+              after_cancel_train=None, after_train=None,
+              before_validate=None, after_cancel_validate=None,
+              after_validate=None, after_cancel_epoch=None,
+              after_epoch=None, after_cancel_fit=None, after_fit=None)</code></pre>
+</blockquote>
+<p>A default callback for dispatching additional values to loggers</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/callback/utils.py#L65" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="logdispatch.log_wandb_table" class="level3">
+<h3 class="anchored" data-anchor-id="logdispatch.log_wandb_table">LogDispatch.log_wandb_table</h3>
+<blockquote class="blockquote">
+<pre><code> LogDispatch.log_wandb_table (name:str, **kwargs)</code></pre>
+</blockquote>
+<p>Log <code>wandb.Table</code> to Weights and Biases. See <code>wandb.Table</code> for details</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/callback/utils.py#L72" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="logdispatch.log_wandb_summary" class="level3">
+<h3 class="anchored" data-anchor-id="logdispatch.log_wandb_summary">LogDispatch.log_wandb_summary</h3>
+<blockquote class="blockquote">
+<pre><code> LogDispatch.log_wandb_summary (name:str, summary:Callable)</code></pre>
+</blockquote>
+<p>Log Summary Metrics to Weights and Biases. See <code>wandb.summary</code> for details</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/callback/utils.py#L108" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="learner._log_values" class="level3">
+<h3 class="anchored" data-anchor-id="learner._log_values">Learner._log_values</h3>
+<blockquote class="blockquote">
+<pre><code> Learner._log_values (**kwargs)</code></pre>
+</blockquote>
+<p>Update additional logging values from arguments using <a href="https://fastxtend.benjaminwarner.dev/callback.utils.html#logdispatch"><code>LogDispatch</code></a>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/callback/utils.py#L114" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="learner._log_dict" class="level3">
+<h3 class="anchored" data-anchor-id="learner._log_dict">Learner._log_dict</h3>
+<blockquote class="blockquote">
+<pre><code> Learner._log_dict (value_dict:dict)</code></pre>
+</blockquote>
+<p>Update additional logging values from a dictionary using <a href="https://fastxtend.benjaminwarner.dev/callback.utils.html#logdispatch"><code>LogDispatch</code></a>.</p>
+</section>
+</section>
+<section id="callback-scheduler" class="level2">
+<h2 class="anchored" data-anchor-id="callback-scheduler">Callback Scheduler</h2>
+<p><code>CallbackScheduler</code> is a utlitity method for callback developers to modifying callback values on a schedule.</p>
+<p>fastxtend uses it in <code>EMAWarmupCallback</code> to schedule the EMA decay rate.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/callback/utils.py#L119" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="callbackscheduler" class="level3">
+<h3 class="anchored" data-anchor-id="callbackscheduler">CallbackScheduler</h3>
+<blockquote class="blockquote">
+<pre><code> CallbackScheduler ()</code></pre>
+</blockquote>
+<p>A mixin for scheduling values in a Callback</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/callback/utils.py#L122" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="callbackscheduler.setup_schedule" class="level3">
+<h3 class="anchored" data-anchor-id="callbackscheduler.setup_schedule">CallbackScheduler.setup_schedule</h3>
+<blockquote class="blockquote">
+<pre><code> CallbackScheduler.setup_schedule (n_epoch:int, dls_len:int,
+                                   start_value:Union[int,float],
+                                   final_value:Union[int,float],
+                                   start:Union[int,float],
+                                   finish:Union[int,float], schedule:Calla
+                                   ble[...,fastai.callback.schedule._Annea
+                                   ler]=&lt;function SchedCos&gt;,
+                                   ndigits:Union[int,float,NoneType]=None,
+                                   callback_name:str='CallbackScheduler',
+                                   resume:bool=False)</code></pre>
+</blockquote>
+<p>Setup the schedule for <code>schedule_step</code>. Call during <code>Callback.begin_fit</code></p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>n_epoch</td>
+<td>int</td>
+<td></td>
+<td>Number of training epochs. From a callback pass n_epoch</td>
+</tr>
+<tr class="even">
+<td>dls_len</td>
+<td>int</td>
+<td></td>
+<td>Length of the training dataset</td>
+</tr>
+<tr class="odd">
+<td>start_value</td>
+<td>Numeric</td>
+<td></td>
+<td>Initial scheduling value</td>
+</tr>
+<tr class="even">
+<td>final_value</td>
+<td>Numeric</td>
+<td></td>
+<td>Final scheduling value</td>
+</tr>
+<tr class="odd">
+<td>start</td>
+<td>Numeric</td>
+<td></td>
+<td>Start schedule in percent of training steps (float) or epochs (int, index 0)</td>
+</tr>
+<tr class="even">
+<td>finish</td>
+<td>Numeric</td>
+<td></td>
+<td>Finish schedule in percent of training steps (float) or epochs (int, index 0)</td>
+</tr>
+<tr class="odd">
+<td>schedule</td>
+<td>Callable[…, _Annealer]</td>
+<td>SchedCos</td>
+<td>Schedule type. Any fastai schedule annealer</td>
+</tr>
+<tr class="even">
+<td>ndigits</td>
+<td>Numeric | None</td>
+<td>None</td>
+<td>Round return value to ndigits if set using Python’s <code>round</code>.</td>
+</tr>
+<tr class="odd">
+<td>callback_name</td>
+<td>str</td>
+<td>CallbackScheduler</td>
+<td>Name of scheduler for warning &amp; error messages</td>
+</tr>
+<tr class="even">
+<td>resume</td>
+<td>bool</td>
+<td>False</td>
+<td>Whether training has resumed or not</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/callback/utils.py#L154" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="callbackscheduler.schedule_step" class="level3">
+<h3 class="anchored" data-anchor-id="callbackscheduler.schedule_step">CallbackScheduler.schedule_step</h3>
+<blockquote class="blockquote">
+<pre><code> CallbackScheduler.schedule_step (value:Union[int,float], pct_train:float)</code></pre>
+</blockquote>
+<p>Takes a scheduling step and returns updated value</p>
+<table class="table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 38%">
+<col style="width: 52%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>value</td>
+<td>Numeric</td>
+<td>Value to schedule. Value is returned as the passed in type</td>
+</tr>
+<tr class="even">
+<td>pct_train</td>
+<td>float</td>
+<td>Training progress in percent. From a callback pass self.pct_train</td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var filterRegex = new RegExp("https:\/\/fastxtend\.benjaminwarner\.dev\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+          // target, if specified
+          link.setAttribute("target", "_blank");
+      }
+    }
+});
+</script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">Copyright © 2023 Benjamin Warner, MIT License</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner">
+      <i class="bi bi-twitter" role="img">
+</i> 
+    </a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+</body></html>

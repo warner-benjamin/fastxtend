@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Transforms to apply data augmentation in audio tasks. Inspired by FastAudio and torch-audiomentations.">
+
+<title>fastxtend - Audio Data Augmentation</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon.ico" rel="icon">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<meta property="og:title" content="fastxtend - Audio Data Augmentation">
+<meta property="og:description" content="Transforms to apply data augmentation in audio tasks. Inspired by FastAudio and torch-audiomentations.">
+<meta property="og:image" content="https://fastxtend.benjaminwarner.dev/audio.03_augment_files/figure-html/cell-3-output-1.png">
+<meta property="og:site-name" content="fastxtend">
+<meta property="og:image:height" content="262">
+<meta property="og:image:width" content="498">
+<meta name="twitter:title" content="fastxtend - Audio Data Augmentation">
+<meta name="twitter:description" content="Transforms to apply data augmentation in audio tasks. Inspired by FastAudio and torch-audiomentations.">
+<meta name="twitter:image" content="https://fastxtend.benjaminwarner.dev/audio.03_augment_files/figure-html/cell-3-output-1.png">
+<meta name="twitter:image-height" content="262">
+<meta name="twitter:image-width" content="498">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fastxtend</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://benjaminwarner.dev" rel="" target="">
+ <span class="menu-text">Blog</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-resources" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Resources</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-resources">    
+        <li>
+    <a class="dropdown-item" href="https://docs.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fast.ai</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://fastcore.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fastcore</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://nbdev.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">nbdev</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/warner-benjamin/fastxtend/issues" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/" rel="" target=""><i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./audio.01_core.html">Audio</a></li><li class="breadcrumb-item"><a href="./audio.03_augment.html">Augmentations</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fastxtend</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Callbacks</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.overview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.channelslast.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Channels Last</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.cutmixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">CutMixUp &amp; Friends</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.ema.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Exponential Moving Average</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.gradaccum.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Gradient Accumulation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.lr_finder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learning Rate Finder</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.amp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Mixed Precision</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.profiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Profiler Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.progresize.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Progressive Resizing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.compiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTorch Compile</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.tracker.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tracking Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Callback Utilities</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">FFCV [beta]</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.tutorial.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.fields.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fields</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.loader.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loader</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.operations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Operations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transforms</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.writer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Writer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utilities</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Losses</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./losses.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loss Functions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./multiloss.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MultiLoss</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./metrics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Metrics Extended</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./schedulers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Schedulers</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./data.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Splitters</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Optimizers</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.fused.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fused fastai Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.eightbit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">8-Bit Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.adan.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Adan Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.lion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lion Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.sophia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sophia Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.stableadam.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">StableAdam Optimizer</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+ <span class="menu-text">Vision</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">Augmentations</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.batch.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Additional Batch Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.itemtensor.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tensor Item Transforms</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vision Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Models</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.attention_modules.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Attention Modules</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.pooling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pooling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.xresnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">XResNet Extended</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true">
+ <span class="menu-text">Text</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./text.huggingface.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true">
+ <span class="menu-text">Audio</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.01_core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.02_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.03_augment.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.04_learner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.05_mixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MixUp &amp; Friends</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true">
+ <span class="menu-text">Utils</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./basics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Basics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./transform.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transform</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utility</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#tensoraudio-item-transforms" id="toc-tensoraudio-item-transforms" class="nav-link active" data-scroll-target="#tensoraudio-item-transforms">TensorAudio Item Transforms</a>
+  <ul>
+  <li><a href="#flip" id="toc-flip" class="nav-link" data-scroll-target="#flip">Flip</a></li>
+  <li><a href="#roll" id="toc-roll" class="nav-link" data-scroll-target="#roll">Roll</a></li>
+  <li><a href="#audiopadmode" id="toc-audiopadmode" class="nav-link" data-scroll-target="#audiopadmode">AudioPadMode</a></li>
+  <li><a href="#randomcroppad" id="toc-randomcroppad" class="nav-link" data-scroll-target="#randomcroppad">RandomCropPad</a></li>
+  <li><a href="#volumemode" id="toc-volumemode" class="nav-link" data-scroll-target="#volumemode">VolumeMode</a></li>
+  <li><a href="#volume" id="toc-volume" class="nav-link" data-scroll-target="#volume">Volume</a></li>
+  <li><a href="#peaknorm" id="toc-peaknorm" class="nav-link" data-scroll-target="#peaknorm">PeakNorm</a></li>
+  <li><a href="#volumeorpeaknorm" id="toc-volumeorpeaknorm" class="nav-link" data-scroll-target="#volumeorpeaknorm">VolumeOrPeakNorm</a></li>
+  <li><a href="#noise" id="toc-noise" class="nav-link" data-scroll-target="#noise">Noise</a></li>
+  </ul></li>
+  <li><a href="#tensoraudio-batch-transforms" id="toc-tensoraudio-batch-transforms" class="nav-link" data-scroll-target="#tensoraudio-batch-transforms">TensorAudio Batch Transforms</a>
+  <ul>
+  <li><a href="#volumebatch" id="toc-volumebatch" class="nav-link" data-scroll-target="#volumebatch">VolumeBatch</a></li>
+  <li><a href="#pitchshift" id="toc-pitchshift" class="nav-link" data-scroll-target="#pitchshift">PitchShift</a></li>
+  <li><a href="#pitchshiftta" id="toc-pitchshiftta" class="nav-link" data-scroll-target="#pitchshiftta">PitchShiftTA</a></li>
+  <li><a href="#timestretch" id="toc-timestretch" class="nav-link" data-scroll-target="#timestretch">TimeStretch</a></li>
+  <li><a href="#pitchshiftortimestretch" id="toc-pitchshiftortimestretch" class="nav-link" data-scroll-target="#pitchshiftortimestretch">PitchShiftOrTimeStretch</a></li>
+  </ul></li>
+  <li><a href="#tensormelspec-transforms" id="toc-tensormelspec-transforms" class="nav-link" data-scroll-target="#tensormelspec-transforms">TensorMelspec Transforms</a>
+  <ul>
+  <li><a href="#timemasking" id="toc-timemasking" class="nav-link" data-scroll-target="#timemasking">TimeMasking</a></li>
+  <li><a href="#frequencymasking" id="toc-frequencymasking" class="nav-link" data-scroll-target="#frequencymasking">FrequencyMasking</a></li>
+  <li><a href="#amplitudetodbmode" id="toc-amplitudetodbmode" class="nav-link" data-scroll-target="#amplitudetodbmode">AmplitudeToDBMode</a></li>
+  <li><a href="#amplitudetodb" id="toc-amplitudetodb" class="nav-link" data-scroll-target="#amplitudetodb">AmplitudeToDB</a></li>
+  <li><a href="#audionormalize" id="toc-audionormalize" class="nav-link" data-scroll-target="#audionormalize">AudioNormalize</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/warner-benjamin/fastxtend/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Audio Data Augmentation</h1>
+</div>
+
+<div>
+  <div class="description">
+    Transforms to apply data augmentation in audio tasks. Inspired by FastAudio and torch-audiomentations.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+<script src="https://static.cloudflareinsights.com/beacon.min.js?token=62f27bdcb8964407a52676798db9edfa" defer=""></script>
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<section id="tensoraudio-item-transforms" class="level2">
+<h2 class="anchored" data-anchor-id="tensoraudio-item-transforms">TensorAudio Item Transforms</h2>
+<p>Item transforms which run on the CPU.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L48" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="flip" class="level3">
+<h3 class="anchored" data-anchor-id="flip">Flip</h3>
+<blockquote class="blockquote">
+<pre><code> Flip (p:float=0.5)</code></pre>
+</blockquote>
+<p>Randomly flip <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a> with probability <code>p</code></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">2</span>,figsize<span class="op">=</span>(<span class="dv">8</span>,<span class="dv">4</span>))</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    f <span class="op">=</span> Flip()</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> axs: f(audio, split_idx<span class="op">=</span><span class="dv">0</span>).show(ctx<span class="op">=</span>ax, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-3-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L58" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="roll" class="level3">
+<h3 class="anchored" data-anchor-id="roll">Roll</h3>
+<blockquote class="blockquote">
+<pre><code> Roll (p:float=0.5, max_roll:float=0.5)</code></pre>
+</blockquote>
+<p>Randomly shift <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a> with rollover</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.5</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>max_roll</td>
+<td>float</td>
+<td>0.5</td>
+<td>Maximum shift</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">3</span>,figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>))</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    f <span class="op">=</span> Roll(p<span class="op">=</span><span class="dv">1</span>,max_roll<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> axs: f(audio, split_idx<span class="op">=</span><span class="dv">0</span>).show(ctx<span class="op">=</span>ax, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-5-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L79" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="audiopadmode" class="level3">
+<h3 class="anchored" data-anchor-id="audiopadmode">AudioPadMode</h3>
+<blockquote class="blockquote">
+<pre><code> AudioPadMode (value, names=None, module=None, qualname=None, type=None,
+               start=1)</code></pre>
+</blockquote>
+<p>An enumeration.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L117" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="randomcroppad" class="level3">
+<h3 class="anchored" data-anchor-id="randomcroppad">RandomCropPad</h3>
+<blockquote class="blockquote">
+<pre><code> RandomCropPad (duration:Numeric|None=None, samples:int|None=None,
+                padmode:AudioPadMode=&lt;AudioPadMode.Repeat: 4&gt;,
+                constant:Numeric=0)</code></pre>
+</blockquote>
+<p>Randomly resize <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a> to specified length. Center crop during valid.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>duration</td>
+<td>Numeric | None</td>
+<td>None</td>
+<td>Crop length in seconds</td>
+</tr>
+<tr class="even">
+<td>samples</td>
+<td>int | None</td>
+<td>None</td>
+<td>Crop length in samples</td>
+</tr>
+<tr class="odd">
+<td>padmode</td>
+<td>AudioPadMode</td>
+<td>AudioPadMode.Repeat</td>
+<td>How to pad if necessary</td>
+</tr>
+<tr class="even">
+<td>constant</td>
+<td>Numeric</td>
+<td>0</td>
+<td>Value for <code>AudioPadMode.Constant</code></td>
+</tr>
+</tbody>
+</table>
+<p><a href="https://fastxtend.benjaminwarner.dev/audio.03_augment.html#randomcroppad"><code>RandomCropPad</code></a> will pad using one of the following five modes if the input length is less than <code>duration</code> or <code>samples</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">4</span>,figsize<span class="op">=</span>(<span class="dv">18</span>,<span class="dv">4</span>))</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax,padmode <span class="kw">in</span> <span class="bu">zip</span>(axs.flatten(), [AudioPadMode.Constant, AudioPadMode.ConstantPre,</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                                          AudioPadMode.ConstantPost, AudioPadMode.Repeat]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    ):</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        rcp <span class="op">=</span> RandomCropPad(<span class="dv">4</span>, padmode<span class="op">=</span>padmode)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        rcp(audio, split_idx<span class="op">=</span><span class="dv">1</span>).show(ctx<span class="op">=</span>ax, title<span class="op">=</span>padmode, hear<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        plt.tight_layout()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-8-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>During training, <a href="https://fastxtend.benjaminwarner.dev/audio.03_augment.html#randomcroppad"><code>RandomCropPad</code></a> will randomly crop if the input length is greater than <code>duration</code> or <code>samples</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">3</span>,figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>))</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    rcp <span class="op">=</span> RandomCropPad(<span class="fl">1.2</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> axs: rcp(audio, split_idx<span class="op">=</span><span class="dv">0</span>).show(ctx<span class="op">=</span>ax, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-9-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<p>During validation or prediction, <a href="https://fastxtend.benjaminwarner.dev/audio.03_augment.html#randomcroppad"><code>RandomCropPad</code></a> will center crop if the input length is greater than <code>duration</code> or <code>samples</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">3</span>,figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>))</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    rcp <span class="op">=</span> RandomCropPad(<span class="fl">1.2</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> axs: rcp(audio, split_idx<span class="op">=</span><span class="dv">1</span>).show(ctx<span class="op">=</span>ax, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-10-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L152" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="volumemode" class="level3">
+<h3 class="anchored" data-anchor-id="volumemode">VolumeMode</h3>
+<blockquote class="blockquote">
+<pre><code> VolumeMode (value, names=None, module=None, qualname=None, type=None,
+             start=1)</code></pre>
+</blockquote>
+<p>An enumeration.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L159" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="volume" class="level3">
+<h3 class="anchored" data-anchor-id="volume">Volume</h3>
+<blockquote class="blockquote">
+<pre><code> Volume (p:float=0.75, gain:Numeric|None=None,
+         gain_range:tuple[Numeric,Numeric]=(-18, 6),
+         volmode:VolumeMode=&lt;VolumeMode.DB: 1&gt;)</code></pre>
+</blockquote>
+<p>Randomly change <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a>’s volume</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.75</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>gain</td>
+<td>Numeric | None</td>
+<td>None</td>
+<td>Gain is a positive amplitude ratio, a power (voltage squared), or in decibels. If none, randomly select from <code>gain_range</code>.</td>
+</tr>
+<tr class="odd">
+<td>gain_range</td>
+<td>tuple[Numeric, Numeric]</td>
+<td>(-18, 6)</td>
+<td>Random range for gain</td>
+</tr>
+<tr class="even">
+<td>volmode</td>
+<td>VolumeMode</td>
+<td>VolumeMode.DB</td>
+<td>One of <code>VolumeMode.DB</code>, <code>VolumeMode.Amplitude</code>, or <code>VolumeMode.Power</code></td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>_,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">4</span>,figsize<span class="op">=</span>(<span class="dv">18</span>,<span class="dv">4</span>))</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax,gain <span class="kw">in</span> <span class="bu">zip</span>(axs.flatten(), [<span class="op">-</span><span class="dv">18</span>, <span class="op">-</span><span class="dv">6</span>, <span class="dv">0</span>, <span class="dv">6</span>]):</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    vol <span class="op">=</span> Volume(p<span class="op">=</span><span class="fl">1.</span>, gain<span class="op">=</span>gain)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    vol(audio, split_idx<span class="op">=</span><span class="dv">0</span>).show(ctx<span class="op">=</span>ax, title<span class="op">=</span><span class="ss">f'</span><span class="sc">{</span>gain<span class="sc">}</span><span class="ss"> DB'</span>, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-13-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L194" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="peaknorm" class="level3">
+<h3 class="anchored" data-anchor-id="peaknorm">PeakNorm</h3>
+<blockquote class="blockquote">
+<pre><code> PeakNorm (p:float=0.1)</code></pre>
+</blockquote>
+<p>Randomly apply constant gain so <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a>’s loudest level is between -1 and 1 with probability <code>p</code></p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>_,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">1</span>,figsize<span class="op">=</span>(<span class="dv">4</span>,<span class="dv">4</span>))</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>PeakNorm(p<span class="op">=</span><span class="fl">1.</span>)(audio, split_idx<span class="op">=</span><span class="dv">0</span>).show(ctx<span class="op">=</span>axs, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>&lt;AxesSubplot:&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-15-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L205" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="volumeorpeaknorm" class="level3">
+<h3 class="anchored" data-anchor-id="volumeorpeaknorm">VolumeOrPeakNorm</h3>
+<blockquote class="blockquote">
+<pre><code> VolumeOrPeakNorm (p:float=0.75, peak_p:float=0.1, gain:Numeric|None=None,
+                   gain_range:tuple[Numeric,Numeric]=(-18, 6),
+                   volmode:VolumeMode=&lt;VolumeMode.DB: 1&gt;)</code></pre>
+</blockquote>
+<p>Randomly apply <a href="https://fastxtend.benjaminwarner.dev/audio.03_augment.html#volume"><code>Volume</code></a> or <code>Peak</code> to <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a> in one transform</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.75</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>peak_p</td>
+<td>float</td>
+<td>0.1</td>
+<td>Probability of applying <code>Peak</code></td>
+</tr>
+<tr class="odd">
+<td>gain</td>
+<td>Numeric | None</td>
+<td>None</td>
+<td>Gain is a positive amplitude ratio, a power (voltage squared), or in decibels. If none, randomly select from <code>gain_range</code>.</td>
+</tr>
+<tr class="even">
+<td>gain_range</td>
+<td>tuple[Numeric, Numeric]</td>
+<td>(-18, 6)</td>
+<td>Random range for gain</td>
+</tr>
+<tr class="odd">
+<td>volmode</td>
+<td>VolumeMode</td>
+<td>VolumeMode.DB</td>
+<td>One of <code>VolumeMode.DB</code>, <code>VolumeMode.Amplitude</code>, or <code>VolumeMode.Power</code></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L259" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="noise" class="level3">
+<h3 class="anchored" data-anchor-id="noise">Noise</h3>
+<blockquote class="blockquote">
+<pre><code> Noise (p=0.25, noise_level:float|None=None,
+        noise_range:tuple[float,float]=(0.01, 0.1),
+        color:NoiseColor|None=None)</code></pre>
+</blockquote>
+<p>Adds noise of specified color and level to <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a> relative to mean audio level</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.25</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>noise_level</td>
+<td>float | None</td>
+<td>None</td>
+<td>Loudness of noise, if None randomly selects from <code>noise_range</code></td>
+</tr>
+<tr class="odd">
+<td>noise_range</td>
+<td>tuple[float, float]</td>
+<td>(0.01, 0.1)</td>
+<td>Range of noise loudness values</td>
+</tr>
+<tr class="even">
+<td>color</td>
+<td>NoiseColor | None</td>
+<td>None</td>
+<td>Color of noise to add, if None randomly selects from <a href="https://fastxtend.benjaminwarner.dev/audio.03_augment.html#noisecolor"><code>NoiseColor</code></a></td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    cn <span class="op">=</span> NoiseColor.White</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">4</span>,figsize<span class="op">=</span>(<span class="dv">22</span>,<span class="dv">4</span>))</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    plt.suptitle(<span class="ss">f'</span><span class="sc">{</span>cn<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax,nl <span class="kw">in</span> <span class="bu">zip</span>(axs.flatten(), [<span class="fl">0.02</span>, <span class="fl">0.05</span>, <span class="fl">0.1</span>, <span class="fl">0.2</span>]):</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>        ps <span class="op">=</span> Noise(p<span class="op">=</span><span class="fl">1.</span>, noise_level<span class="op">=</span>nl, color<span class="op">=</span>cn)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>        audio <span class="op">=</span> TensorAudio.create(TEST_AUDIO)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>        ps(audio, split_idx<span class="op">=</span><span class="dv">0</span>).show(ctx<span class="op">=</span>ax, title<span class="op">=</span><span class="ss">f'noise_level: </span><span class="sc">{</span>nl<span class="sc">}</span><span class="ss">'</span>, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-18-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="tensoraudio-batch-transforms" class="level2">
+<h2 class="anchored" data-anchor-id="tensoraudio-batch-transforms">TensorAudio Batch Transforms</h2>
+<p>Batch transforms which run on the GPU.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L295" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="volumebatch" class="level3">
+<h3 class="anchored" data-anchor-id="volumebatch">VolumeBatch</h3>
+<blockquote class="blockquote">
+<pre><code> VolumeBatch (p:float=0.5, gain:Numeric|None=None,
+              gain_range:tuple[Numeric,Numeric]=(-18, 6),
+              volmode:VolumeMode=&lt;VolumeMode.DB: 1&gt;)</code></pre>
+</blockquote>
+<p>Randomly change <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a>’s volume on the GPU</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.5</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>gain</td>
+<td>Numeric | None</td>
+<td>None</td>
+<td>Gain is a positive amplitude ratio, a power (voltage squared), or in decibels. If none, randomly select from <code>gain_range</code>.</td>
+</tr>
+<tr class="odd">
+<td>gain_range</td>
+<td>tuple[Numeric, Numeric]</td>
+<td>(-18, 6)</td>
+<td>Random range for gain</td>
+</tr>
+<tr class="even">
+<td>volmode</td>
+<td>VolumeMode</td>
+<td>VolumeMode.DB</td>
+<td>One of <code>VolumeMode.DB</code>, <code>VolumeMode.Amplitude</code>, or <code>VolumeMode.Power</code></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L422" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="pitchshift" class="level3">
+<h3 class="anchored" data-anchor-id="pitchshift">PitchShift</h3>
+<blockquote class="blockquote">
+<pre><code> PitchShift (p:float=0.2, semitones:tuple[float,float]=(-4.0, 4.0),
+             bins_per_octave:int=12,
+             padmode:AudioPadMode=&lt;AudioPadMode.Repeat: 4&gt;,
+             constant:Numeric=0, split:int|None=None)</code></pre>
+</blockquote>
+<p>Fast shift of <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a>’s pitch.</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.2</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>semitones</td>
+<td>tuple[float, float]</td>
+<td>(-4.0, 4.0)</td>
+<td>Random pitch shift range in semitones to compute efficient shifts</td>
+</tr>
+<tr class="odd">
+<td>bins_per_octave</td>
+<td>int</td>
+<td>12</td>
+<td>Number of steps per octave</td>
+</tr>
+<tr class="even">
+<td>padmode</td>
+<td>AudioPadMode</td>
+<td>AudioPadMode.Repeat</td>
+<td>How to pad if necessary</td>
+</tr>
+<tr class="odd">
+<td>constant</td>
+<td>Numeric</td>
+<td>0</td>
+<td>Value for <code>AudioPadMode.Constant</code></td>
+</tr>
+<tr class="even">
+<td>split</td>
+<td>int | None</td>
+<td>None</td>
+<td>Apply transform to <code>split</code> items at a time. Use to prevent GPU OOM.</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">4</span>,figsize<span class="op">=</span>(<span class="dv">22</span>,<span class="dv">4</span>))</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    ps <span class="op">=</span> PitchShift(p<span class="op">=</span><span class="fl">1.</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> axs.flatten():</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>        audio <span class="op">=</span> TensorAudio.create(TEST_AUDIO)</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        ps(audio.unsqueeze(<span class="dv">0</span>), split_idx<span class="op">=</span><span class="dv">0</span>).squeeze(<span class="dv">0</span>).show(ctx<span class="op">=</span>ax, title<span class="op">=</span><span class="ss">f'shift: </span><span class="sc">{</span>ps<span class="sc">.</span>shift<span class="sc">}</span><span class="ss">'</span>, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-21-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L476" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="pitchshiftta" class="level3">
+<h3 class="anchored" data-anchor-id="pitchshiftta">PitchShiftTA</h3>
+<blockquote class="blockquote">
+<pre><code> PitchShiftTA (p:float=0.2, n_steps:int|None=None,
+               n_step_range:tuple[int,int]=(2, 6), bins_per_octave:int=12,
+               n_fft:int=512, win_length:int|None=None,
+               hop_length:int|None=None,
+               window_fn:Callable[...,Tensor]=&lt;built-in method hann_window
+               of type object at 0x7f95e7c335c0&gt;, wkwargs:dict|None=None)</code></pre>
+</blockquote>
+<p>Shift the <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a>’s pitch using TorchAudio. Can be slower than <a href="https://fastxtend.benjaminwarner.dev/audio.03_augment.html#pitchshift"><code>PitchShift</code></a></p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.2</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>n_steps</td>
+<td>int | None</td>
+<td>None</td>
+<td>The (fractional) steps to shift waveform</td>
+</tr>
+<tr class="odd">
+<td>n_step_range</td>
+<td>tuple[int, int]</td>
+<td>(2, 6)</td>
+<td>Random <code>n_steps</code> range if <code>n_steps</code> is None</td>
+</tr>
+<tr class="even">
+<td>bins_per_octave</td>
+<td>int</td>
+<td>12</td>
+<td>Number of steps per octave</td>
+</tr>
+<tr class="odd">
+<td>n_fft</td>
+<td>int</td>
+<td>512</td>
+<td>Size of FFT, creates n_fft // 2 + 1 bins</td>
+</tr>
+<tr class="even">
+<td>win_length</td>
+<td>int | None</td>
+<td>None</td>
+<td>Window size. Defaults to <code>n_fft</code></td>
+</tr>
+<tr class="odd">
+<td>hop_length</td>
+<td>int | None</td>
+<td>None</td>
+<td>Length of hop between STFT windows. Defaults to <code>win_length</code> // 4</td>
+</tr>
+<tr class="even">
+<td>window_fn</td>
+<td>Callable[…, Tensor]</td>
+<td>hann_window</td>
+<td>Window tensor applied/multiplied to each frame/window</td>
+</tr>
+<tr class="odd">
+<td>wkwargs</td>
+<td>dict | None</td>
+<td>None</td>
+<td>Args for <code>window_fn</code></td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>_,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">4</span>,figsize<span class="op">=</span>(<span class="dv">22</span>,<span class="dv">4</span>))</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax,steps <span class="kw">in</span> <span class="bu">zip</span>(axs.flatten(), [<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">5</span>, <span class="dv">7</span>]):</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    ps <span class="op">=</span> PitchShiftTA(p<span class="op">=</span><span class="fl">1.</span>, n_steps<span class="op">=</span>steps)</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    audio <span class="op">=</span> TensorAudio.create(TEST_AUDIO)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    ps(audio.unsqueeze(<span class="dv">0</span>), split_idx<span class="op">=</span><span class="dv">0</span>).squeeze(<span class="dv">0</span>).show(ctx<span class="op">=</span>ax, title<span class="op">=</span><span class="ss">f'n_steps: </span><span class="sc">{</span>steps<span class="sc">}</span><span class="ss">'</span>, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-23-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L526" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="timestretch" class="level3">
+<h3 class="anchored" data-anchor-id="timestretch">TimeStretch</h3>
+<blockquote class="blockquote">
+<pre><code> TimeStretch (p:float=0.2, stretch_rates:tuple[float,float]=(0.5, 2.0),
+              padmode:AudioPadMode=&lt;AudioPadMode.Repeat: 4&gt;,
+              constant:Numeric=0, split:int|None=None)</code></pre>
+</blockquote>
+<p>Fast time stretch of <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a></p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.2</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>stretch_rates</td>
+<td>tuple[float, float]</td>
+<td>(0.5, 2.0)</td>
+<td>Random time stretch range to compute efficient stretches. Defaults to 50%-200% speed</td>
+</tr>
+<tr class="odd">
+<td>padmode</td>
+<td>AudioPadMode</td>
+<td>AudioPadMode.Repeat</td>
+<td>How to pad if necessary</td>
+</tr>
+<tr class="even">
+<td>constant</td>
+<td>Numeric</td>
+<td>0</td>
+<td>Value for <code>AudioPadMode.Constant</code></td>
+</tr>
+<tr class="odd">
+<td>split</td>
+<td>int | None</td>
+<td>None</td>
+<td>Apply transform to <code>split</code> items at a time. Use to prevent GPU OOM.</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">4</span>,figsize<span class="op">=</span>(<span class="dv">22</span>,<span class="dv">4</span>))</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    ts <span class="op">=</span> TimeStretch(p<span class="op">=</span><span class="fl">1.</span>)</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> axs.flatten():</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>        audio <span class="op">=</span> TensorAudio.create(TEST_AUDIO)</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>        ts(audio.unsqueeze(<span class="dv">0</span>), split_idx<span class="op">=</span><span class="dv">0</span>).squeeze(<span class="dv">0</span>).show(ctx<span class="op">=</span>ax, title<span class="op">=</span><span class="ss">f'stretch: </span><span class="sc">{</span>ts<span class="sc">.</span>stretch<span class="sc">}</span><span class="ss">'</span>, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-25-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L569" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="pitchshiftortimestretch" class="level3">
+<h3 class="anchored" data-anchor-id="pitchshiftortimestretch">PitchShiftOrTimeStretch</h3>
+<blockquote class="blockquote">
+<pre><code> PitchShiftOrTimeStretch (p:float=0.4, semitones:tuple[float,float]=(-4.0,
+                          4.0), bins_per_octave:int=12,
+                          stretch_rates:tuple[float,float]=(0.5, 2.0),
+                          padmode:AudioPadMode=&lt;AudioPadMode.Repeat: 4&gt;,
+                          constant:Numeric=0, split:int|None=None)</code></pre>
+</blockquote>
+<p>Randomly apply either <a href="https://fastxtend.benjaminwarner.dev/audio.03_augment.html#pitchshift"><code>PitchShift</code></a> or <a href="https://fastxtend.benjaminwarner.dev/audio.03_augment.html#timestretch"><code>TimeStretch</code></a> to <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensoraudio"><code>TensorAudio</code></a> to minimize distortion</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.4</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>semitones</td>
+<td>tuple[float, float]</td>
+<td>(-4.0, 4.0)</td>
+<td>Random pitch shift range in semitones to compute efficient shifts</td>
+</tr>
+<tr class="odd">
+<td>bins_per_octave</td>
+<td>int</td>
+<td>12</td>
+<td>Number of steps per octave</td>
+</tr>
+<tr class="even">
+<td>stretch_rates</td>
+<td>tuple[float, float]</td>
+<td>(0.5, 2.0)</td>
+<td>Random time stretch range to compute efficient stretches. Defaults to 50%-200% speed</td>
+</tr>
+<tr class="odd">
+<td>padmode</td>
+<td>AudioPadMode</td>
+<td>AudioPadMode.Repeat</td>
+<td>How to pad if necessary</td>
+</tr>
+<tr class="even">
+<td>constant</td>
+<td>Numeric</td>
+<td>0</td>
+<td>Value for <code>AudioPadMode.Constant</code></td>
+</tr>
+<tr class="odd">
+<td>split</td>
+<td>int | None</td>
+<td>None</td>
+<td>Apply transform to <code>split</code> items at a time. Use to prevent OOM.</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random(<span class="dv">2998</span>):</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">4</span>,figsize<span class="op">=</span>(<span class="dv">22</span>,<span class="dv">4</span>))</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    psts <span class="op">=</span> PitchShiftOrTimeStretch(p<span class="op">=</span><span class="fl">1.</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> axs.flatten():</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>        audio <span class="op">=</span> TensorAudio.create(TEST_AUDIO)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>        psts(audio.unsqueeze(<span class="dv">0</span>), split_idx<span class="op">=</span><span class="dv">0</span>).squeeze(<span class="dv">0</span>).show(ctx<span class="op">=</span>ax, title<span class="op">=</span><span class="st">'stretch'</span> <span class="cf">if</span> <span class="bu">sum</span>(psts.stretch_idxs) <span class="cf">else</span> <span class="st">'pitch'</span>, hear<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-27-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="tensormelspec-transforms" class="level2">
+<h2 class="anchored" data-anchor-id="tensormelspec-transforms">TensorMelspec Transforms</h2>
+<p>Batch transforms which run on the GPU.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co"># audio = TensorAudio.create(TEST_AUDIO)</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>mel <span class="op">=</span> MelSpectrogram(audio.sr, hop_length<span class="op">=</span><span class="dv">1024</span>, n_fft<span class="op">=</span><span class="dv">1024</span>, n_mels<span class="op">=</span><span class="dv">112</span>)(audio)</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>mel.show(to_db<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<pre><code>&lt;AxesSubplot:&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-28-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L599" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="timemasking" class="level3">
+<h3 class="anchored" data-anchor-id="timemasking">TimeMasking</h3>
+<blockquote class="blockquote">
+<pre><code> TimeMasking (p:float=0.25, max_mask:float=0.2, iid_masks:bool=True,
+              mask_value:int|None=0)</code></pre>
+</blockquote>
+<p>Randomly apply masking to a <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec"><code>TensorSpec</code></a> or <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec"><code>TensorMelSpec</code></a> in the time domain</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.25</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>max_mask</td>
+<td>float</td>
+<td>0.2</td>
+<td>Maximum possible length of the mask [0, max_mask)</td>
+</tr>
+<tr class="odd">
+<td>iid_masks</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply different masks to each example/channel in the batch</td>
+</tr>
+<tr class="even">
+<td>mask_value</td>
+<td>int | None</td>
+<td>0</td>
+<td>If None, random value between batch min and max</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">3</span>,figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>))</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    tm <span class="op">=</span> TimeMasking(p<span class="op">=</span><span class="fl">1.</span>, max_mask<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> axs:</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>        mel <span class="op">=</span> MelSpectrogram(audio.sr, hop_length<span class="op">=</span><span class="dv">1024</span>, n_fft<span class="op">=</span><span class="dv">1024</span>, n_mels<span class="op">=</span><span class="dv">112</span>)(audio)</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>        tm(mel.unsqueeze(<span class="dv">0</span>), split_idx<span class="op">=</span><span class="dv">0</span>).squeeze(<span class="dv">0</span>).show(ctx<span class="op">=</span>ax, to_db<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-30-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L620" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="frequencymasking" class="level3">
+<h3 class="anchored" data-anchor-id="frequencymasking">FrequencyMasking</h3>
+<blockquote class="blockquote">
+<pre><code> FrequencyMasking (p:float=0.25, max_mask:float=0.2, iid_masks:bool=True,
+                   mask_value:int|None=0)</code></pre>
+</blockquote>
+<p>Randpmly apply masking to a <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec"><code>TensorSpec</code></a> or <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec"><code>TensorMelSpec</code></a> in the frequency domain</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>p</td>
+<td>float</td>
+<td>0.25</td>
+<td>Per-item probability</td>
+</tr>
+<tr class="even">
+<td>max_mask</td>
+<td>float</td>
+<td>0.2</td>
+<td>Maximum possible length of the mask [0, max_mask)</td>
+</tr>
+<tr class="odd">
+<td>iid_masks</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply different masks to each example/channel in the batch</td>
+</tr>
+<tr class="even">
+<td>mask_value</td>
+<td>int | None</td>
+<td>0</td>
+<td>If None, random value between batch min and max</td>
+</tr>
+</tbody>
+</table>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">3</span>,figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>))</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    fm <span class="op">=</span> FrequencyMasking(p<span class="op">=</span><span class="fl">1.</span>, max_mask<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> ax <span class="kw">in</span> axs:</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>        mel <span class="op">=</span> MelSpectrogram(audio.sr, hop_length<span class="op">=</span><span class="dv">1024</span>, n_fft<span class="op">=</span><span class="dv">1024</span>, n_mels<span class="op">=</span><span class="dv">112</span>)(audio)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>        fm(mel.unsqueeze(<span class="dv">0</span>), split_idx<span class="op">=</span><span class="dv">0</span>).squeeze(<span class="dv">0</span>).show(ctx<span class="op">=</span>ax, to_db<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-32-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L641" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="amplitudetodbmode" class="level3">
+<h3 class="anchored" data-anchor-id="amplitudetodbmode">AmplitudeToDBMode</h3>
+<blockquote class="blockquote">
+<pre><code> AmplitudeToDBMode (value, names=None, module=None, qualname=None,
+                    type=None, start=1)</code></pre>
+</blockquote>
+<p>An enumeration.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L647" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="amplitudetodb" class="level3">
+<h3 class="anchored" data-anchor-id="amplitudetodb">AmplitudeToDB</h3>
+<blockquote class="blockquote">
+<pre><code> AmplitudeToDB (top_db:float|None=None,
+                mode:AmplitudeToDBMode=&lt;AmplitudeToDBMode.Power: 'power'&gt;)</code></pre>
+</blockquote>
+<p>Turn a <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec"><code>TensorSpec</code></a> or <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec"><code>TensorMelSpec</code></a> from the power/amplitude scale to the decibel scale</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>top_db</td>
+<td>float | None</td>
+<td>None</td>
+<td>Minimum negative cut-off in decibels. A reasonable number is 80.</td>
+</tr>
+<tr class="even">
+<td>mode</td>
+<td>AmplitudeToDBMode</td>
+<td>AmplitudeToDBMode.Power</td>
+<td>Power is elementwise square of magnitude</td>
+</tr>
+</tbody>
+</table>
+<p>This output depends on the maximum value in the input tensor, and so may return different values for an audio clip split into snippets vs.&nbsp;a a full clip. See <a href="https://pytorch.org/audio/stable/transforms.html#amplitudetodb">torchaudio docs</a> for details.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>    _,axs <span class="op">=</span> plt.subplots(<span class="dv">1</span>,<span class="dv">2</span>,figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">4</span>))</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>    adb <span class="op">=</span> AmplitudeToDB(top_db<span class="op">=</span><span class="dv">80</span>)</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, ax <span class="kw">in</span> <span class="bu">enumerate</span>(axs):</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i<span class="op">==</span><span class="dv">1</span>:</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>            mel <span class="op">=</span> MelSpectrogram(audio.sr, hop_length<span class="op">=</span><span class="dv">1024</span>, n_fft<span class="op">=</span><span class="dv">1024</span>, n_mels<span class="op">=</span><span class="dv">112</span>)(audio)</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>            adb(mel.unsqueeze(<span class="dv">0</span>), split_idx<span class="op">=</span><span class="dv">0</span>).squeeze(<span class="dv">0</span>).show(ctx<span class="op">=</span>ax)</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>           mel <span class="op">=</span> MelSpectrogram(audio.sr, hop_length<span class="op">=</span><span class="dv">1024</span>, n_fft<span class="op">=</span><span class="dv">1024</span>, n_mels<span class="op">=</span><span class="dv">112</span>)(audio)</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>           mel.show(ctx<span class="op">=</span>ax)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="audio.03_augment_files/figure-html/cell-35-output-1.png" class="img-fluid"></p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/audio/augment.py#L664" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="audionormalize" class="level3">
+<h3 class="anchored" data-anchor-id="audionormalize">AudioNormalize</h3>
+<blockquote class="blockquote">
+<pre><code> AudioNormalize (mean=None, std=None, n_spec=1, axes=(0, 2, 3))</code></pre>
+</blockquote>
+<p>Normalize/denorm batch of <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensorspec"><code>TensorSpec</code></a> or <a href="https://fastxtend.benjaminwarner.dev/audio.01_core.html#tensormelspec"><code>TensorMelSpec</code></a>.</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var filterRegex = new RegExp("https:\/\/fastxtend\.benjaminwarner\.dev\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+          // target, if specified
+          link.setAttribute("target", "_blank");
+      }
+    }
+});
+</script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">Copyright © 2023 Benjamin Warner, MIT License</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner">
+      <i class="bi bi-twitter" role="img">
+</i> 
+    </a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+</body></html>

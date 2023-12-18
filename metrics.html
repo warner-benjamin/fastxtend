@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="A backwards compatible reimplementation of fastai metrics to increase usability and flexibility.">
+
+<title>fastxtend - Metrics Extended</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon.ico" rel="icon">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<meta property="og:title" content="fastxtend - Metrics Extended">
+<meta property="og:description" content="A backwards compatible reimplementation of fastai metrics to increase usability and flexibility.">
+<meta property="og:site-name" content="fastxtend">
+<meta name="twitter:title" content="fastxtend - Metrics Extended">
+<meta name="twitter:description" content="A backwards compatible reimplementation of fastai metrics to increase usability and flexibility.">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fastxtend</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://benjaminwarner.dev" rel="" target="">
+ <span class="menu-text">Blog</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-resources" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Resources</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-resources">    
+        <li>
+    <a class="dropdown-item" href="https://docs.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fast.ai</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://fastcore.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fastcore</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://nbdev.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">nbdev</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/warner-benjamin/fastxtend/issues" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/" rel="" target=""><i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./metrics.html">Metrics Extended</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fastxtend</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Callbacks</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.overview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.channelslast.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Channels Last</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.cutmixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">CutMixUp &amp; Friends</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.ema.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Exponential Moving Average</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.gradaccum.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Gradient Accumulation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.lr_finder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learning Rate Finder</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.amp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Mixed Precision</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.profiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Profiler Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.progresize.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Progressive Resizing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.compiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTorch Compile</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.tracker.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tracking Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Callback Utilities</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">FFCV [beta]</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.tutorial.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.fields.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fields</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.loader.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loader</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.operations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Operations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transforms</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.writer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Writer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utilities</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Losses</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./losses.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loss Functions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./multiloss.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MultiLoss</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./metrics.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Metrics Extended</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./schedulers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Schedulers</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./data.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Splitters</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Optimizers</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.fused.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fused fastai Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.eightbit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">8-Bit Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.adan.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Adan Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.lion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lion Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.sophia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sophia Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.stableadam.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">StableAdam Optimizer</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+ <span class="menu-text">Vision</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">Augmentations</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.batch.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Additional Batch Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.itemtensor.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tensor Item Transforms</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vision Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Models</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.attention_modules.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Attention Modules</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.pooling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pooling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.xresnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">XResNet Extended</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true">
+ <span class="menu-text">Text</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./text.huggingface.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true">
+ <span class="menu-text">Audio</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.01_core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.02_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.03_augment.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.04_learner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.05_mixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MixUp &amp; Friends</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true">
+ <span class="menu-text">Utils</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./basics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Basics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./transform.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transform</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utility</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#using-a-metric" id="toc-using-a-metric" class="nav-link active" data-scroll-target="#using-a-metric">Using a Metric</a></li>
+  <li><a href="#creating-a-metric" id="toc-creating-a-metric" class="nav-link" data-scroll-target="#creating-a-metric">Creating a Metric</a></li>
+  <li><a href="#additional-metrics-functionality" id="toc-additional-metrics-functionality" class="nav-link" data-scroll-target="#additional-metrics-functionality">Additional Metrics Functionality</a>
+  <ul>
+  <li><a href="#logmetric" id="toc-logmetric" class="nav-link" data-scroll-target="#logmetric">LogMetric</a></li>
+  <li><a href="#metrictype" id="toc-metrictype" class="nav-link" data-scroll-target="#metrictype">MetricType</a></li>
+  <li><a href="#activationtype" id="toc-activationtype" class="nav-link" data-scroll-target="#activationtype">ActivationType</a></li>
+  <li><a href="#metricx" id="toc-metricx" class="nav-link" data-scroll-target="#metricx">MetricX</a></li>
+  <li><a href="#metricx.reset" id="toc-metricx.reset" class="nav-link" data-scroll-target="#metricx.reset">MetricX.reset</a></li>
+  <li><a href="#metricx.accumulate" id="toc-metricx.accumulate" class="nav-link" data-scroll-target="#metricx.accumulate">MetricX.accumulate</a></li>
+  <li><a href="#metricx.value" id="toc-metricx.value" class="nav-link" data-scroll-target="#metricx.value">MetricX.value</a></li>
+  <li><a href="#metricx.name" id="toc-metricx.name" class="nav-link" data-scroll-target="#metricx.name">MetricX.name</a></li>
+  <li><a href="#avgmetricx" id="toc-avgmetricx" class="nav-link" data-scroll-target="#avgmetricx">AvgMetricX</a></li>
+  <li><a href="#accummetricx" id="toc-accummetricx" class="nav-link" data-scroll-target="#accummetricx">AccumMetricX</a></li>
+  <li><a href="#avgsmoothmetricx" id="toc-avgsmoothmetricx" class="nav-link" data-scroll-target="#avgsmoothmetricx">AvgSmoothMetricX</a></li>
+  <li><a href="#avglossx" id="toc-avglossx" class="nav-link" data-scroll-target="#avglossx">AvgLossX</a></li>
+  <li><a href="#avgsmoothlossx" id="toc-avgsmoothlossx" class="nav-link" data-scroll-target="#avgsmoothlossx">AvgSmoothLossX</a></li>
+  <li><a href="#valuemetricx" id="toc-valuemetricx" class="nav-link" data-scroll-target="#valuemetricx">ValueMetricX</a></li>
+  </ul></li>
+  <li><a href="#metrics" id="toc-metrics" class="nav-link" data-scroll-target="#metrics">Metrics</a>
+  <ul>
+  <li><a href="#custom-metric-creation" id="toc-custom-metric-creation" class="nav-link" data-scroll-target="#custom-metric-creation">Custom Metric Creation</a></li>
+  <li><a href="#func_to_metric" id="toc-func_to_metric" class="nav-link" data-scroll-target="#func_to_metric">func_to_metric</a></li>
+  <li><a href="#skm_to_fastxtend" id="toc-skm_to_fastxtend" class="nav-link" data-scroll-target="#skm_to_fastxtend">skm_to_fastxtend</a></li>
+  </ul></li>
+  <li><a href="#single-label-classification" id="toc-single-label-classification" class="nav-link" data-scroll-target="#single-label-classification">Single-label classification</a>
+  <ul>
+  <li><a href="#accuracy" id="toc-accuracy" class="nav-link" data-scroll-target="#accuracy">Accuracy</a></li>
+  <li><a href="#errorrate" id="toc-errorrate" class="nav-link" data-scroll-target="#errorrate">ErrorRate</a></li>
+  <li><a href="#topkaccuracy" id="toc-topkaccuracy" class="nav-link" data-scroll-target="#topkaccuracy">TopKAccuracy</a></li>
+  <li><a href="#apscorebinary" id="toc-apscorebinary" class="nav-link" data-scroll-target="#apscorebinary">APScoreBinary</a></li>
+  <li><a href="#balancedaccuracy" id="toc-balancedaccuracy" class="nav-link" data-scroll-target="#balancedaccuracy">BalancedAccuracy</a></li>
+  <li><a href="#brierscore" id="toc-brierscore" class="nav-link" data-scroll-target="#brierscore">BrierScore</a></li>
+  <li><a href="#cohenkappa" id="toc-cohenkappa" class="nav-link" data-scroll-target="#cohenkappa">CohenKappa</a></li>
+  <li><a href="#f1score" id="toc-f1score" class="nav-link" data-scroll-target="#f1score">F1Score</a></li>
+  <li><a href="#fbeta" id="toc-fbeta" class="nav-link" data-scroll-target="#fbeta">FBeta</a></li>
+  <li><a href="#hammingloss" id="toc-hammingloss" class="nav-link" data-scroll-target="#hammingloss">HammingLoss</a></li>
+  <li><a href="#jaccard" id="toc-jaccard" class="nav-link" data-scroll-target="#jaccard">Jaccard</a></li>
+  <li><a href="#precision" id="toc-precision" class="nav-link" data-scroll-target="#precision">Precision</a></li>
+  <li><a href="#recall" id="toc-recall" class="nav-link" data-scroll-target="#recall">Recall</a></li>
+  <li><a href="#rocauc" id="toc-rocauc" class="nav-link" data-scroll-target="#rocauc">RocAuc</a></li>
+  <li><a href="#rocaucbinary" id="toc-rocaucbinary" class="nav-link" data-scroll-target="#rocaucbinary">RocAucBinary</a></li>
+  <li><a href="#matthewscorrcoef" id="toc-matthewscorrcoef" class="nav-link" data-scroll-target="#matthewscorrcoef">MatthewsCorrCoef</a></li>
+  </ul></li>
+  <li><a href="#multi-label-classification" id="toc-multi-label-classification" class="nav-link" data-scroll-target="#multi-label-classification">Multi-label classification</a>
+  <ul>
+  <li><a href="#accuracymulti" id="toc-accuracymulti" class="nav-link" data-scroll-target="#accuracymulti">AccuracyMulti</a></li>
+  <li><a href="#apscoremulti" id="toc-apscoremulti" class="nav-link" data-scroll-target="#apscoremulti">APScoreMulti</a></li>
+  <li><a href="#brierscoremulti" id="toc-brierscoremulti" class="nav-link" data-scroll-target="#brierscoremulti">BrierScoreMulti</a></li>
+  <li><a href="#f1scoremulti" id="toc-f1scoremulti" class="nav-link" data-scroll-target="#f1scoremulti">F1ScoreMulti</a></li>
+  <li><a href="#fbetamulti" id="toc-fbetamulti" class="nav-link" data-scroll-target="#fbetamulti">FBetaMulti</a></li>
+  <li><a href="#hamminglossmulti" id="toc-hamminglossmulti" class="nav-link" data-scroll-target="#hamminglossmulti">HammingLossMulti</a></li>
+  <li><a href="#jaccardmulti" id="toc-jaccardmulti" class="nav-link" data-scroll-target="#jaccardmulti">JaccardMulti</a></li>
+  <li><a href="#matthewscorrcoefmulti" id="toc-matthewscorrcoefmulti" class="nav-link" data-scroll-target="#matthewscorrcoefmulti">MatthewsCorrCoefMulti</a></li>
+  <li><a href="#precisionmulti" id="toc-precisionmulti" class="nav-link" data-scroll-target="#precisionmulti">PrecisionMulti</a></li>
+  <li><a href="#recallmulti" id="toc-recallmulti" class="nav-link" data-scroll-target="#recallmulti">RecallMulti</a></li>
+  <li><a href="#rocaucmulti" id="toc-rocaucmulti" class="nav-link" data-scroll-target="#rocaucmulti">RocAucMulti</a></li>
+  </ul></li>
+  <li><a href="#regression" id="toc-regression" class="nav-link" data-scroll-target="#regression">Regression</a>
+  <ul>
+  <li><a href="#mse" id="toc-mse" class="nav-link" data-scroll-target="#mse">MSE</a></li>
+  <li><a href="#rmse" id="toc-rmse" class="nav-link" data-scroll-target="#rmse">RMSE</a></li>
+  <li><a href="#mae" id="toc-mae" class="nav-link" data-scroll-target="#mae">MAE</a></li>
+  <li><a href="#msle" id="toc-msle" class="nav-link" data-scroll-target="#msle">MSLE</a></li>
+  <li><a href="#exprmse" id="toc-exprmse" class="nav-link" data-scroll-target="#exprmse">ExpRMSE</a></li>
+  <li><a href="#explainedvariance" id="toc-explainedvariance" class="nav-link" data-scroll-target="#explainedvariance">ExplainedVariance</a></li>
+  <li><a href="#r2score" id="toc-r2score" class="nav-link" data-scroll-target="#r2score">R2Score</a></li>
+  <li><a href="#pearsoncorrcoef" id="toc-pearsoncorrcoef" class="nav-link" data-scroll-target="#pearsoncorrcoef">PearsonCorrCoef</a></li>
+  <li><a href="#spearmancorrcoef" id="toc-spearmancorrcoef" class="nav-link" data-scroll-target="#spearmancorrcoef">SpearmanCorrCoef</a></li>
+  </ul></li>
+  <li><a href="#segmentation" id="toc-segmentation" class="nav-link" data-scroll-target="#segmentation">Segmentation</a>
+  <ul>
+  <li><a href="#foregroundacc" id="toc-foregroundacc" class="nav-link" data-scroll-target="#foregroundacc">ForegroundAcc</a></li>
+  <li><a href="#dice" id="toc-dice" class="nav-link" data-scroll-target="#dice">Dice</a></li>
+  <li><a href="#dicemulti" id="toc-dicemulti" class="nav-link" data-scroll-target="#dicemulti">DiceMulti</a></li>
+  <li><a href="#jaccardcoeff" id="toc-jaccardcoeff" class="nav-link" data-scroll-target="#jaccardcoeff">JaccardCoeff</a></li>
+  </ul></li>
+  <li><a href="#nlp" id="toc-nlp" class="nav-link" data-scroll-target="#nlp">NLP</a>
+  <ul>
+  <li><a href="#corpusbleumetric" id="toc-corpusbleumetric" class="nav-link" data-scroll-target="#corpusbleumetric">CorpusBLEUMetric</a></li>
+  <li><a href="#perplexity" id="toc-perplexity" class="nav-link" data-scroll-target="#perplexity">Perplexity</a></li>
+  <li><a href="#lossmetric" id="toc-lossmetric" class="nav-link" data-scroll-target="#lossmetric">LossMetric</a></li>
+  <li><a href="#lossmetrics" id="toc-lossmetrics" class="nav-link" data-scroll-target="#lossmetrics">LossMetrics</a></li>
+  </ul></li>
+  <li><a href="#logging" id="toc-logging" class="nav-link" data-scroll-target="#logging">Logging</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/warner-benjamin/fastxtend/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Metrics Extended</h1>
+</div>
+
+<div>
+  <div class="description">
+    A backwards compatible reimplementation of fastai metrics to increase usability and flexibility.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+<script src="https://static.cloudflareinsights.com/beacon.min.js?token=62f27bdcb8964407a52676798db9edfa" defer=""></script>
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>fastxtend’s Metrics Extended is an enhancement of fastai metrics and is backward compatible with fastai metrics. You can mix and match fastxtend and fastai metrics in the same <code>Learner</code>.</p>
+<p>fastxtend metrics add the following features to fastai metrics:</p>
+<ol type="1">
+<li>fastxtend metrics can independently log on train, valid, or both train and valid</li>
+<li>All fastxtend metrics can use the activation support of <a href="https://docs.fast.ai/metrics.html#accummetric"><code>fastai.metrics.AccumMetric</code></a>, inherited from <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a></li>
+<li>fastxtend metrics add <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a>, a metric version of <a href="https://docs.fast.ai/learner.html#avgsmoothloss"><code>fastai.learner.AvgSmoothLoss</code></a></li>
+</ol>
+<p>There are three main metric types: <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a>. These correspond one-to-one with <a href="https://docs.fast.ai/learner.html#avgmetric"><code>fastai.learner.AvgMetric</code></a>, <a href="https://docs.fast.ai/metrics.html#accummetric"><code>fastai.metrics.AccumMetric</code></a>, and <a href="https://docs.fast.ai/learner.html#avgsmoothloss"><code>fastai.learner.AvgSmoothLoss</code></a>. fastxtend metrics inherit from <a href="https://docs.fast.ai/learner.html#metric"><code>fastai.learner.Metric</code></a> and run on <a href="https://docs.fast.ai/learner.html#learner"><code>fastai.learner.Learner</code></a> via a modified <a href="https://docs.fast.ai/learner.html#recorder"><code>fastai.learner.Recorder</code></a> callback.</p>
+<p>To jump to the fastxtend metrics reference, click <a href="#metrics">here</a>.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To maintain backward compatibility with fastai Metrics, importing the Metrics Extanded module <a href="https://fastcore.fast.ai/basics.html#patching">patches</a> <code>Recorder</code> to add the new features. With the exception of error stack traces, this should be unnoticable to end users.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Documentation for metrics are lightly adapted from the <a href="https://docs.fast.ai/metrics.html">fastai metrics documentation</a>.</p>
+</div>
+</div>
+<section id="using-a-metric" class="level2">
+<h2 class="anchored" data-anchor-id="using-a-metric">Using a Metric</h2>
+<p>To use the accuracy metric, or any fastxtend metrics detailed below, create a <code>Learner</code> like normal (or task specific learner such as <code>vision_learner</code>, <code>text_classifier_learner</code>, etc) and add the metric(s) to the <code>metrics</code> argument:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastai.vision.<span class="bu">all</span> <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastxtend.vision.<span class="bu">all</span> <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>Learner(..., metrics<span class="op">=</span>Accuracy())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Fastxtend metrics can be mixed with fastai metrics:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>Learner(..., metrics<span class="op">=</span>[accuracy, Accuracy()])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Fastxtend metrics can be logged during training, validation, or both by setting the <code>log_metric</code> argument to <code>LogMetric.Train</code>, <code>LogMetric.Valid</code>, or <code>LogMetric.Both</code>. The sole exception is <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a> which only logs during training.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>By default, a fastxtend metric will log during validation. fastai metrics can only log during validation.</p>
+</div>
+</div>
+<p>To log a fastxtend metric during training pass <code>LogMetric.Train</code> to <code>log_metric</code>:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>Learner(..., metrics<span class="op">=</span>Accuracy(log_metric<span class="op">=</span>LogMetric.Train))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Non-scikit-learn metrics can have the log type set via the <code>metric_type</code> argument to one of <code>MetricType.Avg</code>, <code>MetricType.Accum</code>, <code>MetricType.Smooth</code>, corresponding to <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a>, respectively.</p>
+<p>To log a smooth metric on the training set and normal metric on the valid set:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Learner(..., </span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>        metrics<span class="op">=</span>[Accuracy(log_metric<span class="op">=</span>LogMetric.Train, metric_type<span class="op">=</span>MetricType.Smooth), </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                 Accuracy()])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Fastxtend metrics also support custom names via the <code>name</code> argument:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>Learner(..., metrics<span class="op">=</span>Accuracy(name<span class="op">=</span><span class="st">'metric_name'</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>which will result in Accuracy logging under “metric_name” instead of the default “accuracy”.</p>
+<p>If a fastxtend metric is logged with multiple <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metrictype"><code>MetricType</code></a>s, the fastxtend <code>Recorder</code> will automatically deduplication the metric names. Unless the metric’s <code>name</code> argument is set. Then fastxtend will not deduplicate any metric names.</p>
+</section>
+<section id="creating-a-metric" class="level2">
+<h2 class="anchored" data-anchor-id="creating-a-metric">Creating a Metric</h2>
+<p><a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a> all require <code>func</code>, which is a funcational implementation of the metric. The signature of <code>func</code> should be <code>inp,targ</code> (where <code>inp</code> are the predictions of the model and <code>targ</code> the corresponding labels).</p>
+<p>Fastxtend metrics can be logged during training, validation, or both by setting the <code>log_metric</code> argument to <code>LogMetric.Train</code>, <code>LogMetric.Valid</code>, or <code>LogMetric.Both</code>. The sole exception is <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a> which only computes during training.</p>
+<p><a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a> will automatically recognize and pass any <code>func</code>’s unique arguments to <code>func</code>.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Some metrics, like Root Mean Squared Error, will have incorrect results if passed to <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a> via <code>MetricType.Avg</code>, as the mean of multiple batches of RMSE isn’t equal to the RMSE of the whole dataset. For these metrics use <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a> via <code>MetricType.Accum</code>.</p>
+</div>
+</div>
+<p>An example of creating a fastxtend metric from a functional implementation:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> example_accuracy(inp, targ):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (inp <span class="op">==</span> targ).<span class="bu">float</span>().mean()</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ExampleAccuracy(dim_argmax<span class="op">=-</span><span class="dv">1</span>, log_metric<span class="op">=</span>LogMetric.Valid, <span class="op">**</span>kwargs):</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> AvgMetricX(example_accuracy, dim_argmax<span class="op">=</span>dim_argmax, log_metric<span class="op">=</span>log_metric, <span class="op">**</span>kwargs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Alternatively, use the <a href="https://fastxtend.benjaminwarner.dev/metrics.html#func_to_metric"><code>func_to_metric</code></a> convenience method to create the metric:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ExampleAccuracy(axis<span class="op">=-</span><span class="dv">1</span>, log_metric<span class="op">=</span>LogMetric.Valid, <span class="op">**</span>kwargs):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> func_to_metric(example_accuracy, MetricType.Avg, <span class="va">True</span>, axis<span class="op">=</span>axis, log_metric<span class="op">=</span>log_metric, <span class="op">**</span>kwargs)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>It is also possible to inherit directly from <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a> to create a fastxtend metric.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> ExampleAccuracy(MetricX):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, dim_argmax<span class="op">=-</span><span class="dv">1</span>, log_metric<span class="op">=</span>LogMetric.Valid, <span class="op">**</span>kwargs):</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">super</span>().<span class="fu">__init__</span>(dim_argmax<span class="op">=</span>dim_argmax, log_metric<span class="op">=</span>log_metric, <span class="op">**</span>kwargs)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> reset(<span class="va">self</span>): <span class="va">self</span>.preds,<span class="va">self</span>.targs <span class="op">=</span> [],[]</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> accumulate(<span class="va">self</span>, learn):</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().accumulate(learn)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.preds.append(learn.to_detach(<span class="va">self</span>.pred))</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.targs.append(learn.to_detach(<span class="va">self</span>.targ))</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">@property</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> value(<span class="va">self</span>):</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">len</span>(<span class="va">self</span>.preds) <span class="op">==</span> <span class="dv">0</span>: <span class="cf">return</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        preds,targs <span class="op">=</span> torch.cat(<span class="va">self</span>.preds),torch.cat(<span class="va">self</span>.targs)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> (preds <span class="op">==</span> targs).<span class="bu">float</span>().mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If your custom <code>MetricX</code> has state depending on tensors, don’t forget to store it on the CPU to avoid any potential memory leaks.</p>
+</div>
+</div>
+</section>
+<section id="additional-metrics-functionality" class="level2">
+<h2 class="anchored" data-anchor-id="additional-metrics-functionality">Additional Metrics Functionality</h2>
+<p><a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a>, and classes which inherit from <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a> such as <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a>, have optional helper functionality in <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx.accumulate"><code>MetricX.accumulate</code></a> to assist in developing metrics.</p>
+<p>For classification problems with single label, predictions need to be transformed with a softmax then an argmax before being compared to the targets. Since a softmax doesn’t change the order of the numbers, apply the argmax. Pass along <code>dim_argmax</code> to have this done by <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a> (usually -1 will work pretty well). If the metric implementation requires probabilities and not predictions, use <code>softmax=True</code>.</p>
+<p>For classification problems with multiple labels, or if targets are one-hot encoded, predictions may need to pass through a sigmoid (if it wasn’t included in in the model) then be compared to a given threshold (to decide between 0 and 1), this is done by <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a> by passing <code>sigmoid=True</code> and/or a value for <code>thresh</code>.</p>
+<p><a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a> have two additional arguments to assist in creating metrics: <code>to_np</code> and <code>invert_arg</code>.</p>
+<p>For example, if using a functional metric from sklearn.metrics, predictions and labels will need to be converted to numpy arrays with <code>to_np=True</code>. Also, scikit-learn metrics adopt the convention <code>y_true</code>, <code>y_preds</code> which is the opposite from fastai, so pass <code>invert_arg=True</code> to make <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a> do the inversion. Alternatively, use the <a href="https://fastxtend.benjaminwarner.dev/metrics.html#skm_to_fastxtend"><code>skm_to_fastxtend</code></a> convenience method to handle sklearn.metrics automatically.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L38" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="logmetric" class="level3">
+<h3 class="anchored" data-anchor-id="logmetric">LogMetric</h3>
+<blockquote class="blockquote">
+<pre><code> LogMetric (value, names=None, module=None, qualname=None, type=None,
+            start=1)</code></pre>
+</blockquote>
+<p>All logging types for <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a></p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L45" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="metrictype" class="level3">
+<h3 class="anchored" data-anchor-id="metrictype">MetricType</h3>
+<blockquote class="blockquote">
+<pre><code> MetricType (value, names=None, module=None, qualname=None, type=None,
+             start=1)</code></pre>
+</blockquote>
+<p>All types of <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a></p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L52" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="activationtype" class="level3">
+<h3 class="anchored" data-anchor-id="activationtype">ActivationType</h3>
+<blockquote class="blockquote">
+<pre><code> ActivationType (value, names=None, module=None, qualname=None, type=None,
+                 start=1)</code></pre>
+</blockquote>
+<p>All activation classes for `MetricX</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L60" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="metricx" class="level3">
+<h3 class="anchored" data-anchor-id="metricx">MetricX</h3>
+<blockquote class="blockquote">
+<pre><code> MetricX (dim_argmax=None, activation=&lt;ActivationType.No: 1&gt;, thresh=None,
+          log_metric=None, name=None)</code></pre>
+</blockquote>
+<p>Blueprint for defining an extended metric with accumulate</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>By default, a <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a> will only log during validation. Metrics can individually set to run during training, validation, or both by passing <code>LogMetric.Train</code>, <code>LogMetric.Valid</code>, or <code>LogMetric.Both</code> to <code>log_metric</code>, respectively.</p>
+</div>
+</div>
+<p>For classification problems with single label, predictions need to be transformed with a softmax then an argmax before being compared to the targets. Since a softmax doesn’t change the order of the numbers, apply the argmax. Pass along <code>dim_argmax</code> to have this done by <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a> (usually -1 will work pretty well). If the metric implementation requires probabilities and not predictions, use <code>softmax=True</code>.</p>
+<p>For classification problems with multiple labels, or if targets are one-hot encoded, predictions may need to pass through a sigmoid (if it wasn’t included in in the model) then be compared to a given threshold (to decide between 0 and 1), this is done by <a href="https://fastxtend.benjaminwarner.dev/metrics.html#metricx"><code>MetricX</code></a> by passing <code>sigmoid=True</code> and/or a value for <code>thresh</code>.</p>
+<p>Metrics can be simple averages (like accuracy) but sometimes their computation is a little bit more complex and can’t be averaged over batches (like precision or recall), which is why we need a special <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a> class for them. For simple functions that can be computed as averages over batches, we can use the class <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, otherwise you’ll need to implement the following methods.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>If your custom <code>MetricX</code> has state depending on tensors, don’t forget to store it on the CPU to avoid any potential memory leaks.</p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L68" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="metricx.reset" class="level3">
+<h3 class="anchored" data-anchor-id="metricx.reset">MetricX.reset</h3>
+<blockquote class="blockquote">
+<pre><code> MetricX.reset ()</code></pre>
+</blockquote>
+<p>Reset inner state to prepare for new computation</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L72" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="metricx.accumulate" class="level3">
+<h3 class="anchored" data-anchor-id="metricx.accumulate">MetricX.accumulate</h3>
+<blockquote class="blockquote">
+<pre><code> MetricX.accumulate (learn)</code></pre>
+</blockquote>
+<p>Store targs and preds from <code>learn</code>, using activation function and argmax as appropriate</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L83" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="metricx.value" class="level3">
+<h3 class="anchored" data-anchor-id="metricx.value">MetricX.value</h3>
+<blockquote class="blockquote">
+<pre><code> MetricX.value ()</code></pre>
+</blockquote>
+<p>The value of the metric</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L93" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="metricx.name" class="level3">
+<h3 class="anchored" data-anchor-id="metricx.name">MetricX.name</h3>
+<blockquote class="blockquote">
+<pre><code> MetricX.name ()</code></pre>
+</blockquote>
+<p>Name of the <code>Metric</code>, camel-cased and with Metric removed. Or custom name if provided</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L101" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="avgmetricx" class="level3">
+<h3 class="anchored" data-anchor-id="avgmetricx">AvgMetricX</h3>
+<blockquote class="blockquote">
+<pre><code> AvgMetricX (func, to_np=False, invert_arg=False, dim_argmax=None,
+             activation=&lt;ActivationType.No: 1&gt;, thresh=None,
+             log_metric=None, name=None)</code></pre>
+</blockquote>
+<p>Average the values of <code>func</code> taking into account potential different batch sizes</p>
+<p><code>func</code> is applied to each batch of predictions/targets and then averaged when <code>value</code> attribute is asked for.The signature of <code>func</code> should be <code>inp,targ</code> (where <code>inp</code> are the predictions of the model and <code>targ</code> the corresponding labels).</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Some metrics, like Root Mean Squared Error, will have incorrect results if passed to <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, as the mean of multiple batches of RMSE isn’t equal to the RMSE of the whole dataset. For these metrics use <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>.</p>
+</div>
+</div>
+<p>If using a functional metric from sklearn.metrics, predictions and labels will need to be converted to numpy arrays with <code>to_np=True</code>. Also, scikit-learn metrics adopt the convention <code>y_true</code>, <code>y_preds</code> which is the opposite from fastai, so pass <code>invert_arg=True</code> to make <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a> do the inversion. Alternatively, use the <a href="https://fastxtend.benjaminwarner.dev/metrics.html#skm_to_fastxtend"><code>skm_to_fastxtend</code></a> convenience method to handle sklearn.metrics automatically.</p>
+<p>By default, fastxtend’s scikit-learn metrics use <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L123" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="accummetricx" class="level3">
+<h3 class="anchored" data-anchor-id="accummetricx">AccumMetricX</h3>
+<blockquote class="blockquote">
+<pre><code> AccumMetricX (func, to_np=False, invert_arg=False, flatten=True,
+               dim_argmax=None, activation=&lt;ActivationType.No: 1&gt;,
+               thresh=None, log_metric=None, name=None)</code></pre>
+</blockquote>
+<p>Stores predictions and targets on CPU in accumulate to perform final calculations with <code>func</code>.</p>
+<p><code>func</code> is only applied to the accumulated predictions/targets when the <code>value</code> attribute is asked for (so at the end of a validation/training phase, in use with <code>Learner</code> and its <code>Recorder</code>).The signature of <code>func</code> should be <code>inp,targ</code> (where <code>inp</code> are the predictions of the model and <code>targ</code> the corresponding labels).</p>
+<p>If using a functional metric from sklearn.metrics, predictions and labels will need to be converted to numpy arrays with <code>to_np=True</code>. Also, scikit-learn metrics adopt the convention <code>y_true</code>, <code>y_preds</code> which is the opposite from fastai, so pass <code>invert_arg=True</code> to make <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a> do the inversion. Alternatively, use the <a href="https://fastxtend.benjaminwarner.dev/metrics.html#skm_to_fastxtend"><code>skm_to_fastxtend</code></a> convenience method to handle sklearn.metrics automatically.</p>
+<p>By default, fastai’s scikit-learn metrics use <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L163" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="avgsmoothmetricx" class="level3">
+<h3 class="anchored" data-anchor-id="avgsmoothmetricx">AvgSmoothMetricX</h3>
+<blockquote class="blockquote">
+<pre><code> AvgSmoothMetricX (func, beta=0.98, to_np=False, invert_arg=False,
+                   dim_argmax=None, activation=&lt;ActivationType.No: 1&gt;,
+                   thresh=None, name=None)</code></pre>
+</blockquote>
+<p>Smooth average the values of <code>func</code> (exponentially weighted with <code>beta</code>). Only computed on training set.</p>
+<p><code>func</code> is only applied to the accumulated predictions/targets when the <code>value</code> attribute is asked for (so at the end of a validation/training phase, in use with <code>Learner</code> and its <code>Recorder</code>).The signature of <code>func</code> should be <code>inp,targ</code> (where <code>inp</code> are the predictions of the model and <code>targ</code> the corresponding labels).</p>
+<p>If using a functional metric from sklearn.metrics, predictions and labels will need to be converted to numpy arrays with <code>to_np=True</code>. Also, scikit-learn metrics adopt the convention <code>y_true</code>, <code>y_preds</code> which is the opposite from fastai, so pass <code>invert_arg=True</code> to make <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a> do the inversion. Alternatively, use the <a href="https://fastxtend.benjaminwarner.dev/metrics.html#skm_to_fastxtend"><code>skm_to_fastxtend</code></a> convenience method to handle sklearn.metrics automatically.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L186" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="avglossx" class="level3">
+<h3 class="anchored" data-anchor-id="avglossx">AvgLossX</h3>
+<blockquote class="blockquote">
+<pre><code> AvgLossX (dim_argmax=None, activation=&lt;ActivationType.No: 1&gt;,
+           thresh=None, log_metric=None, name=None)</code></pre>
+</blockquote>
+<p>Average the losses taking into account potential different batch sizes</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L197" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="avgsmoothlossx" class="level3">
+<h3 class="anchored" data-anchor-id="avgsmoothlossx">AvgSmoothLossX</h3>
+<blockquote class="blockquote">
+<pre><code> AvgSmoothLossX (beta=0.98)</code></pre>
+</blockquote>
+<p>Smooth average of the losses (exponentially weighted with <code>beta</code>)</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L211" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="valuemetricx" class="level3">
+<h3 class="anchored" data-anchor-id="valuemetricx">ValueMetricX</h3>
+<blockquote class="blockquote">
+<pre><code> ValueMetricX (func, name=None, log_metric=None)</code></pre>
+</blockquote>
+<p>Use to include a pre-calculated metric value (for instance calculated in a <code>Callback</code>) and returned by <code>func</code></p>
+</section>
+</section>
+<section id="metrics" class="level2">
+<h2 class="anchored" data-anchor-id="metrics">Metrics</h2>
+<section id="custom-metric-creation" class="level3">
+<h3 class="anchored" data-anchor-id="custom-metric-creation">Custom Metric Creation</h3>
+<p>fastxtend provides two convenience methods for creating custom metrics from functions: <a href="https://fastxtend.benjaminwarner.dev/metrics.html#func_to_metric"><code>func_to_metric</code></a> and <a href="https://fastxtend.benjaminwarner.dev/metrics.html#skm_to_fastxtend"><code>skm_to_fastxtend</code></a>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L333" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="func_to_metric" class="level3">
+<h3 class="anchored" data-anchor-id="func_to_metric">func_to_metric</h3>
+<blockquote class="blockquote">
+<pre><code> func_to_metric (func, metric_type, is_class, thresh=None, axis=-1,
+                 activation=None, log_metric=&lt;LogMetric.Valid: 2&gt;,
+                 dim_argmax=None, name=None)</code></pre>
+</blockquote>
+<p>Convert <code>func</code> metric to a fastai metric</p>
+<p>This is the quickest way to use a functional metric as a fastxtend metric.</p>
+<p><code>metric_type</code> is one of <code>MetricType.Avg</code>, <code>MetricType.Accum</code>, or <code>MetricType.Smooth</code> which set the metric to use <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a>, <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>, or <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgsmoothmetricx"><code>AvgSmoothMetricX</code></a>, respectively.</p>
+<p><code>is_class</code> indicates if you are in a classification problem or not. In this case: - leaving <code>thresh</code> to <code>None</code> indicates it’s a single-label classification problem and predictions will pass through an argmax over <code>axis</code> before being compared to the targets - setting a value for <code>thresh</code> indicates it’s a multi-label classification problem and predictions will pass through a sigmoid (can be deactivated with <code>sigmoid=False</code>) and be compared to <code>thresh</code> before being compared to the targets</p>
+<p>If <code>is_class=False</code>, it indicates you are in a regression problem, and predictions are compared to the targets without being modified. In all cases, <code>kwargs</code> are extra keyword arguments passed to <code>func</code>.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Some metrics, like Root Mean Squared Error, will have incorrect results if passed to <a href="https://fastxtend.benjaminwarner.dev/metrics.html#avgmetricx"><code>AvgMetricX</code></a> via <code>MetricType.Avg</code>, as the mean of multiple batches of RMSE isn’t equal to the RMSE of the whole dataset. For these metrics use <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a> by setting <code>metric_type</code> to <code>MetricType.Accum</code>.</p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L357" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="skm_to_fastxtend" class="level3">
+<h3 class="anchored" data-anchor-id="skm_to_fastxtend">skm_to_fastxtend</h3>
+<blockquote class="blockquote">
+<pre><code> skm_to_fastxtend (func, is_class=True, thresh=None, axis=-1,
+                   activation=None, log_metric=&lt;LogMetric.Valid: 2&gt;,
+                   dim_argmax=None, name=None)</code></pre>
+</blockquote>
+<p>Convert <code>func</code> from sklearn.metrics to a fastai metric</p>
+<p>This is the quickest way to use a scikit-learn metric using fastxtend metrics. It is the same as <a href="https://fastxtend.benjaminwarner.dev/metrics.html#func_to_metric"><code>func_to_metric</code></a> except it defaults to using <a href="https://fastxtend.benjaminwarner.dev/metrics.html#accummetricx"><code>AccumMetricX</code></a>.</p>
+</section>
+</section>
+<section id="single-label-classification" class="level2">
+<h2 class="anchored" data-anchor-id="single-label-classification">Single-label classification</h2>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>All functions defined in this section are intended for single-label classification and targets that are not one-hot encoded. For multi-label problems or one-hot encoded targets, use the version suffixed with multi.</p>
+</div>
+</div>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Many metrics in fastxtend are thin wrappers around sklearn functionality. However, sklearn metrics can handle python list strings, amongst other things, whereas fastxtend metrics work with PyTorch, and thus require tensors. The arguments that are passed to metrics are after all transformations, such as categories being converted to indices, have occurred. This means that when you pass a label of a metric, for instance, that you must pass indices, not strings. This can be converted with <code>vocab.map_obj</code>.</p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L369" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="accuracy" class="level3">
+<h3 class="anchored" data-anchor-id="accuracy">Accuracy</h3>
+<blockquote class="blockquote">
+<pre><code> Accuracy (axis=-1, metric_type=&lt;MetricType.Avg: 1&gt;,
+           log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Compute accuracy with <code>targ</code> when <code>pred</code> is bs * n_classes</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L379" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="errorrate" class="level3">
+<h3 class="anchored" data-anchor-id="errorrate">ErrorRate</h3>
+<blockquote class="blockquote">
+<pre><code> ErrorRate (axis=-1, metric_type=&lt;MetricType.Avg: 1&gt;,
+            log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Compute 1 - accuracy with <code>targ</code> when <code>pred</code> is bs * n_classes</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L391" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="topkaccuracy" class="level3">
+<h3 class="anchored" data-anchor-id="topkaccuracy">TopKAccuracy</h3>
+<blockquote class="blockquote">
+<pre><code> TopKAccuracy (k=5, axis=-1, metric_type=&lt;MetricType.Avg: 1&gt;,
+               log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Computes the Top-k accuracy (<code>targ</code> is in the top <code>k</code> predictions of <code>inp</code>)</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L397" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="apscorebinary" class="level3">
+<h3 class="anchored" data-anchor-id="apscorebinary">APScoreBinary</h3>
+<blockquote class="blockquote">
+<pre><code> APScoreBinary (axis=-1, average='macro', pos_label=1, sample_weight=None,
+                log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Average Precision for single-label binary classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html#sklearn.metrics.average_precision_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L404" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="balancedaccuracy" class="level3">
+<h3 class="anchored" data-anchor-id="balancedaccuracy">BalancedAccuracy</h3>
+<blockquote class="blockquote">
+<pre><code> BalancedAccuracy (axis=-1, sample_weight=None, adjusted=False,
+                   log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Balanced Accuracy for single-label binary classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.balanced_accuracy_score.html#sklearn.metrics.balanced_accuracy_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L410" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="brierscore" class="level3">
+<h3 class="anchored" data-anchor-id="brierscore">BrierScore</h3>
+<blockquote class="blockquote">
+<pre><code> BrierScore (axis=-1, sample_weight=None, pos_label=None,
+             log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Brier score for single-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.brier_score_loss.html#sklearn.metrics.brier_score_loss">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L416" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="cohenkappa" class="level3">
+<h3 class="anchored" data-anchor-id="cohenkappa">CohenKappa</h3>
+<blockquote class="blockquote">
+<pre><code> CohenKappa (axis=-1, labels=None, weights=None, sample_weight=None,
+             log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Cohen kappa for single-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html#sklearn.metrics.cohen_kappa_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L422" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="f1score" class="level3">
+<h3 class="anchored" data-anchor-id="f1score">F1Score</h3>
+<blockquote class="blockquote">
+<pre><code> F1Score (axis=-1, labels=None, pos_label=1, average='binary',
+          sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>F1 score for single-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L428" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="fbeta" class="level3">
+<h3 class="anchored" data-anchor-id="fbeta">FBeta</h3>
+<blockquote class="blockquote">
+<pre><code> FBeta (beta, axis=-1, labels=None, pos_label=1, average='binary',
+        sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>FBeta score with <code>beta</code> for single-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.fbeta_score.html#sklearn.metrics.fbeta_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L435" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="hammingloss" class="level3">
+<h3 class="anchored" data-anchor-id="hammingloss">HammingLoss</h3>
+<blockquote class="blockquote">
+<pre><code> HammingLoss (axis=-1, sample_weight=None, log_metric=&lt;LogMetric.Valid:
+              2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Hamming loss for single-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.hamming_loss.html#sklearn.metrics.hamming_loss">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L441" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="jaccard" class="level3">
+<h3 class="anchored" data-anchor-id="jaccard">Jaccard</h3>
+<blockquote class="blockquote">
+<pre><code> Jaccard (axis=-1, labels=None, pos_label=1, average='binary',
+          sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Jaccard score for single-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.jaccard_score.html#sklearn.metrics.jaccard_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L448" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="precision" class="level3">
+<h3 class="anchored" data-anchor-id="precision">Precision</h3>
+<blockquote class="blockquote">
+<pre><code> Precision (axis=-1, labels=None, pos_label=1, average='binary',
+            sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Precision for single-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_score.html#sklearn.metrics.precision_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L455" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="recall" class="level3">
+<h3 class="anchored" data-anchor-id="recall">Recall</h3>
+<blockquote class="blockquote">
+<pre><code> Recall (axis=-1, labels=None, pos_label=1, average='binary',
+         sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Recall for single-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html#sklearn.metrics.recall_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L462" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="rocauc" class="level3">
+<h3 class="anchored" data-anchor-id="rocauc">RocAuc</h3>
+<blockquote class="blockquote">
+<pre><code> RocAuc (axis=-1, average='macro', sample_weight=None, max_fpr=None,
+         multi_class='ovr', log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Area Under the Receiver Operating Characteristic Curve for single-label multiclass classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L471" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="rocaucbinary" class="level3">
+<h3 class="anchored" data-anchor-id="rocaucbinary">RocAucBinary</h3>
+<blockquote class="blockquote">
+<pre><code> RocAucBinary (axis=-1, average='macro', sample_weight=None, max_fpr=None,
+               multi_class='raise', log_metric=&lt;LogMetric.Valid: 2&gt;,
+               **kwargs)</code></pre>
+</blockquote>
+<p>Area Under the Receiver Operating Characteristic Curve for single-label binary classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L479" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="matthewscorrcoef" class="level3">
+<h3 class="anchored" data-anchor-id="matthewscorrcoef">MatthewsCorrCoef</h3>
+<blockquote class="blockquote">
+<pre><code> MatthewsCorrCoef (sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;,
+                   **kwargs)</code></pre>
+</blockquote>
+<p>Matthews correlation coefficient for single-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.matthews_corrcoef.html#sklearn.metrics.matthews_corrcoef">scikit-learn documentation</a> for more details.</p>
+</section>
+</section>
+<section id="multi-label-classification" class="level2">
+<h2 class="anchored" data-anchor-id="multi-label-classification">Multi-label classification</h2>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L490" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="accuracymulti" class="level3">
+<h3 class="anchored" data-anchor-id="accuracymulti">AccuracyMulti</h3>
+<blockquote class="blockquote">
+<pre><code> AccuracyMulti (thresh=0.5, sigmoid=True, metric_type=&lt;MetricType.Avg: 1&gt;,
+                log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Compute accuracy when <code>inp</code> and <code>targ</code> are the same size.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L497" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="apscoremulti" class="level3">
+<h3 class="anchored" data-anchor-id="apscoremulti">APScoreMulti</h3>
+<blockquote class="blockquote">
+<pre><code> APScoreMulti (sigmoid=True, average='macro', pos_label=1,
+               sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;,
+               **kwargs)</code></pre>
+</blockquote>
+<p>Average Precision for multi-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.average_precision_score.html#sklearn.metrics.average_precision_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L506" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="brierscoremulti" class="level3">
+<h3 class="anchored" data-anchor-id="brierscoremulti">BrierScoreMulti</h3>
+<blockquote class="blockquote">
+<pre><code> BrierScoreMulti (thresh=0.5, sigmoid=True, sample_weight=None,
+                  pos_label=None, log_metric=&lt;LogMetric.Valid: 2&gt;,
+                  **kwargs)</code></pre>
+</blockquote>
+<p>Brier score for multi-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.brier_score_loss.html#sklearn.metrics.brier_score_loss">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L514" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="f1scoremulti" class="level3">
+<h3 class="anchored" data-anchor-id="f1scoremulti">F1ScoreMulti</h3>
+<blockquote class="blockquote">
+<pre><code> F1ScoreMulti (thresh=0.5, sigmoid=True, labels=None, pos_label=1,
+               average='macro', sample_weight=None,
+               log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>F1 score for multi-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L523" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="fbetamulti" class="level3">
+<h3 class="anchored" data-anchor-id="fbetamulti">FBetaMulti</h3>
+<blockquote class="blockquote">
+<pre><code> FBetaMulti (beta, thresh=0.5, sigmoid=True, labels=None, pos_label=1,
+             average='macro', sample_weight=None,
+             log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>FBeta score with <code>beta</code> for multi-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.fbeta_score.html#sklearn.metrics.fbeta_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L532" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="hamminglossmulti" class="level3">
+<h3 class="anchored" data-anchor-id="hamminglossmulti">HammingLossMulti</h3>
+<blockquote class="blockquote">
+<pre><code> HammingLossMulti (thresh=0.5, sigmoid=True, labels=None,
+                   sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;,
+                   **kwargs)</code></pre>
+</blockquote>
+<p>Hamming loss for multi-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.hamming_loss.html#sklearn.metrics.hamming_loss">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L540" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="jaccardmulti" class="level3">
+<h3 class="anchored" data-anchor-id="jaccardmulti">JaccardMulti</h3>
+<blockquote class="blockquote">
+<pre><code> JaccardMulti (thresh=0.5, sigmoid=True, labels=None, pos_label=1,
+               average='macro', sample_weight=None,
+               log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Jaccard score for multi-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.jaccard_score.html#sklearn.metrics.jaccard_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L549" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="matthewscorrcoefmulti" class="level3">
+<h3 class="anchored" data-anchor-id="matthewscorrcoefmulti">MatthewsCorrCoefMulti</h3>
+<blockquote class="blockquote">
+<pre><code> MatthewsCorrCoefMulti (thresh=0.5, sigmoid=True, sample_weight=None,
+                        log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Matthews correlation coefficient for multi-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.matthews_corrcoef.html#sklearn.metrics.matthews_corrcoef">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L556" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="precisionmulti" class="level3">
+<h3 class="anchored" data-anchor-id="precisionmulti">PrecisionMulti</h3>
+<blockquote class="blockquote">
+<pre><code> PrecisionMulti (thresh=0.5, sigmoid=True, labels=None, pos_label=1,
+                 average='macro', sample_weight=None,
+                 log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Precision for multi-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_score.html#sklearn.metrics.precision_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L565" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="recallmulti" class="level3">
+<h3 class="anchored" data-anchor-id="recallmulti">RecallMulti</h3>
+<blockquote class="blockquote">
+<pre><code> RecallMulti (thresh=0.5, sigmoid=True, labels=None, pos_label=1,
+              average='macro', sample_weight=None,
+              log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Recall for multi-label classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html#sklearn.metrics.recall_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L574" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="rocaucmulti" class="level3">
+<h3 class="anchored" data-anchor-id="rocaucmulti">RocAucMulti</h3>
+<blockquote class="blockquote">
+<pre><code> RocAucMulti (sigmoid=True, average='macro', sample_weight=None,
+              max_fpr=None, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Area Under the Receiver Operating Characteristic Curve for multi-label binary classification problems</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html#sklearn.metrics.roc_auc_score">scikit-learn documentation</a> for more details.</p>
+</section>
+</section>
+<section id="regression" class="level2">
+<h2 class="anchored" data-anchor-id="regression">Regression</h2>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L586" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="mse" class="level3">
+<h3 class="anchored" data-anchor-id="mse">MSE</h3>
+<blockquote class="blockquote">
+<pre><code> MSE (metric_type=&lt;MetricType.Avg: 1&gt;, log_metric=&lt;LogMetric.Valid: 2&gt;,
+      **kwargs)</code></pre>
+</blockquote>
+<p>Mean squared error between <code>inp</code> and <code>targ</code>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L595" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="rmse" class="level3">
+<h3 class="anchored" data-anchor-id="rmse">RMSE</h3>
+<blockquote class="blockquote">
+<pre><code> RMSE (log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Mean squared error between <code>inp</code> and <code>targ</code>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L606" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="mae" class="level3">
+<h3 class="anchored" data-anchor-id="mae">MAE</h3>
+<blockquote class="blockquote">
+<pre><code> MAE (metric_type=&lt;MetricType.Avg: 1&gt;, log_metric=&lt;LogMetric.Valid: 2&gt;,
+      **kwargs)</code></pre>
+</blockquote>
+<p>Mean absolute error between <code>inp</code> and <code>targ</code>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L617" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="msle" class="level3">
+<h3 class="anchored" data-anchor-id="msle">MSLE</h3>
+<blockquote class="blockquote">
+<pre><code> MSLE (metric_type=&lt;MetricType.Avg: 1&gt;, log_metric=&lt;LogMetric.Valid: 2&gt;,
+       **kwargs)</code></pre>
+</blockquote>
+<p>Mean squared logarithmic error between <code>inp</code> and <code>targ</code>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L627" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="exprmse" class="level3">
+<h3 class="anchored" data-anchor-id="exprmse">ExpRMSE</h3>
+<blockquote class="blockquote">
+<pre><code> ExpRMSE (log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Root mean square percentage error of the exponential of predictions and targets</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L632" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="explainedvariance" class="level3">
+<h3 class="anchored" data-anchor-id="explainedvariance">ExplainedVariance</h3>
+<blockquote class="blockquote">
+<pre><code> ExplainedVariance (sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;,
+                    **kwargs)</code></pre>
+</blockquote>
+<p>Explained variance between predictions and targets</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.explained_variance_score.html#sklearn.metrics.explained_variance_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L638" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="r2score" class="level3">
+<h3 class="anchored" data-anchor-id="r2score">R2Score</h3>
+<blockquote class="blockquote">
+<pre><code> R2Score (sample_weight=None, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>R2 score between predictions and targets</p>
+<p>See the <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html#sklearn.metrics.r2_score">scikit-learn documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L644" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="pearsoncorrcoef" class="level3">
+<h3 class="anchored" data-anchor-id="pearsoncorrcoef">PearsonCorrCoef</h3>
+<blockquote class="blockquote">
+<pre><code> PearsonCorrCoef (dim_argmax=None, log_metric=&lt;LogMetric.Valid: 2&gt;,
+                  **kwargs)</code></pre>
+</blockquote>
+<p>Pearson correlation coefficient for regression problem</p>
+<p>See the <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.pearsonr.html?highlight=pearson#scipy.stats.pearsonr">scipy documentation</a> for more details.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L651" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="spearmancorrcoef" class="level3">
+<h3 class="anchored" data-anchor-id="spearmancorrcoef">SpearmanCorrCoef</h3>
+<blockquote class="blockquote">
+<pre><code> SpearmanCorrCoef (dim_argmax=None, axis=0, nan_policy='propagate',
+                   log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Spearman correlation coefficient for regression problem</p>
+<p>See the <a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.spearmanr.html?highlight=spearman#scipy.stats.spearmanr">scipy documentation</a> for more details.</p>
+</section>
+</section>
+<section id="segmentation" class="level2">
+<h2 class="anchored" data-anchor-id="segmentation">Segmentation</h2>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L665" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="foregroundacc" class="level3">
+<h3 class="anchored" data-anchor-id="foregroundacc">ForegroundAcc</h3>
+<blockquote class="blockquote">
+<pre><code> ForegroundAcc (bkg_idx=0, axis=1, metric_type=&lt;MetricType.Avg: 1&gt;,
+                log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Computes non-background accuracy for multiclass segmentation</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L671" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="dice" class="level3">
+<h3 class="anchored" data-anchor-id="dice">Dice</h3>
+<blockquote class="blockquote">
+<pre><code> Dice (axis=1, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Dice coefficient metric for binary target in segmentation</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L686" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="dicemulti" class="level3">
+<h3 class="anchored" data-anchor-id="dicemulti">DiceMulti</h3>
+<blockquote class="blockquote">
+<pre><code> DiceMulti (axis=1, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Averaged Dice metric (Macro F1) for multiclass target in segmentation</p>
+<p>The DiceMulti method implements the “Averaged F1: arithmetic mean over harmonic means” described in this publication: https://arxiv.org/pdf/1911.03347.pdf</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L714" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="jaccardcoeff" class="level3">
+<h3 class="anchored" data-anchor-id="jaccardcoeff">JaccardCoeff</h3>
+<blockquote class="blockquote">
+<pre><code> JaccardCoeff (axis=1, log_metric=&lt;LogMetric.Valid: 2&gt;, **kwargs)</code></pre>
+</blockquote>
+<p>Implementation of the Jaccard coefficient that is lighter in RAM</p>
+</section>
+</section>
+<section id="nlp" class="level2">
+<h2 class="anchored" data-anchor-id="nlp">NLP</h2>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L720" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="corpusbleumetric" class="level3">
+<h3 class="anchored" data-anchor-id="corpusbleumetric">CorpusBLEUMetric</h3>
+<blockquote class="blockquote">
+<pre><code> CorpusBLEUMetric (vocab_sz=5000, axis=-1, log_metric=&lt;LogMetric.Valid:
+                   2&gt;, name='CorpusBLEU', **kwargs)</code></pre>
+</blockquote>
+<p>BLEU Metric calculated over the validation corpus</p>
+<p>The BLEU metric was introduced in <a href="https://www.aclweb.org/anthology/P02-1040">this article</a> to come up with a way to evaluate the performance of translation models. It’s based on the precision of n-grams in your prediction compared to your target. See the <a href="https://github.com/fastai/course-nlp/blob/master/bleu_metric.ipynb">fastai NLP course BLEU notebook</a> for a more detailed description of BLEU.</p>
+<p>The smoothing used in the precision calculation is the same as in <a href="https://github.com/mjpost/sacrebleu/blob/32c54cdd0dfd6a9fadd5805f2ea189ac0df63907/sacrebleu/sacrebleu.py#L540-L542">SacreBLEU</a>, which in turn is “method 3” from the <a href="http://acl2014.org/acl2014/W14-33/pdf/W14-3346.pdf">Chen &amp; Cherry, 2014</a> paper.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L772" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="perplexity" class="level3">
+<h3 class="anchored" data-anchor-id="perplexity">Perplexity</h3>
+<blockquote class="blockquote">
+<pre><code> Perplexity (dim_argmax=None, activation=&lt;ActivationType.No: 1&gt;,
+             thresh=None, log_metric=None, name=None)</code></pre>
+</blockquote>
+<p>Perplexity (exponential of cross-entropy loss) for Language Models</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L782" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="lossmetric" class="level3">
+<h3 class="anchored" data-anchor-id="lossmetric">LossMetric</h3>
+<blockquote class="blockquote">
+<pre><code> LossMetric (func, to_np=False, invert_arg=False, dim_argmax=None,
+             activation=&lt;ActivationType.No: 1&gt;, thresh=None,
+             log_metric=None, name=None)</code></pre>
+</blockquote>
+<p>Create a metric from <code>loss_func.attr</code> named <code>nm</code></p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/metrics.py#L796" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="lossmetrics" class="level3">
+<h3 class="anchored" data-anchor-id="lossmetrics">LossMetrics</h3>
+<blockquote class="blockquote">
+<pre><code> LossMetrics (attrs, nms=None)</code></pre>
+</blockquote>
+<p>List of <a href="https://fastxtend.benjaminwarner.dev/metrics.html#lossmetric"><code>LossMetric</code></a> for each of <code>attrs</code> and <code>nms</code></p>
+</section>
+</section>
+<section id="logging" class="level2">
+<h2 class="anchored" data-anchor-id="logging">Logging</h2>
+<p>Metrics Extended is compatible with logging to <a href="https://wandb.ai">Weights and Biases</a> and <a href="https://www.tensorflow.org/tensorboard/">TensorBoard</a> using fastai’s <a href="https://docs.fast.ai/callback.wandb.html"><code>WandbCallback</code></a> and <a href="https://docs.fast.ai/callback.tensorboard.html"><code>TensorBoardCallback</code></a>.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var filterRegex = new RegExp("https:\/\/fastxtend\.benjaminwarner\.dev\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+          // target, if specified
+          link.setAttribute("target", "_blank");
+      }
+    }
+});
+</script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">Copyright © 2023 Benjamin Warner, MIT License</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner">
+      <i class="bi bi-twitter" role="img">
+</i> 
+    </a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+</body></html>

@@ -1,0 +1,2801 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Fused fastai optimizers with ForEach, TorchScript, &amp; bitsandbytes 8-bit implementations">
+
+<title>fastxtend - Fused Optimizers</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon.ico" rel="icon">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script><script src="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.js"></script>
+  <script>document.addEventListener("DOMContentLoaded", function () {
+ var mathElements = document.getElementsByClassName("math");
+ var macros = [];
+ for (var i = 0; i < mathElements.length; i++) {
+  var texText = mathElements[i].firstChild;
+  if (mathElements[i].tagName == "SPAN") {
+   katex.render(texText.data, mathElements[i], {
+    displayMode: mathElements[i].classList.contains('display'),
+    throwOnError: false,
+    macros: macros,
+    fleqn: false
+   });
+}}});
+  </script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.15.1/dist/katex.min.css">
+
+<meta property="og:title" content="fastxtend - Fused Optimizers">
+<meta property="og:description" content="Fused fastai optimizers with ForEach, TorchScript, &amp; bitsandbytes 8-bit implementations">
+<meta property="og:site-name" content="fastxtend">
+<meta name="twitter:title" content="fastxtend - Fused Optimizers">
+<meta name="twitter:description" content="Fused fastai optimizers with ForEach, TorchScript, &amp; bitsandbytes 8-bit implementations">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fastxtend</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://benjaminwarner.dev" rel="" target="">
+ <span class="menu-text">Blog</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-resources" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Resources</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-resources">    
+        <li>
+    <a class="dropdown-item" href="https://docs.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fast.ai</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://fastcore.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fastcore</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://nbdev.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">nbdev</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/warner-benjamin/fastxtend/issues" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/" rel="" target=""><i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./optimizer.fused.html">Optimizers</a></li><li class="breadcrumb-item"><a href="./optimizer.fused.html">Fused fastai Optimizers</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fastxtend</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Callbacks</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.overview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.channelslast.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Channels Last</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.cutmixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">CutMixUp &amp; Friends</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.ema.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Exponential Moving Average</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.gradaccum.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Gradient Accumulation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.lr_finder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learning Rate Finder</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.amp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Mixed Precision</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.profiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Profiler Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.progresize.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Progressive Resizing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.compiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTorch Compile</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.tracker.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tracking Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Callback Utilities</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">FFCV [beta]</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.tutorial.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.fields.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fields</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.loader.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loader</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.operations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Operations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transforms</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.writer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Writer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utilities</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Losses</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./losses.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loss Functions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./multiloss.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MultiLoss</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./metrics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Metrics Extended</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./schedulers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Schedulers</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./data.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Splitters</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Optimizers</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.fused.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Fused fastai Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.eightbit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">8-Bit Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.adan.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Adan Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.lion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lion Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.sophia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sophia Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.stableadam.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">StableAdam Optimizer</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+ <span class="menu-text">Vision</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">Augmentations</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.batch.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Additional Batch Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.itemtensor.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tensor Item Transforms</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vision Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Models</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.attention_modules.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Attention Modules</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.pooling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pooling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.xresnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">XResNet Extended</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true">
+ <span class="menu-text">Text</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./text.huggingface.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true">
+ <span class="menu-text">Audio</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.01_core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.02_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.03_augment.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.04_learner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.05_mixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MixUp &amp; Friends</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true">
+ <span class="menu-text">Utils</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./basics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Basics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./transform.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transform</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utility</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#fused-performance" id="toc-fused-performance" class="nav-link active" data-scroll-target="#fused-performance">Fused Performance</a></li>
+  <li><a href="#examples" id="toc-examples" class="nav-link" data-scroll-target="#examples">Examples</a></li>
+  <li><a href="#sgd-optimizer" id="toc-sgd-optimizer" class="nav-link" data-scroll-target="#sgd-optimizer">SGD Optimizer</a>
+  <ul>
+  <li><a href="#sgd" id="toc-sgd" class="nav-link" data-scroll-target="#sgd">SGD</a></li>
+  <li><a href="#sgd-1" id="toc-sgd-1" class="nav-link" data-scroll-target="#sgd-1">sgd</a></li>
+  </ul></li>
+  <li><a href="#rmsprop-optimizer" id="toc-rmsprop-optimizer" class="nav-link" data-scroll-target="#rmsprop-optimizer">RMSProp Optimizer</a>
+  <ul>
+  <li><a href="#rmsprop" id="toc-rmsprop" class="nav-link" data-scroll-target="#rmsprop">RMSProp</a></li>
+  <li><a href="#rmsprop-1" id="toc-rmsprop-1" class="nav-link" data-scroll-target="#rmsprop-1">rmsprop</a></li>
+  </ul></li>
+  <li><a href="#adam-optimizer" id="toc-adam-optimizer" class="nav-link" data-scroll-target="#adam-optimizer">Adam Optimizer</a>
+  <ul>
+  <li><a href="#adam" id="toc-adam" class="nav-link" data-scroll-target="#adam">Adam</a></li>
+  <li><a href="#adam-1" id="toc-adam-1" class="nav-link" data-scroll-target="#adam-1">adam</a></li>
+  </ul></li>
+  <li><a href="#radam-optimizer" id="toc-radam-optimizer" class="nav-link" data-scroll-target="#radam-optimizer">RAdam Optimizer</a>
+  <ul>
+  <li><a href="#radam" id="toc-radam" class="nav-link" data-scroll-target="#radam">RAdam</a></li>
+  <li><a href="#radam-1" id="toc-radam-1" class="nav-link" data-scroll-target="#radam-1">radam</a></li>
+  </ul></li>
+  <li><a href="#qhadam-optimizer" id="toc-qhadam-optimizer" class="nav-link" data-scroll-target="#qhadam-optimizer">QHAdam Optimizer</a>
+  <ul>
+  <li><a href="#qhadam" id="toc-qhadam" class="nav-link" data-scroll-target="#qhadam">QHAdam</a></li>
+  <li><a href="#qhadam-1" id="toc-qhadam-1" class="nav-link" data-scroll-target="#qhadam-1">qhadam</a></li>
+  </ul></li>
+  <li><a href="#larslarc-optimizer" id="toc-larslarc-optimizer" class="nav-link" data-scroll-target="#larslarc-optimizer">LARS/LARC Optimizer</a>
+  <ul>
+  <li><a href="#larc" id="toc-larc" class="nav-link" data-scroll-target="#larc">Larc</a></li>
+  <li><a href="#larc-1" id="toc-larc-1" class="nav-link" data-scroll-target="#larc-1">larc</a></li>
+  </ul></li>
+  <li><a href="#lamb-optimizer" id="toc-lamb-optimizer" class="nav-link" data-scroll-target="#lamb-optimizer">LAMB Optimizer</a>
+  <ul>
+  <li><a href="#lamb" id="toc-lamb" class="nav-link" data-scroll-target="#lamb">Lamb</a></li>
+  <li><a href="#lamb-1" id="toc-lamb-1" class="nav-link" data-scroll-target="#lamb-1">lamb</a></li>
+  </ul></li>
+  <li><a href="#ranger-optimizer" id="toc-ranger-optimizer" class="nav-link" data-scroll-target="#ranger-optimizer">Ranger Optimizer</a>
+  <ul>
+  <li><a href="#ranger" id="toc-ranger" class="nav-link" data-scroll-target="#ranger">Ranger</a></li>
+  <li><a href="#ranger-1" id="toc-ranger-1" class="nav-link" data-scroll-target="#ranger-1">ranger</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/warner-benjamin/fastxtend/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Fused Optimizers</h1>
+</div>
+
+<div>
+  <div class="description">
+    Fused fastai optimizers with ForEach, TorchScript, &amp; bitsandbytes 8-bit implementations
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+<script src="https://static.cloudflareinsights.com/beacon.min.js?token=62f27bdcb8964407a52676798db9edfa" defer=""></script>
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>fastxtend’s fused optimizers are 21 to 293 percent faster, drop-in replacements for fastai native optimizers.</p>
+<p>Like fastai optimizers, fastxtend fused optimizers support both discriminative learning rates across multiple parameter groups and per-parameter weight decay without any extra setup.</p>
+<p>While all fastai optimizers have vertically fused TorchScript implementations, only a subset have horizontally fused ForEach<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> implementations. These optimizers, <a href="#sgd-optimizer">SGD</a>, <a href="#adam-optimizer">Adam</a>, <a href="#radam-optimizer">RAdam</a>, <a href="#lamb-optimizer">LAMB</a>, and <a href="#ranger-optimizer">Ranger</a>, usually outperform their TorchScript counterparts in all but the tiniest models. fastxtend also has ForEach implementatons of <a href="optimizer.adan.html">Adan</a>, <a href="optimizer.lion.html">Lion</a>, <a href="optimizer.sophia.html">Sophia</a>, and <a href="optimizer.stableadam.html">StableAdam</a>.</p>
+<p>fastxtend also adds full fastai support for <a href="https://github.com/TimDettmers/bitsandbytes">bitsandbytes</a> 8-bit optimizers<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>. 8-bit optimizers can reduce optimizer memory usage up to 75% compared to 32-bit optimizers. A subset of optimizers are supported: <a href="#sgd-optimizer">SGD</a>, <a href="#adam-optimizer">Adam</a>, <a href="#larc-optimizer">LARS</a>, <a href="#lamb-optimizer">LAMB</a>, and <a href="optimizer.lion.html">Lion</a>.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important: Only Tested on PyTorch 1.12+
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>ForEach and TorchScript optimizers have only been tested on PyTorch 1.12+ and are not guaranteed to work on older versions.</p>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Documentation for Each Optimizer Type
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Documentation for individual optimizers are lightly adapted from the <a href="https://docs.fast.ai/optimizer.html">fastai optimizer documentation</a>. <a href="https://nbdev.fast.ai/tutorials/best_practices.html#document-parameters-with-docments">Docments</a> and type hints have been <a href="https://github.com/fastai/fastai/pull/3847">upstreamed to fastai</a>.</p>
+<p>For implementation details, see the <a href="optimizer.foreach.html">ForEach</a>, <a href="optimizer.torchscript.html">TorchScript</a>, or <a href="optimizer.eightbit.html">8-bit</a> documentation.</p>
+</div>
+</div>
+</div>
+<section id="fused-performance" class="level2">
+<h2 class="anchored" data-anchor-id="fused-performance">Fused Performance</h2>
+<p>As shown in <a href="#tbl-single">Table&nbsp;1</a>, ForEach Optimizers are 21 to 293 percent faster<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> in <a href="#adam-optimizer">AdamW</a> optimizer step performance relative to fastai implementations across benchmarked models. Complex optimizers without ForEach implementations, such as <a href="#qhadam-optimizer">QHAdam</a>, are up to 137 percent faster using TorchScript implementations.</p>
+<div id="tbl-single" class="anchored">
+<table class="table">
+<caption>Table&nbsp;1: Increase in <a href="#adam-optimizer">AdamW</a> <code>opt_step</code> Speed vs fastai Native Optimizer</caption>
+<colgroup>
+<col style="width: 10%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Model</th>
+<th style="text-align: center;">fastai Step</th>
+<th style="text-align: center;">ForEach Step</th>
+<th style="text-align: center;">ForEach Speedup</th>
+<th style="text-align: center;">JIT Step</th>
+<th style="text-align: center;">JIT Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">XResNet18</td>
+<td style="text-align: center;">26ms</td>
+<td style="text-align: center;">12ms</td>
+<td style="text-align: center;">109%</td>
+<td style="text-align: center;">20ms</td>
+<td style="text-align: center;">29%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">XResNet50</td>
+<td style="text-align: center;">56ms</td>
+<td style="text-align: center;">32ms</td>
+<td style="text-align: center;">74%</td>
+<td style="text-align: center;">46ms</td>
+<td style="text-align: center;">20%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">XSE-ResNeXt50</td>
+<td style="text-align: center;">72ms</td>
+<td style="text-align: center;">43ms</td>
+<td style="text-align: center;">68%</td>
+<td style="text-align: center;">61ms</td>
+<td style="text-align: center;">18%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">XResNet101</td>
+<td style="text-align: center;">88ms</td>
+<td style="text-align: center;">47ms</td>
+<td style="text-align: center;">84%</td>
+<td style="text-align: center;">68ms</td>
+<td style="text-align: center;">30%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">DeBERTa Base</td>
+<td style="text-align: center;">27ms</td>
+<td style="text-align: center;">6.9ms</td>
+<td style="text-align: center;">293%</td>
+<td style="text-align: center;">19ms</td>
+<td style="text-align: center;">46%</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>This speedup persists with single or multiple parameter groups. Although more groups can lead to a small decrease in optimizer step speed, as shown by DeBERTa in <a href="#tbl-layers">Table&nbsp;2</a>.</p>
+<div id="tbl-layers" class="anchored">
+<table class="table">
+<caption>Table&nbsp;2: Increase in <a href="#adam-optimizer">AdamW</a> <code>opt_step</code> Speed With Multiple Param Groups vs fastai Native Optimizer</caption>
+<colgroup>
+<col style="width: 10%">
+<col style="width: 2%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+<col style="width: 8%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Model</th>
+<th style="text-align: center;">Layers</th>
+<th style="text-align: center;">fastai&nbsp;Step</th>
+<th style="text-align: center;">ForEach Step</th>
+<th style="text-align: center;">ForEach Speedup</th>
+<th style="text-align: center;">JIT Step</th>
+<th style="text-align: center;">JIT Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">XResNet18</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">25ms</td>
+<td style="text-align: center;">12ms</td>
+<td style="text-align: center;">103%</td>
+<td style="text-align: center;">19ms</td>
+<td style="text-align: center;">30%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">XResNet50</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">56ms</td>
+<td style="text-align: center;">32ms</td>
+<td style="text-align: center;">76%</td>
+<td style="text-align: center;">46ms</td>
+<td style="text-align: center;">24%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">XSE-ResNeXt50</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">72ms</td>
+<td style="text-align: center;">45ms</td>
+<td style="text-align: center;">85%</td>
+<td style="text-align: center;">61ms</td>
+<td style="text-align: center;">29%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">XResNet101</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">87ms</td>
+<td style="text-align: center;">47ms</td>
+<td style="text-align: center;">60%</td>
+<td style="text-align: center;">67ms</td>
+<td style="text-align: center;">17%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">ConvNeXt Tiny</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">125ms</td>
+<td style="text-align: center;">102ms</td>
+<td style="text-align: center;">22%</td>
+<td style="text-align: center;">115ms</td>
+<td style="text-align: center;">9.4%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">ConvNeXt Small</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">200ms</td>
+<td style="text-align: center;">165ms</td>
+<td style="text-align: center;">21%</td>
+<td style="text-align: center;">181ms</td>
+<td style="text-align: center;">10%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">ViT Patch16 Small</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">62ms</td>
+<td style="text-align: center;">38ms</td>
+<td style="text-align: center;">62%</td>
+<td style="text-align: center;">52ms</td>
+<td style="text-align: center;">20%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">DeBERTa Base</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">27ms</td>
+<td style="text-align: center;">7.7ms</td>
+<td style="text-align: center;">254%</td>
+<td style="text-align: center;">19ms</td>
+<td style="text-align: center;">47%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="examples" class="level2">
+<h2 class="anchored" data-anchor-id="examples">Examples</h2>
+<p>For backwards compatibility, all fastxtend optimizers return a fastai native optimizer by default. To use a fused version set <code>foreach=True</code> or <code>jit=True</code>.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastai.vision.<span class="bu">all</span> <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastxtend.vision.<span class="bu">all</span> <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Use ForEach AdamW</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>opt_func <span class="op">=</span> adam(foreach<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Or use TorchScript AdamW</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>opt_func <span class="op">=</span> adam(jit<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Or use bitsandbytes' 8-bit AdamW</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>opt_func <span class="op">=</span> adam(eightbit<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>Learner(..., opt_func<span class="op">=</span>opt_func)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Or import fused optimizers independent of other fastxtend features.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastai.vision.<span class="bu">all</span> <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastxtend.optimizer.<span class="bu">all</span> <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>Learner(..., opt_func<span class="op">=</span>partial(Adam, foreach<span class="op">=</span><span class="va">True</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>adam(...)</code> is a fastxtend convenience method equivalent to <code>partial(Adam, ...)</code>. fastextend adds lowercase convenience methods for all fastai optimizers.</p>
+</div>
+</div>
+</section>
+<section id="sgd-optimizer" class="level2">
+<h2 class="anchored" data-anchor-id="sgd-optimizer">SGD Optimizer</h2>
+<p>Stochastic gradient descent, optionally with momentum.</p>
+<p>Optional weight decay of <code>wd</code> is applied, as true weight decay (decay the weights directly) if <code>decouple_wd=True</code> else as L2 regularization (add the decay to the gradients).</p>
+<p>8-bit SGD only supports L2 weight decay: <code>decouple_wd=False</code>, and requires momentum: <code>mom&gt;0</code>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L40" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="sgd" class="level3">
+<h3 class="anchored" data-anchor-id="sgd">SGD</h3>
+<blockquote class="blockquote">
+<pre><code> SGD (params:Union[torch.Tensor,Iterable[torch.Tensor],MutableSequence[tor
+      ch.Tensor],fastcore.foundation.L,fastcore.basics.fastuple],
+      lr:float, mom:float=0.0, wd:float=0.0, decouple_wd:bool=True,
+      foreach:bool=False, jit:bool=False, eightbit:bool=False,
+      **eightbitargs)</code></pre>
+</blockquote>
+<p>A fastai SGD/SGDW optimizer with fused ForEach, TorchScript, &amp; 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>params</td>
+<td>Listified[Tensor]</td>
+<td></td>
+<td>Model parameters or parameter groups</td>
+</tr>
+<tr class="even">
+<td>lr</td>
+<td>float</td>
+<td></td>
+<td>Default learning rate</td>
+</tr>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.0</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (SGDW) or L2 regularization (SGD)</td>
+</tr>
+<tr class="even">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation</td>
+</tr>
+<tr class="odd">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | SGDForEachOptimizer | JitOptimizer | SGD8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L72" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="sgd-1" class="level3">
+<h3 class="anchored" data-anchor-id="sgd-1">sgd</h3>
+<blockquote class="blockquote">
+<pre><code> sgd (mom:float=0.0, wd:float=0.0, decouple_wd:bool=True,
+      foreach:bool=False, jit:bool=False, eightbit:bool=False,
+      **eightbitargs)</code></pre>
+</blockquote>
+<p>Partial function for the SGD/SGDW optimizer with fused ForEach, TorchScript, &amp; 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.0</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (SGDW) or L2 regularization (SGD)</td>
+</tr>
+<tr class="even">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation</td>
+</tr>
+<tr class="odd">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | SGDForEachOptimizer | JitOptimizer | SGD8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="rmsprop-optimizer" class="level2">
+<h2 class="anchored" data-anchor-id="rmsprop-optimizer">RMSProp Optimizer</h2>
+<p>RMSProp was introduced by Geoffrey Hinton in his <a href="http://www.cs.toronto.edu/~tijmen/csc321/slides/lecture_slides_lec6.pdf">course</a>. What is named <code>sqr_mom</code> here is the <code>alpha</code> in the course.</p>
+<p>Optional weight decay of <code>wd</code> is applied as true weight decay (decay the weights directly) if <code>decouple_wd=True</code> else as L2 regularization (add the decay to the gradients).</p>
+<p>8-bit RMSProp only supports L2 weight decay: <code>decouple_wd=False</code>, and does not support momentum: <code>mom=0</code>.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The order of the <code>mom</code> and <code>sqr_mom</code> hyperparameters has been swapped from fastai to follow the order of all the other fastai and fastxtend optimizers.</p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L86" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="rmsprop" class="level3">
+<h3 class="anchored" data-anchor-id="rmsprop">RMSProp</h3>
+<blockquote class="blockquote">
+<pre><code> RMSProp (params:Union[torch.Tensor,Iterable[torch.Tensor],MutableSequence
+          [torch.Tensor],fastcore.foundation.L,fastcore.basics.fastuple],
+          lr:float, mom:float=0.0, sqr_mom:float=0.99, eps:float=1e-08,
+          wd:float=0.0, decouple_wd:bool=True, jit:bool=False,
+          eightbit:bool=False, **eightbitargs)</code></pre>
+</blockquote>
+<p>A fastai RMSProp/RMSPropW optimizer with fused TorchScript and 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>params</td>
+<td>Listified[Tensor]</td>
+<td></td>
+<td>Model parameters or parameter groups</td>
+</tr>
+<tr class="even">
+<td>lr</td>
+<td>float</td>
+<td></td>
+<td>Default learning rate</td>
+</tr>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.0</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-08</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay or L2 regularization. Ignored if <code>eightbit=True</code></td>
+</tr>
+<tr class="even">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="odd">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation</td>
+</tr>
+<tr class="even">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | JitOptimizer | RMSProp8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L119" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="rmsprop-1" class="level3">
+<h3 class="anchored" data-anchor-id="rmsprop-1">rmsprop</h3>
+<blockquote class="blockquote">
+<pre><code> rmsprop (mom:float=0.0, sqr_mom:float=0.99, eps:float=1e-08,
+          wd:float=0.0, decouple_wd:bool=True, jit:bool=False,
+          eightbit:bool=False, **eightbitargs)</code></pre>
+</blockquote>
+<p>Partial function for the RMSProp/RMSPropW optimizer with fused TorchScript and 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.0</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-08</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (RMSPropW) or L2 regularization (RMSProp)</td>
+</tr>
+<tr class="even">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="odd">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation</td>
+</tr>
+<tr class="even">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | JitOptimizer | RMSProp8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="adam-optimizer" class="level2">
+<h2 class="anchored" data-anchor-id="adam-optimizer">Adam Optimizer</h2>
+<p>Adam was introduced by Diederik P. Kingma and Jimmy Ba in <em><a href="https://arxiv.org/abs/1412.6980">Adam: A Method for Stochastic Optimization</a></em>. For consistency across optimizers, fastai renamed <code>beta1</code> and <code>beta2</code> in the paper to <code>mom</code> and <code>sqr_mom</code>. Note that the defaults also differ from the paper (0.99 for <code>sqr_mom</code> or <code>beta2</code>, 1e-5 for <code>eps</code>). Those values seem to be better from experimentation in a wide range of situations.</p>
+<p>Optional weight decay of <code>wd</code> is applied, as true weight decay (decay the weights directly) if <code>decouple_wd=True</code> else as L2 regularization (add the decay to the gradients).</p>
+<p>8-bit Adam only supports true weight decay: <code>decouple_wd=True</code>.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Don’t forget that <code>eps</code> is an hyper-parameter you can change. Some models won’t train without a very high <code>eps</code> like 0.1 (intuitively, the higher <code>eps</code> is, the closer Adam is to normal SGD). The usual default of 1e-8 is often too extreme in the sense Adam does’t manage to get as good results as with SGD.</p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L135" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="adam" class="level3">
+<h3 class="anchored" data-anchor-id="adam">Adam</h3>
+<blockquote class="blockquote">
+<pre><code> Adam (params:Union[torch.Tensor,Iterable[torch.Tensor],MutableSequence[to
+       rch.Tensor],fastcore.foundation.L,fastcore.basics.fastuple],
+       lr:float, mom:float=0.9, sqr_mom:float=0.99, eps:float=1e-05,
+       wd:float=0.01, decouple_wd:bool=True, foreach:bool=False,
+       jit:bool=False, eightbit:bool=False, **eightbitargs)</code></pre>
+</blockquote>
+<p>A fastai Adam/AdamW optimizer with fused ForEach, TorchScript, &amp; 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>params</td>
+<td>Listified[Tensor]</td>
+<td></td>
+<td>Model parameters or parameter groups</td>
+</tr>
+<tr class="even">
+<td>lr</td>
+<td>float</td>
+<td></td>
+<td>Default learning rate</td>
+</tr>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.9</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-05</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.01</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (AdamW) or L2 regularization (Adam)</td>
+</tr>
+<tr class="even">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation</td>
+</tr>
+<tr class="odd">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | AdamForEachOptimizer | JitOptimizer | AdamW8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L169" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="adam-1" class="level3">
+<h3 class="anchored" data-anchor-id="adam-1">adam</h3>
+<blockquote class="blockquote">
+<pre><code> adam (mom:float=0.9, sqr_mom:float=0.99, eps:float=1e-05, wd:float=0.01,
+       decouple_wd:bool=True, foreach:bool=False, jit:bool=False,
+       eightbit:bool=False, **eightbitargs)</code></pre>
+</blockquote>
+<p>Partial function for the Adam/AdamW optimizer with fused ForEach, TorchScript, &amp; 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.9</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-05</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.01</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (AdamW) or L2 regularization (Adam)</td>
+</tr>
+<tr class="even">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation</td>
+</tr>
+<tr class="odd">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | AdamForEachOptimizer | JitOptimizer | AdamW8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="radam-optimizer" class="level2">
+<h2 class="anchored" data-anchor-id="radam-optimizer">RAdam Optimizer</h2>
+<p>RAdam (for rectified Adam) was introduced by Zhang et al.&nbsp;in <em><a href="https://arxiv.org/abs/1908.03265">On the Variance of the Adaptive Default learning rate and Beyond</a></em> to slightly modify the Adam optimizer to be more stable at the beginning of training (and thus not require a long warmup). They use an estimate of the variance of the moving average of the squared gradients (the term in the denominator of traditional Adam) and rescale this moving average by this term before performing the update.</p>
+<p>The native fastai implementation also incorporates <a href="https://arxiv.org/abs/1908.00700">SAdam</a>; set <code>beta</code> to enable this (definition same as in the paper).</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>fastxtend ForEach and TorchScript implementations do not support <code>beta</code> and SAdam.</p>
+</div>
+</div>
+<p>Optional weight decay of <code>wd</code> is applied, as true weight decay (decay the weights directly) if <code>decouple_wd=True</code> else as L2 regularization (add the decay to the gradients).</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L186" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="radam" class="level3">
+<h3 class="anchored" data-anchor-id="radam">RAdam</h3>
+<blockquote class="blockquote">
+<pre><code> RAdam (params:Union[torch.Tensor,Iterable[torch.Tensor],MutableSequence[t
+        orch.Tensor],fastcore.foundation.L,fastcore.basics.fastuple],
+        lr:float, mom:float=0.9, sqr_mom:float=0.99, eps:float=1e-05,
+        wd:float=0.0, beta:float=0.0, decouple_wd:bool=True,
+        foreach:bool=False, jit:bool=False)</code></pre>
+</blockquote>
+<p>A fastai RAdam/RAdamW optimizer with fused ForEach and TorchScript implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>params</td>
+<td>Listified[Tensor]</td>
+<td></td>
+<td>Model parameters or parameter groups</td>
+</tr>
+<tr class="even">
+<td>lr</td>
+<td>float</td>
+<td></td>
+<td>Default learning rate</td>
+</tr>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.9</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-05</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>beta</td>
+<td>float</td>
+<td>0.0</td>
+<td>Set to enable SAdam with native fastai RAdam</td>
+</tr>
+<tr class="even">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (RAdamW) or L2 regularization (RAdam)</td>
+</tr>
+<tr class="odd">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="even">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | RAdamForEachOptimizer | JitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L213" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="radam-1" class="level3">
+<h3 class="anchored" data-anchor-id="radam-1">radam</h3>
+<blockquote class="blockquote">
+<pre><code> radam (mom:float=0.9, sqr_mom:float=0.99, eps:float=1e-05, wd:float=0.0,
+        beta:float=0.0, decouple_wd:bool=True, foreach:bool=False,
+        jit:bool=False)</code></pre>
+</blockquote>
+<p>Partial function for the RAdam/RAdamW optimizer with fused ForEach and TorchScript implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.9</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-05</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>beta</td>
+<td>float</td>
+<td>0.0</td>
+<td>Set to enable SAdam with native fastai RAdam</td>
+</tr>
+<tr class="even">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (RAdamW) or L2 regularization (RAdam)</td>
+</tr>
+<tr class="odd">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="even">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | RAdamForEachOptimizer | JitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="qhadam-optimizer" class="level2">
+<h2 class="anchored" data-anchor-id="qhadam-optimizer">QHAdam Optimizer</h2>
+<p>QHAdam (for Quasi-Hyperbolic Adam) was introduced by Ma &amp; Yarats in <em><a href="https://arxiv.org/abs/1810.06801">Quasi-Hyperbolic Momentum and Adam for Deep Learning</a></em> as a <em>“computationally cheap, intuitive to interpret, and simple to implement”</em> optimizer. Additional code can be found in their <a href="https://github.com/facebookresearch/qhoptim">qhoptim repo</a>. QHAdam is based on QH-Momentum, which introduces the immediate discount factor <code>nu</code>, encapsulating plain SGD (<code>nu = 0</code>) and momentum (<code>nu = 1</code>). QH-Momentum is defined below, where <span class="math inline">g_t+1</span> is the update of the moment. An interpretation of QHM is as a nu-weighted average of the momentum update step and the plain SGD update step.</p>
+<p><span class="math display">θ_t+1 ← θ_t − lr * [(1 − nu) · ∇L_t(θ_t) + nu · g_t+1]</span></p>
+<p>QHAdam takes the concept behind QHM above and applies it to Adam, replacing both of Adam’s moment estimators with quasi-hyperbolic terms.</p>
+<p>The paper’s suggested default parameters are <code>mom = 0.999</code>, <code>sqr_mom = 0.999</code>, <code>nu_1 = 0.7</code> and <code>and nu_2 = 1.0</code>. When training is not stable, it is possible that setting <code>nu_2 &lt; 1</code> can improve stability by imposing a tighter step size bound. Note that QHAdam recovers Adam when <code>nu_1 = nu_2 = 1.0</code>. QHAdam recovers RMSProp (Hinton et al., 2012) when <code>nu_1 = 0</code> and <code>nu_2 = 1</code>, and NAdam (Dozat, 2016) when <code>nu_1 = mom</code> and <code>nu_2 = 1</code>.</p>
+<p>Optional weight decay of <code>wd</code> is applied, as true weight decay (decay the weights directly) if <code>decouple_wd=True</code> else as L2 regularization (add the decay to the gradients).</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L228" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="qhadam" class="level3">
+<h3 class="anchored" data-anchor-id="qhadam">QHAdam</h3>
+<blockquote class="blockquote">
+<pre><code> QHAdam (params:Union[torch.Tensor,Iterable[torch.Tensor],MutableSequence[
+         torch.Tensor],fastcore.foundation.L,fastcore.basics.fastuple],
+         lr:float, mom:float=0.999, sqr_mom:float=0.999, nu_1:float=0.7,
+         nu_2:float=1.0, eps:float=1e-08, wd:float=0.0,
+         decouple_wd:bool=True, jit:bool=False)</code></pre>
+</blockquote>
+<p>A fastai QHAdam/QHAdamW optimizer with a fused TorchScript implementation</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>params</td>
+<td>Listified[Tensor]</td>
+<td></td>
+<td>Model parameters or parameter groups</td>
+</tr>
+<tr class="even">
+<td>lr</td>
+<td>float</td>
+<td></td>
+<td>Default learning rate</td>
+</tr>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.999</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.999</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>nu_1</td>
+<td>float</td>
+<td>0.7</td>
+<td>QH immediate discount factor</td>
+</tr>
+<tr class="even">
+<td>nu_2</td>
+<td>float</td>
+<td>1.0</td>
+<td>QH momentum discount factor</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-08</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (QHAdamW) or L2 regularization (QHAdam)</td>
+</tr>
+<tr class="even">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | JitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L250" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="qhadam-1" class="level3">
+<h3 class="anchored" data-anchor-id="qhadam-1">qhadam</h3>
+<blockquote class="blockquote">
+<pre><code> qhadam (mom:float=0.999, sqr_mom:float=0.999, nu_1:float=0.7,
+         nu_2:float=1.0, eps:float=1e-08, wd:float=0.0,
+         decouple_wd:bool=True, jit:bool=False)</code></pre>
+</blockquote>
+<p>Partial function for the QHAdam/QHAdamW optimizer with a fused TorchScript implementation</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.999</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.999</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>nu_1</td>
+<td>float</td>
+<td>0.7</td>
+<td>QH immediate discount factor</td>
+</tr>
+<tr class="even">
+<td>nu_2</td>
+<td>float</td>
+<td>1.0</td>
+<td>QH momentum discount factor</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-08</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (QHAdamW) or L2 regularization (QHAdam)</td>
+</tr>
+<tr class="even">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="odd">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | JitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="larslarc-optimizer" class="level2">
+<h2 class="anchored" data-anchor-id="larslarc-optimizer">LARS/LARC Optimizer</h2>
+<p>The LARS optimizer was first introduced in <em><a href="https://arxiv.org/abs/1708.03888">Large Batch Training of Convolutional Networks</a></em> then refined in its LARC variant (original LARS is with <code>clip=False</code>). A Default learning rate is computed for each individual layer with a certain <code>trust_coefficient</code>, then clipped to be always less than <code>lr</code>.</p>
+<p>Optional weight decay of <code>wd</code> is applied, as true weight decay (decay the weights directly) if <code>decouple_wd=True</code> else as L2 regularization (add the decay to the gradients).</p>
+<p>8-bit implementation is for LARS: <code>clip=False</code>, and only supports L2 weight decay: <code>decouple_wd=False</code>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L265" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="larc" class="level3">
+<h3 class="anchored" data-anchor-id="larc">Larc</h3>
+<blockquote class="blockquote">
+<pre><code> Larc (params:Union[torch.Tensor,Iterable[torch.Tensor],MutableSequence[to
+       rch.Tensor],fastcore.foundation.L,fastcore.basics.fastuple],
+       lr:float, mom:float=0.9, clip:bool=True, trust_coeff:float=0.02,
+       eps:float=1e-08, wd:float=0.0, decouple_wd:bool=True,
+       jit:bool=False, eightbit:bool=False, **eightbitargs)</code></pre>
+</blockquote>
+<p>A fastai LARC/LARS optimizer with fused TorchScript &amp; 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>params</td>
+<td>Listified[Tensor]</td>
+<td></td>
+<td>Model parameters or parameter groups</td>
+</tr>
+<tr class="even">
+<td>lr</td>
+<td>float</td>
+<td></td>
+<td>Default learning rate</td>
+</tr>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.9</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>clip</td>
+<td>bool</td>
+<td>True</td>
+<td>LARC if clip=True, LARS if clip=False</td>
+</tr>
+<tr class="odd">
+<td>trust_coeff</td>
+<td>float</td>
+<td>0.02</td>
+<td>Trust coeffiecnet for calculating layerwise LR</td>
+</tr>
+<tr class="even">
+<td>eps</td>
+<td>float</td>
+<td>1e-08</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="odd">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="even">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay or L2 regularization. Ignored if <code>eightbit=True</code></td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation. Only supports LARS: <code>clip=False</code></td>
+</tr>
+<tr class="odd">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | JitOptimizer | LARS8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L299" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="larc-1" class="level3">
+<h3 class="anchored" data-anchor-id="larc-1">larc</h3>
+<blockquote class="blockquote">
+<pre><code> larc (mom:float=0.9, clip:bool=True, trust_coeff:float=0.02,
+       eps:float=1e-08, wd:float=0.0, decouple_wd:bool=True,
+       jit:bool=False, eightbit:bool=False, **eightbitargs)</code></pre>
+</blockquote>
+<p>Partial function for the LARC/LARS optimizer with fused TorchScript &amp; 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.9</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>clip</td>
+<td>bool</td>
+<td>True</td>
+<td>LARC if clip=True, LARS if clip=False</td>
+</tr>
+<tr class="odd">
+<td>trust_coeff</td>
+<td>float</td>
+<td>0.02</td>
+<td>Trust coeffiecnet for calculating layerwise LR</td>
+</tr>
+<tr class="even">
+<td>eps</td>
+<td>float</td>
+<td>1e-08</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="odd">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="even">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay or L2 regularization</td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation. Only supports LARS</td>
+</tr>
+<tr class="odd">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | JitOptimizer | LARS8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="lamb-optimizer" class="level2">
+<h2 class="anchored" data-anchor-id="lamb-optimizer">LAMB Optimizer</h2>
+<p>LAMB was introduced in <em><a href="https://arxiv.org/abs/1904.00962">Large Batch Optimization for Deep Learning: Training BERT in 76 minutes</a></em>. Intuitively, it’s LARC applied to Adam. As in <a href="https://fastxtend.benjaminwarner.dev/optimizer.fused.html#adam"><code>Adam</code></a>, <code>beta1</code> and <code>beta2</code> in the paper is renamed to <code>mom</code> and <code>sqr_mom</code>. Note that the defaults also differ from the paper (0.99 for <code>sqr_mom</code> or <code>beta2</code>, 1e-5 for <code>eps</code>). Those values seem to be better from experimentation in a wide range of situations.</p>
+<p>Optional weight decay of <code>wd</code> is applied, as true weight decay (decay the weights directly) if <code>decouple_wd=True</code> else as L2 regularization (add the decay to the gradients).</p>
+<p>8-bit LAMB only supports true weight decay: <code>decouple_wd=True</code>.</p>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L315" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="lamb" class="level3">
+<h3 class="anchored" data-anchor-id="lamb">Lamb</h3>
+<blockquote class="blockquote">
+<pre><code> Lamb (params:Union[torch.Tensor,Iterable[torch.Tensor],MutableSequence[to
+       rch.Tensor],fastcore.foundation.L,fastcore.basics.fastuple],
+       lr:float, mom:float=0.9, sqr_mom:float=0.99, eps:float=1e-05,
+       wd:float=0.0, decouple_wd:bool=True, foreach:bool=False,
+       jit:bool=False, eightbit:bool=False, **eightbitargs)</code></pre>
+</blockquote>
+<p>A fastai LAMB optimizer with fused ForEach, TorchScript, &amp; 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>params</td>
+<td>Listified[Tensor]</td>
+<td></td>
+<td>Model parameters or parameter groups</td>
+</tr>
+<tr class="even">
+<td>lr</td>
+<td>float</td>
+<td></td>
+<td>Default learning rate</td>
+</tr>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.9</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-05</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay or L2 regularization. Ignored if <code>eightbit=True</code></td>
+</tr>
+<tr class="even">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation. Only supports true weight decay</td>
+</tr>
+<tr class="odd">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | LambForEachOptimizer | JitOptimizer | LAMB8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L349" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="lamb-1" class="level3">
+<h3 class="anchored" data-anchor-id="lamb-1">lamb</h3>
+<blockquote class="blockquote">
+<pre><code> lamb (mom:float=0.9, sqr_mom:float=0.99, eps:float=1e-05, wd:float=0.0,
+       decouple_wd:bool=True, foreach:bool=False, jit:bool=False,
+       eightbit:bool=False, **eightbitargs)</code></pre>
+</blockquote>
+<p>Partial function for the LAMB optimizer with fused ForEach, TorchScript, &amp; 8-bit implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.9</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-05</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.0</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay or L2 regularization</td>
+</tr>
+<tr class="even">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td>eightbit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused 8-bit implementation. Only supports true weight decay</td>
+</tr>
+<tr class="odd">
+<td>eightbitargs</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Optimizer | LambForEachOptimizer | JitOptimizer | LAMB8bitOptimizer</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="ranger-optimizer" class="level2">
+<h2 class="anchored" data-anchor-id="ranger-optimizer">Ranger Optimizer</h2>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Ranger is the only non-backward compatible fastxtend Optimizer. <a href="https://fastxtend.benjaminwarner.dev/optimizer.fused.html#ranger"><code>Ranger</code></a> is equivalent fastai’s <a href="https://docs.fast.ai/optimizer.html#ranger"><code>ranger</code></a> while fastxtend’s <a href="https://fastxtend.benjaminwarner.dev/optimizer.fused.html#ranger"><code>ranger</code></a> is a partial function which returns <a href="https://fastxtend.benjaminwarner.dev/optimizer.fused.html#ranger"><code>Ranger</code></a>. Most fastai code should be uneffected by this change.</p>
+</div>
+</div>
+<p>Lookahead was introduced by Zhang et al.&nbsp;in <em><a href="https://arxiv.org/abs/1907.08610">Lookahead Optimizer: k steps forward, 1 step back</a></em>. With Lookahead, the final weights (slow weights) are a moving average of the normal weights (fast weights). Every k steps, Lookahead modifieds the current weights by a moving average of the fast weights (normal weights) with the slow weights (the copy of old weights k steps ago). Those slow weights act like a stability mechanism.</p>
+<p>Ranger was introduced by Less Wright in <em><a href="https://lessw.medium.com/new-deep-learning-optimizer-ranger-synergistic-combination-of-radam-lookahead-for-the-best-of-2dc83f79a48d">New Deep Learning Optimizer, Ranger: Synergistic combination of RAdam + Lookahead for the best of both</a></em>. It combines RAdam and Lookahead together in one optimizer and reduces the need for hyperparameter tuning due to a combination of RAdam’s warmup heuristic and Lookahead’s interpolation of parameter weights.</p>
+<p>Ranger performs best on vision tasks when paired with the <code>fit_flat_cos</code> or <code>fit_flat_varied</code> schedulers.</p>
+<p>Optional weight decay of <code>wd</code> is applied, as true weight decay (decay the weights directly) if <code>decouple_wd=True</code> else as L2 regularization (add the decay to the gradients).</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>While fastai’s <code>Lookahead</code> can be applied to any optimizer, fastxtend’s <a href="https://fastxtend.benjaminwarner.dev/optimizer.torchscript.html#jitlookahead"><code>JitLookahead</code></a> must have a custom written TorchScript callback and <a href="https://fastxtend.benjaminwarner.dev/optimizer.foreach.html#foreachoptimizer"><code>ForEachOptimizer</code></a> a custom Lookahead optimizer step. Currently ranger with RAdam is the only TorchScript and ForEach optimizer with Lookahead support.</p>
+</div>
+</div>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L366" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="ranger" class="level3">
+<h3 class="anchored" data-anchor-id="ranger">Ranger</h3>
+<blockquote class="blockquote">
+<pre><code> Ranger (params:Union[torch.Tensor,Iterable[torch.Tensor],MutableSequence[
+         torch.Tensor],fastcore.foundation.L,fastcore.basics.fastuple],
+         lr:float, mom:float=0.95, sqr_mom:float=0.99, eps:float=1e-06,
+         wd:float=0.01, k:int=6, alpha:float=0.5, decouple_wd:bool=True,
+         foreach:bool=False, jit:bool=False)</code></pre>
+</blockquote>
+<p>Convenience method for <code>Lookahead</code> with <a href="https://fastxtend.benjaminwarner.dev/optimizer.fused.html#radam"><code>RAdam</code></a> fused ForEach and TorchScript implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>params</td>
+<td>Listified[Tensor]</td>
+<td></td>
+<td>Model parameters or parameter groups</td>
+</tr>
+<tr class="even">
+<td>lr</td>
+<td>float</td>
+<td></td>
+<td>Default learning rate</td>
+</tr>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.95</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-06</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.01</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>k</td>
+<td>int</td>
+<td>6</td>
+<td>How often to conduct Lookahead step</td>
+</tr>
+<tr class="even">
+<td>alpha</td>
+<td>float</td>
+<td>0.5</td>
+<td>Slow weight moving average coefficient</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (RAdamW) or L2 regularization (RAdam)</td>
+</tr>
+<tr class="even">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Lookahead | RangerForEachOptimizer | JitLookahead</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p><a href="https://github.com/warner-benjamin/fastxtend/blob/main/fastxtend/optimizer/fused.py#L392" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="ranger-1" class="level3">
+<h3 class="anchored" data-anchor-id="ranger-1">ranger</h3>
+<blockquote class="blockquote">
+<pre><code> ranger (mom:float=0.95, sqr_mom:float=0.99, eps:float=1e-06,
+         wd:float=0.01, k:int=6, alpha:float=0.5, decouple_wd:bool=True,
+         foreach:bool=False, jit:bool=False)</code></pre>
+</blockquote>
+<p>Partial function of the onvenience method for <code>Lookahead</code> with <a href="https://fastxtend.benjaminwarner.dev/optimizer.fused.html#radam"><code>RAdam</code></a> fused ForEach and TorchScript implementations</p>
+<table class="table">
+<colgroup>
+<col style="width: 6%">
+<col style="width: 25%">
+<col style="width: 34%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Type</strong></th>
+<th><strong>Default</strong></th>
+<th><strong>Details</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mom</td>
+<td>float</td>
+<td>0.95</td>
+<td>Gradient moving average (β1) coefficient</td>
+</tr>
+<tr class="even">
+<td>sqr_mom</td>
+<td>float</td>
+<td>0.99</td>
+<td>Gradient squared moving average (β2) coefficient</td>
+</tr>
+<tr class="odd">
+<td>eps</td>
+<td>float</td>
+<td>1e-06</td>
+<td>Added for numerical stability</td>
+</tr>
+<tr class="even">
+<td>wd</td>
+<td>float</td>
+<td>0.01</td>
+<td>Optional weight decay (true or L2)</td>
+</tr>
+<tr class="odd">
+<td>k</td>
+<td>int</td>
+<td>6</td>
+<td>How often to conduct Lookahead step</td>
+</tr>
+<tr class="even">
+<td>alpha</td>
+<td>float</td>
+<td>0.5</td>
+<td>Slow weight moving average coefficient</td>
+</tr>
+<tr class="odd">
+<td>decouple_wd</td>
+<td>bool</td>
+<td>True</td>
+<td>Apply true weight decay (RAdamW) or L2 regularization (RAdam)</td>
+</tr>
+<tr class="even">
+<td>foreach</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused ForEach implementation</td>
+</tr>
+<tr class="odd">
+<td>jit</td>
+<td>bool</td>
+<td>False</td>
+<td>Use fused TorchScript implementation</td>
+</tr>
+<tr class="even">
+<td><strong>Returns</strong></td>
+<td><strong>Lookahead | RangerForEachOptimizer | JitLookahead</strong></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>fastxtend ForEach optimizers are adapted from the PyTorch ForEach <a href="https://github.com/pytorch/pytorch/tree/master/torch/optim"><code>_multi_tensor</code></a> implementations, but seamlessly work with fastai features.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>While it is possible to use bitsandbytes optimizers with fastai via <a href="https://docs.fast.ai/optimizer.html#optimwrapper"><code>fastai.optimizer.OptimWrapper</code></a>, this doesn’t provide compatibility with all fastai optimizer features. fastxtend adds full fastai compatibility to bitsandbytes 8-bit optimizers, including per-parameter weight decay, automatic weight decay exclusion for normalization and bias terms, and discriminative learning rate support.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>All optimizers benchmarked on a GeForce 3080 Ti using PyTorch 1.12.1, Cuda 11.6, Mixed Precision, <a href="callback.channelslast.html">Channels Last</a> (except ViT and DeBERTa), and fastxtend’s <a href="callback.simpleprofiler.html">Simple Profiler Callback</a>. Results may differ with other optimizers, models, hardware, and across benchmarking runs. Speedup is calculated from the total time spent on the optimization step.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var filterRegex = new RegExp("https:\/\/fastxtend\.benjaminwarner\.dev\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+          // target, if specified
+          link.setAttribute("target", "_blank");
+      }
+    }
+});
+</script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">Copyright © 2023 Benjamin Warner, MIT License</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner">
+      <i class="bi bi-twitter" role="img">
+</i> 
+    </a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+</body></html>

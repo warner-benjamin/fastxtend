@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="Use fastxtend’s FFCV integration to accelerate fastai training">
+
+<title>fastxtend - Getting Started with fastxtend and FFCV</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon.ico" rel="icon">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+<meta property="og:title" content="fastxtend - Getting Started with fastxtend and FFCV">
+<meta property="og:description" content="Use fastxtend’s FFCV integration to accelerate fastai training">
+<meta property="og:image" content="https://fastxtend.benjaminwarner.dev/images/imagenette_benchmark.svg">
+<meta property="og:site-name" content="fastxtend">
+<meta name="twitter:title" content="fastxtend - Getting Started with fastxtend and FFCV">
+<meta name="twitter:description" content="Use fastxtend’s FFCV integration to accelerate fastai training">
+<meta name="twitter:image" content="https://fastxtend.benjaminwarner.dev/images/imagenette_benchmark.svg">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+
+<body class="nav-sidebar floating nav-fixed">
+
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fastxtend</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="https://benjaminwarner.dev" rel="" target="">
+ <span class="menu-text">Blog</span></a>
+  </li>  
+  <li class="nav-item dropdown ">
+    <a class="nav-link dropdown-toggle" href="#" id="nav-menu-resources" role="button" data-bs-toggle="dropdown" aria-expanded="false" rel="" target="">
+ <span class="menu-text">Resources</span>
+    </a>
+    <ul class="dropdown-menu" aria-labelledby="nav-menu-resources">    
+        <li>
+    <a class="dropdown-item" href="https://docs.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fast.ai</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://fastcore.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">fastcore</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://nbdev.fast.ai" rel="" target=""><i class="bi bi-link" role="img">
+</i> 
+ <span class="dropdown-text">nbdev</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="https://github.com/warner-benjamin/fastxtend/issues" rel="" target=""><i class="bi bi-bug" role="img">
+</i> 
+ <span class="dropdown-text">Report an Issue</span></a>
+  </li>  
+    </ul>
+  </li>
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/" rel="" target=""><i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner" rel="" target=""><i class="bi bi-twitter" role="img" aria-label="Twitter">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+      <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./ffcv.tutorial.html">FFCV [beta]</a></li><li class="breadcrumb-item"><a href="./ffcv.tutorial.html">Getting Started</a></li></ol></nav>
+      <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+      </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">fastxtend</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true">
+ <span class="menu-text">Callbacks</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.overview.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.channelslast.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Channels Last</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.cutmixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">CutMixUp &amp; Friends</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.ema.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Exponential Moving Average</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.gradaccum.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Gradient Accumulation</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.lr_finder.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learning Rate Finder</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.amp.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Mixed Precision</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.profiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Profiler Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.progresize.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Progressive Resizing</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.compiler.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">PyTorch Compile</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.tracker.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tracking Callbacks</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./callback.utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Callback Utilities</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+ <span class="menu-text">FFCV [beta]</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.tutorial.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">Getting Started</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.fields.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fields</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.loader.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loader</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.operations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Operations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transforms</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.writer.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Writer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utilities</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./ffcv.inference.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Inference</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true">
+ <span class="menu-text">Losses</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./losses.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Loss Functions</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./multiloss.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MultiLoss</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./metrics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Metrics Extended</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./schedulers.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Schedulers</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./data.transforms.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Splitters</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+ <span class="menu-text">Optimizers</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.fused.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Fused fastai Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.eightbit.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">8-Bit Optimizers</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.adan.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Adan Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.lion.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Lion Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.sophia.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Sophia Optimizer</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./optimizer.stableadam.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">StableAdam Optimizer</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true">
+ <span class="menu-text">Vision</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-5" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-5" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false">
+ <span class="menu-text">Augmentations</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-6" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-6" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.batch.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Additional Batch Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.augment.itemtensor.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tensor Item Transforms</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Vision Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false">
+ <span class="menu-text">Models</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-7" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-7" class="collapse list-unstyled sidebar-section depth2 ">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.attention_modules.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Attention Modules</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.pooling.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Pooling</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vision.models.xresnet.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">XResNet Extended</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true">
+ <span class="menu-text">Text</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-8" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-8" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./text.huggingface.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Hugging Face</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true">
+ <span class="menu-text">Audio</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-9" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-9" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.01_core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Core</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.02_data.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Data</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.03_augment.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Augmentations</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.04_learner.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Learner</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./audio.05_mixup.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">MixUp &amp; Friends</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true">
+ <span class="menu-text">Utils</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-10" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-10" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./basics.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Basics</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./transform.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Transform</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./utils.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Utility</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar,#quarto-sidebar-glass"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#installing-fastai-ffcv-and-fastxtend" id="toc-installing-fastai-ffcv-and-fastxtend" class="nav-link active" data-scroll-target="#installing-fastai-ffcv-and-fastxtend">Installing fastai, FFCV, and fastxtend</a></li>
+  <li><a href="#importing-ffcv-via-fastxtend" id="toc-importing-ffcv-via-fastxtend" class="nav-link" data-scroll-target="#importing-ffcv-via-fastxtend">Importing FFCV via fastxtend</a></li>
+  <li><a href="#creating-a-ffcv-dataset" id="toc-creating-a-ffcv-dataset" class="nav-link" data-scroll-target="#creating-a-ffcv-dataset">Creating a FFCV Dataset</a></li>
+  <li><a href="#creating-a-fastxtend-loader" id="toc-creating-a-fastxtend-loader" class="nav-link" data-scroll-target="#creating-a-fastxtend-loader">Creating a fastxtend Loader</a>
+  <ul>
+  <li><a href="#setting-up-pipelines" id="toc-setting-up-pipelines" class="nav-link" data-scroll-target="#setting-up-pipelines">Setting Up Pipelines</a>
+  <ul class="collapse">
+  <li><a href="#training-pipeline" id="toc-training-pipeline" class="nav-link" data-scroll-target="#training-pipeline">Training Pipeline</a></li>
+  <li><a href="#validation-pipeline" id="toc-validation-pipeline" class="nav-link" data-scroll-target="#validation-pipeline">Validation Pipeline</a></li>
+  <li><a href="#label-pipeline" id="toc-label-pipeline" class="nav-link" data-scroll-target="#label-pipeline">Label Pipeline</a></li>
+  </ul></li>
+  <li><a href="#adding-required-optional-batch-transforms" id="toc-adding-required-optional-batch-transforms" class="nav-link" data-scroll-target="#adding-required-optional-batch-transforms">Adding Required &amp; Optional Batch Transforms</a>
+  <ul class="collapse">
+  <li><a href="#required-batch-transform" id="toc-required-batch-transform" class="nav-link" data-scroll-target="#required-batch-transform">Required Batch Transform</a></li>
+  <li><a href="#optional-batch-transforms" id="toc-optional-batch-transforms" class="nav-link" data-scroll-target="#optional-batch-transforms">Optional Batch Transforms</a></li>
+  </ul></li>
+  <li><a href="#creating-the-loader" id="toc-creating-the-loader" class="nav-link" data-scroll-target="#creating-the-loader">Creating the Loader</a>
+  <ul class="collapse">
+  <li><a href="#training-loader" id="toc-training-loader" class="nav-link" data-scroll-target="#training-loader">Training Loader</a></li>
+  <li><a href="#loader-arguments" id="toc-loader-arguments" class="nav-link" data-scroll-target="#loader-arguments">Loader Arguments</a></li>
+  <li><a href="#simplified-training-loader" id="toc-simplified-training-loader" class="nav-link" data-scroll-target="#simplified-training-loader">Simplified Training Loader</a></li>
+  <li><a href="#validation-loader" id="toc-validation-loader" class="nav-link" data-scroll-target="#validation-loader">Validation Loader</a></li>
+  </ul></li>
+  <li><a href="#putting-it-all-together" id="toc-putting-it-all-together" class="nav-link" data-scroll-target="#putting-it-all-together">Putting it all Together</a></li>
+  </ul></li>
+  <li><a href="#training-with-a-fastxtend-loader" id="toc-training-with-a-fastxtend-loader" class="nav-link" data-scroll-target="#training-with-a-fastxtend-loader">Training with a fastxtend Loader</a></li>
+  <li><a href="#inference-with-ffcv-and-fastai" id="toc-inference-with-ffcv-and-fastai" class="nav-link" data-scroll-target="#inference-with-ffcv-and-fastai">Inference with FFCV and fastai</a></li>
+  <li><a href="#reproducibility-and-other-limitations" id="toc-reproducibility-and-other-limitations" class="nav-link" data-scroll-target="#reproducibility-and-other-limitations">Reproducibility and Other Limitations</a></li>
+  <li><a href="#identical-fastai-and-ffcv-dataloaders" id="toc-identical-fastai-and-ffcv-dataloaders" class="nav-link" data-scroll-target="#identical-fastai-and-ffcv-dataloaders">Identical fastai and FFCV Dataloaders</a></li>
+  </ul>
+<div class="toc-actions"><div><i class="bi bi-github"></i></div><div class="action-links"><p><a href="https://github.com/warner-benjamin/fastxtend/issues/new" class="toc-action">Report an issue</a></p></div></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Getting Started with fastxtend and FFCV</h1>
+</div>
+
+<div>
+  <div class="description">
+    Use fastxtend’s FFCV integration to accelerate fastai training
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+<script src="https://static.cloudflareinsights.com/beacon.min.js?token=62f27bdcb8964407a52676798db9edfa" defer=""></script>
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<p>fastxtend integrates <a href="https://docs.ffcv.io">FFCV</a> with fastai. You can now use the speed of the highly optimized FFCV DataLoader natively with fastai batch transforms, callbacks, and other DataLoader features.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/imagenette_benchmark.svg" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">fastxtend accelerates fastai</figcaption>
+</figure>
+</div>
+<p><a href="https://ffcv.io">FFCV is</a> “a drop-in data loading system that dramatically increases data throughput in model training.” It accelerates<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a> DataLoader throughput by combining Numba compiled item transforms with a custom data format and cached data loading.</p>
+<p>FFCV has a <a href="https://docs.ffcv.io/quickstart.html">getting started tutorial</a> which pairs well with this guide, providing additional context and depth.</p>
+<p>While fastxtend’s FFCV integration is currently in beta, it is fully functional. Expect new features and quality of life improvements in future fastxtend releases.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Benchmark Details
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>The Imagenette benchmark uses <a href="optimizer.fused.html">fused optimizers</a>, <a href="callback.progresize.html">Progressive Resizing</a> callback, and the integrated FFCV DataLoader. To run the benchmark on your own machine, see the <a href="https://github.com/warner-benjamin/fastxtend/tree/main/examples">example scripts</a> for details on how to replicate.</p>
+</div>
+</div>
+</div>
+<section id="installing-fastai-ffcv-and-fastxtend" class="level2">
+<h2 class="anchored" data-anchor-id="installing-fastai-ffcv-and-fastxtend">Installing fastai, FFCV, and fastxtend</h2>
+<p>The easiest way to install fastai, fastxtend, and FFCV is to use <a href="https://docs.conda.io/en/latest/">Conda</a> or <a href="https://docs.conda.io/en/latest/miniconda.html">Miniconda</a><a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a> on Linux (or WSL):</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-n</span> fastxtend python=3.11 <span class="st">"pytorch&gt;=2.1"</span> <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>torchvision pytorch-cuda=12.1 fastai pkg-config <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>libjpeg-turbo opencv tqdm terminaltables psutil numpy <span class="dt">\</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="st">"numba&gt;=0.57"</span> timm kornia <span class="at">-c</span> pytorch <span class="at">-c</span> nvidia <span class="dt">\</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>-c fastai <span class="at">-c</span> huggingface <span class="at">-c</span> conda-forge</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Switch to the newly created conda environment</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> activate fastxtend</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>replacing <code>pytorch-cuda=12.1</code><a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> with your prefered <a href="https://pytorch.org/get-started/locally">supported version of Cuda</a>. In rare<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> cases, you may need to add the <code>compilers</code> package to the conda install.</p>
+<p>And then install fastxtend via pip:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Install fastxtend with Vision &amp; FFCV support</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install fastxtend<span class="pp">[</span><span class="ss">ffcv</span><span class="pp">]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Or to install with all of fastxtend’s features:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-n</span> fastxtend python=3.11 <span class="st">"pytorch&gt;=2.1"</span> torchvision <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>torchaudio pytorch-cuda=12.1 fastai nbdev pkg-config libjpeg-turbo <span class="dt">\</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>opencv tqdm psutil terminaltables numpy <span class="st">"numba&gt;=0.57"</span> librosa timm <span class="dt">\</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>kornia rich typer wandb <span class="st">"transformers&gt;=4.34"</span> <span class="st">"tokenizers&gt;=0.14"</span> <span class="dt">\</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="st">"datasets&gt;=2.14"</span> ipykernel ipywidgets <span class="st">"matplotlib&lt;3.8"</span> <span class="at">-c</span> pytorch <span class="dt">\</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>-c nvidia <span class="at">-c</span> fastai <span class="at">-c</span> huggingface <span class="at">-c</span> conda-forge</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Switch to the newly created conda environment</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> activate fastxtend</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># install fastxtend and FFCV</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install fastxtend<span class="pp">[</span><span class="ss">all</span><span class="pp">]</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Windows Installation
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>If you are using Windows<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>, please follow the <a href="https://github.com/libffcv/ffcv#windows">FFCV Windows installation guide</a>, then install fastxtend via pip.</p>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Suggested Optional Packages
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-3" class="callout-3-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>If you want to use notebooks with fastxtend, it’s recommended to add one of<code>jupyter</code> or <code>jupyterlab</code> along with <code>ipykernel</code> to the conda install packages.</p>
+<p><code>cupy</code> is not listed in the conda packages as it’s only needed if you want to use FFCV’s <a href="https://docs.ffcv.io/api/transforms.html#ffcv.transforms.NormalizeImage"><code>NormalizeImage</code></a> on the GPU. It’s recommended to use fastai’s Normalize instead. See <a href="#adding-required-optional-batch-transforms">adding batch transforms</a> section for more details.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="importing-ffcv-via-fastxtend" class="level2">
+<h2 class="anchored" data-anchor-id="importing-ffcv-via-fastxtend">Importing FFCV via fastxtend</h2>
+<p>fastxtend’s FFCV integration has been designed to use <code>__all__</code> to safely import everything needed to use FFCV with fastai and fastxtend.</p>
+<p>Run:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastai.vision.<span class="bu">all</span> <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastxtend.vision.<span class="bu">all</span> <span class="im">import</span> <span class="op">*</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastxtend.ffcv.<span class="bu">all</span> <span class="im">import</span> <span class="op">*</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>and you are ready to go.</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Importing Transforms &amp; Operations
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-4" class="callout-4-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<p>fastxtend’s FFCV transforms and operations are imported under the <code>fx</code> prefix, since they sometimes overlap with fastai batch transforms.</p>
+<p>For example, the FFCV augmenation <a href="https://fastxtend.benjaminwarner.dev/ffcv.transforms.html#randomerasing"><code>RandomErasing</code></a> is an Numba FFCV version of the batch transform <a href="https://docs.fast.ai/vision.augment.html#randomerasing"><code>fastai.vision.augment.RandomErasing</code></a>.</p>
+</div>
+</div>
+</div>
+<p>You can also import the FFCV integration individually. This will require you to mix imports from <code>fastxtend.ffcv</code> and <code>ffcv</code>.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> ffcv.fields.decoders <span class="im">import</span> CenterCropDecoder</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastxtend.ffcv.loader <span class="im">import</span> Loader, OrderOption</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastxtend.ffcv.transforms <span class="im">import</span> RandomHorizontalFlip</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co"># etc</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>However, during the beta it’s recommended to use <code>from fastxtend.ffcv.all import *</code>, as imports may change between fastxtend releases.</p>
+</section>
+<section id="creating-a-ffcv-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="creating-a-ffcv-dataset">Creating a FFCV Dataset</h2>
+<p>Before we can start training with FFCV, our dataset needs to be converted into FFCV’s custom beaton format. This can be done using the <a href="https://fastxtend.benjaminwarner.dev/ffcv.writer.html#datasetwriter"><code>DatasetWriter</code></a>.</p>
+<p>fastxtend provides the <a href="https://fastxtend.benjaminwarner.dev/ffcv.utils.html#rgb_dataset_to_ffcv"><code>rgb_dataset_to_ffcv</code></a> convenience method for easy FFCV image dataset creation. <a href="https://fastxtend.benjaminwarner.dev/ffcv.utils.html#rgb_dataset_to_ffcv"><code>rgb_dataset_to_ffcv</code></a> expects a PyTorch compatible <code>Dataset</code> or any Python iterator.</p>
+<p>First, create an Imagenette dataset using the <a href="https://docs.fast.ai/tutorial.datablock.html">fastai DataBlock API</a>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> URLs.IMAGENETTE_320</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>source <span class="op">=</span> untar_data(path)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>dblock <span class="op">=</span> DataBlock(blocks<span class="op">=</span>(ImageBlock, CategoryBlock),</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>                   splitter<span class="op">=</span>GrandparentSplitter(valid_name<span class="op">=</span><span class="st">'val'</span>),</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>                   get_items<span class="op">=</span>get_image_files, get_y<span class="op">=</span>parent_label)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>dset <span class="op">=</span> dblock.datasets(source)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Next, use <a href="https://fastxtend.benjaminwarner.dev/ffcv.utils.html#rgb_dataset_to_ffcv"><code>rgb_dataset_to_ffcv</code></a> to create two FFCV files: one for the training dataset and one for the validation dataset.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>path <span class="op">=</span> Path.home()<span class="op">/</span><span class="st">'.cache/fastxtend'</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>path.mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>rgb_dataset_to_ffcv(dset.train, path<span class="op">/</span><span class="st">'imagenette_320_train.ffcv'</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>rgb_dataset_to_ffcv(dset.valid, path<span class="op">/</span><span class="st">'imagenette_320_valid.ffcv'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-5-contents" aria-controls="callout-5" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip: Change Chunk Size
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-5" class="callout-5-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>If you have more (or less) memory, you can increase (or decrease) <a href="https://fastxtend.benjaminwarner.dev/ffcv.writer.html#datasetwriter"><code>DatasetWriter</code></a>’s <code>chunk_size</code> from the default of 100.</p>
+</div>
+</div>
+</div>
+<p>If Imagenette was not already resized, we could pass <code>max_resolution</code> or <code>min_resolution</code> to resize the images. To recreate Imagenette 320 from the full size dataset, pass <code>min_resolution=320</code>:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>rgb_dataset_to_ffcv(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    dset.train, path<span class="op">/</span><span class="st">'imagenette_320_valid.ffcv'</span>, min_resolution<span class="op">=</span><span class="dv">320</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>By default, <a href="https://fastxtend.benjaminwarner.dev/ffcv.utils.html#rgb_dataset_to_ffcv"><code>rgb_dataset_to_ffcv</code></a> will use Pillow and the <a href="https://pillow.readthedocs.io/en/stable/handbook/concepts.html#PIL.Image.LANCZOS"><code>LANCZOS</code></a> resample method to resize the image, and <a href="https://fastxtend.benjaminwarner.dev/ffcv.writer.html#datasetwriter"><code>DatasetWriter</code></a> will use OpenCV with <a href="https://docs.opencv.org/3.4/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121"><code>INTER_AREA</code></a>.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip: Pillow-SIMD
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-6" class="callout-6-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>To accelerate image resizing, you’ll probably want <a href="https://github.com/uploadcare/pillow-simd">Pillow-SIMD</a> installed.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="creating-a-fastxtend-loader" class="level2">
+<h2 class="anchored" data-anchor-id="creating-a-fastxtend-loader">Creating a fastxtend Loader</h2>
+<p>fastxtend adds fastai features to <a href="https://docs.ffcv.io/making_dataloaders.html">FFCV’s Loader</a>, including <code>one_batch</code>, <a href="https://fastxtend.benjaminwarner.dev/basics.html#show_batch"><code>show_batch</code></a>, <code>show_results</code>, and support for batch transforms, to name a few.</p>
+<p>Currently <a href="https://docs.fast.ai/data.block.html#datablock"><code>fastai.data.block.DataBlock</code></a> is unsupported for creating a fastxtend <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a>, so we’ll have to create it from scratch.</p>
+<p>For reference, here is the fastai DataBlock we’ll be recreating<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a> using the fastxtend <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a>.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>dblock <span class="op">=</span> DataBlock(blocks<span class="op">=</span>(ImageBlock, CategoryBlock),</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>                   splitter<span class="op">=</span>GrandparentSplitter(valid_name<span class="op">=</span><span class="st">'val'</span>),</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>                   get_items<span class="op">=</span>get_image_files, get_y<span class="op">=</span>parent_label,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>                   item_tfms<span class="op">=</span>[RandomResizedCrop(<span class="dv">224</span>), FlipItem(<span class="fl">0.5</span>)],</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>                   batch_tfms<span class="op">=</span>[<span class="op">*</span>aug_transforms(do_flip<span class="op">=</span><span class="va">False</span>), Normalize(<span class="op">*</span>imagenet_stats)])</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>dls <span class="op">=</span> dblock.dataloaders(source, bs<span class="op">=</span><span class="dv">64</span>, num_workers<span class="op">=</span>num_cpus())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-7-contents" aria-controls="callout-7" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important: Loader Transform Type &amp; Order Matters
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-7" class="callout-7-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Unlike fastai, fastxtend’s FFCV integration, and FFCV itself, does not automatically select between training and validation versions of transforms.</p>
+<p>Neither does it automatically create a validation pipeline or automatically reorder transforms and operations.</p>
+<p>You are responsible for adding the correct decoders, transforms, and operations to the correct pipelines in the correct order.</p>
+</div>
+</div>
+</div>
+<section id="setting-up-pipelines" class="level3">
+<h3 class="anchored" data-anchor-id="setting-up-pipelines">Setting Up Pipelines</h3>
+<p>FFCV uses <a href="https://docs.ffcv.io/making_dataloaders.html#pipelines">pipelines</a> to declare what input fields to read, how to decode them, and which operations and transforms to apply on them.</p>
+<p>The dataloader will need three pipelines: one for the training images, validation images, and a shared pipeline for labels.</p>
+<p>We need to make sure that decoders, transforms, and operations are all in the correct order, as they will be executed sequentially.</p>
+<section id="training-pipeline" class="level4">
+<h4 class="anchored" data-anchor-id="training-pipeline">Training Pipeline</h4>
+<p>Reading a FFCV dataset requires a FFCV decoder. FFCV has <a href="https://docs.ffcv.io/api/decoders.html">multiple decoders</a>, but we’ll use <a href="https://docs.ffcv.io/api/decoders.html#ffcv.fields.decoders.RandomResizedCropRGBImageDecoder"><code>RandomResizedCropRGBImageDecoder</code></a> which integrates a random resizing crop into image loading.</p>
+<p>And we’ll add <a href="https://fastxtend.benjaminwarner.dev/ffcv.transforms.html#randomhorizontalflip"><code>RandomHorizontalFlip</code></a> to flip the image.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>train_pipe <span class="op">=</span> [</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    RandomResizedCropRGBImageDecoder(output_size<span class="op">=</span>(<span class="dv">224</span>,<span class="dv">224</span>)),</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    ft.RandomHorizontalFlip(<span class="fl">0.5</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-8-contents" aria-controls="callout-8" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip: fastxtend has Image Transforms
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-8" class="callout-8-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>fastxtend provides multiple FFCV <a href="ffcv.transforms.html">transforms</a>, including existing FFCV transforms with <a href="#ffcv-transforms-reference">harmonized arguments</a>, fastai transforms <a href="#color-transforms">implemented as FFCV transforms</a>, and <a href="#additional-ffcv-transforms">additional FFCV transforms</a>.</p>
+</div>
+</div>
+</div>
+<p>After passing through FFCV’s Numba compiled transforms, the Imagenette images are still in CPU memory as NumPy arrays. Before we can pass them to our model, they need to be converted to <a href="https://docs.fast.ai/torch_core.html#tensorimage"><code>fastai.torch_core.TensorImage</code></a> and moved to the GPU.</p>
+<p>We’ll extend our training pipeline by adding the <a href="https://fastxtend.benjaminwarner.dev/ffcv.operations.html#totensorimage"><code>ToTensorImage</code></a> and <a href="https://fastxtend.benjaminwarner.dev/ffcv.operations.html#todevice"><code>ToDevice</code></a> operations.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>train_pipe.extend([ft.ToTensorImage(), ft.ToDevice()])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> will now asynchronously transfer each training image batch to the GPU.</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-9-contents" aria-controls="callout-9" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning: Don’t use FFCV’s Tensor Operations
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-9" class="callout-9-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>FFCV has <a href="https://docs.ffcv.io/api/transforms.html#ffcv.transforms.ToTensor"><code>ToTensor</code></a>, <a href="https://docs.ffcv.io/api/transforms.html#ffcv.transforms.ToTorchImage"><code>ToTorchImage</code></a>, and <a href="https://docs.ffcv.io/api/transforms.html#ffcv.transforms.ToDevice"><code>ToDevice</code></a> operations for converting NumPy arrays to PyTorch Tensors and moving to the GPU. These are compatible with PyTorch dataloaders but they are not compatible with fastai as they will strip the required types for fastai features, such as batch transforms, callbacks, plotting, etc.</p>
+<p>Use fastxtend’s <a href="https://fastxtend.benjaminwarner.dev/ffcv.operations.html#totensorimage"><code>ToTensorImage</code></a> and <a href="https://fastxtend.benjaminwarner.dev/ffcv.operations.html#todevice"><code>ToDevice</code></a> for compatibility with fastai features.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="validation-pipeline" class="level4">
+<h4 class="anchored" data-anchor-id="validation-pipeline">Validation Pipeline</h4>
+<p>With the training pipeline finalized, it’s time to create the validation pipeline.</p>
+<p>FFCV and fastxtend currently have one validation image decoder: <a href="https://docs.ffcv.io/api/decoders.html#ffcv.fields.decoders.CenterCropRGBImageDecoder"><code>CenterCropRGBImageDecoder</code></a>, which resizes and center crops the validation image. This is identical to <a href="https://docs.fast.ai/vision.augment.html#resize"><code>fastai.vision.augment.Resize</code></a> valdiation behavior.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>valid_pipe <span class="op">=</span> [</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    CenterCropRGBImageDecoder(output_size<span class="op">=</span>(<span class="dv">224</span>,<span class="dv">224</span>), ratio<span class="op">=</span><span class="dv">1</span>),</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    ft.ToTensorImage(),</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    ft.ToDevice()</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Like <code>train_pipe</code>, we use <a href="https://fastxtend.benjaminwarner.dev/ffcv.operations.html#totensorimage"><code>ToTensorImage</code></a> to convert to the correct tensor type and <a href="https://fastxtend.benjaminwarner.dev/ffcv.operations.html#todevice"><code>ToDevice</code></a> asynchronously transfer each batch to the GPU.</p>
+</section>
+<section id="label-pipeline" class="level4">
+<h4 class="anchored" data-anchor-id="label-pipeline">Label Pipeline</h4>
+<p>Now we have our image pipeline for our training and validaton datasets but we need to create our label pipeline.</p>
+<p>Since this is a single label dataset, we have integers as labels, so we’ll use an <a href="https://docs.ffcv.io/api/decoders.html#ffcv.fields.decoders.IntDecoder"><code>IntDecoder</code></a> and convert to <a href="https://fastxtend.benjaminwarner.dev/torch_core.html#tensorcategory"><code>TensorCategory</code></a>, followed by squeezing the extra dimension<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a> with <code>Squeeze</code> and using <a href="https://fastxtend.benjaminwarner.dev/ffcv.operations.html#todevice"><code>ToDevice</code></a> to transfer to the GPU.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>label_pipe <span class="op">=</span> [</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    IntDecoder(), ft.ToTensorCategory(),</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    ft.Squeeze(), ft.ToDevice()</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+</section>
+<section id="adding-required-optional-batch-transforms" class="level3">
+<h3 class="anchored" data-anchor-id="adding-required-optional-batch-transforms">Adding Required &amp; Optional Batch Transforms</h3>
+<p>After <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> finishes processing the pipelines, the images are batched on the GPU, but will be in <code>uint8</code> format and unnormalized.</p>
+<p>FFCV has operations to handle both<a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a>, but using them will convert the images from <code>TensorImage</code> to <code>Tensor</code>, limiting compatibility with other fastai features, such as callbacks, plotting, etc.</p>
+<p>Since fastxtend’s <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> supports fastai GPU batch transforms, we’ll use them instead.</p>
+<section id="required-batch-transform" class="level4">
+<h4 class="anchored" data-anchor-id="required-batch-transform">Required Batch Transform</h4>
+<p>To convert the <code>uint8</code> tensors to <code>float</code> and normalize the images, we’ll use <a href="https://docs.fast.ai/data.transforms.html#inttofloattensor"><code>fastai.data.transforms.IntToFloatTensor</code></a> and <a href="https://docs.fast.ai/data.transforms.html#normalize"><code>fastai.data.transforms.Normalize</code></a> to preserve tensor types and metadata.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-10-contents" aria-controls="callout-10" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important: IntToFloatTensor is a Required Batch Transform
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-10" class="callout-10-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p><a href="https://docs.fast.ai/data.transforms.html#inttofloattensor"><code>fastai.data.transforms.IntToFloatTensor</code></a> is a required batch transform (<code>batch_tfms</code>) when training on image data for fastai feature compatibility.</p>
+</div>
+</div>
+</div>
+<p>Unlike the FFCV transforms we’ve used so far, the fastai transforms in <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> will automatically reorder themselves into and use <a href="https://fastcore.fast.ai/dispatch#typedispatch">type dispatch</a> to apply to the correct tensor types.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>batch_tfms <span class="op">=</span> [</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    IntToFloatTensor,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    Normalize.from_stats(<span class="op">*</span>imagenet_stats)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>It is recommended, but not required, to normalize an image batch.</p>
+</section>
+<section id="optional-batch-transforms" class="level4">
+<h4 class="anchored" data-anchor-id="optional-batch-transforms">Optional Batch Transforms</h4>
+<p>It’s also possible to add any fastai batch transform to <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a>’s <code>batch_tfms</code>, such as <a href="https://docs.fast.ai/vision.augment.html#aug_transforms"><code>fastai.vision.augment.aug_transforms</code></a> or <a href="https://fastxtend.benjaminwarner.dev/vision.augment.batch.html#affine_transforms"><code>affine_transforms</code></a>:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>batch_tfms <span class="op">=</span> [</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    IntToFloatTensor,</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">*</span>aug_transforms(),</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    Normalize.from_stats(<span class="op">*</span>imagenet_stats)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+</section>
+<section id="creating-the-loader" class="level3">
+<h3 class="anchored" data-anchor-id="creating-the-loader">Creating the Loader</h3>
+<p>With the image pipelines, label pipeline, and batch transforms set up, we can now create our dataloaders, one <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> for train and one for valid.</p>
+<section id="training-loader" class="level4">
+<h4 class="anchored" data-anchor-id="training-loader">Training Loader</h4>
+<p>Starting with the training <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a>, we can manually set all the training specific arguments:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>Loader(path<span class="op">/</span><span class="st">'imagenette_320_train.ffcv'</span>,</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    batch_size<span class="op">=</span><span class="dv">64</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    num_workers<span class="op">=</span>num_cpus(),</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    os_cache<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    order<span class="op">=</span>OrderOption.RANDOM,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    drop_last<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    pipelines<span class="op">=</span>{<span class="st">'image'</span>: train_pipeline, <span class="st">'label'</span>: label_pipeline},</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    batch_tfms<span class="op">=</span>batch_tfms,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    batches_ahead<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    device<span class="op">=</span><span class="st">'cuda'</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    split_idx<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    n_inp<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="loader-arguments" class="level4">
+<h4 class="anchored" data-anchor-id="loader-arguments">Loader Arguments</h4>
+<p>There are a handful of important <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> arguments which need further explanation:</p>
+<ul>
+<li><p><code>order</code>: Controls how much memory is used for dataset caching and whether the dataset is randomly shuffled. Can be one of <code>RANDOM</code>, <code>QUASI_RANDOM</code>, or <code>SEQUENTIAL</code>. See the note below for more details. Defaults to <code>SEQUENTIAL</code>, which is unrandomized.</p></li>
+<li><p><code>os_cache</code>: By default, FFCV will attempt to cache the entire dataset into RAM using the operating system’s caching. This can be changed by setting <code>os_cache=False</code> or setting the enviroment variable ‘FFCV_DEFAULT_CACHE_PROCESS’ to “True” or “1”. If <code>os_cache=False</code> then <code>order</code> must be set to <code>QUASI_RANDOM</code> for the training <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a>.</p></li>
+<li><p><code>num_workers</code>: If not set, will use all CPU cores up to 16 by default.</p></li>
+<li><p><code>batches_ahead</code>: Controls the number of batches ahead the <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> works. Increasing uses more RAM, both CPU and GPU. Defaults to 2.</p></li>
+<li><p><code>n_inp</code>: Controls which inputs to pass to the model. By default, set to number of pipelines minus 1.</p></li>
+<li><p><code>drop_last</code>: Whether to drop the last partial batch. By default, will set to True if <code>order</code> is <code>RANDOM</code> or <code>QUASI_RANDOM</code>, False if <code>SEQUENTIAL</code>.</p></li>
+<li><p><code>async_tfms</code>: Asynchronously apply <code>batch_tfms</code> before the batch is drawn. Can accelerate training if GPU compute isn’t fully saturated (95% or less) or if only using <code>IntToFloatTensor</code> and <code>Normalize</code>.</p></li>
+<li><p><code>device</code>: The device to place the processed batches of data on. Defaults to <a href="https://docs.fast.ai/torch_core.html#default_device"><code>fastai.torch_core.default_device</code></a> if not set.</p></li>
+<li><p><code>split_idx</code>: This tells the fastai batch transforms what dataset they are operating on. By default will use 0 (train) if <code>order</code> is <code>RANDOM</code> or <code>QUASI_RANDOM</code>, 1 (valid) if <code>SEQUENTIAL</code>.</p></li>
+</ul>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-11-contents" aria-controls="callout-11" aria-expanded="true" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note: Order Memory Usage
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-11" class="callout-11-contents callout-collapse collapse show">
+<div class="callout-body-container callout-body">
+<p>Each <code>order</code> option requires differing amounts of system memory.</p>
+<ul>
+<li><p><code>RANDOM</code> caches the entire dataset in memory for fast random sampling. <code>RANDOM</code> uses the most memory.</p></li>
+<li><p><code>QUASI_RANDOM</code> caches a subset of the dataset at a time in memory and randomly samples from the subset. Use when the entire dataset cannot fit into memory.</p></li>
+<li><p><code>SEQUENTIAL</code> requires least memory. It loads a few samples ahead of time. As the name suggests, it is not random, and primarly is for validation.</p></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-12-contents" aria-controls="callout-12" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip: Asynchronous Transforms Can Increase Training Speed
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-12" class="callout-12-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>With <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a>, fastai batch transforms can either be computed synchronously or asynchronously.</p>
+<p>Synchronous transforms behave like the fastai dataloader: a batch is called for by the training loop, batch transforms are computed and applied to the batch, and then the batch is passed to the model for training. Asynchronous batch transforms are computed and applied to batches ahead of time, in parallel with model training. With asynchronous batch transforms there isn’t any delay between calling for a batch and training on the batch.</p>
+<p>Because asynchronous transforms are computed in parallel with the training loop they can slow down the model training loop. However, due to eliminating the delay for computing batch transforms, asynchronous transforms increase overall training speed.</p>
+<p>Try asynchronous transforms by setting <code>async_tfms = True</code> if GPU compute isn’t fully saturated (95% or less) or if only using the required transforms <code>IntToFloatTensor</code> and <code>Normalize</code>.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="simplified-training-loader" class="level4">
+<h4 class="anchored" data-anchor-id="simplified-training-loader">Simplified Training Loader</h4>
+<p>Since Imagenette 320 is small enough to load both the training and validation images into RAM<a href="#fn9" class="footnote-ref" id="fnref9" role="doc-noteref"><sup>9</sup></a>, the only arguments for the training <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> that must be set are:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>Loader(path<span class="op">/</span><span class="st">'imagenette_320_train.ffcv'</span>,</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    batch_size<span class="op">=</span><span class="dv">64</span>,</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    order<span class="op">=</span>OrderOption.RANDOM,</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>    pipelines<span class="op">=</span>{<span class="st">'image'</span>: train_pipeline, <span class="st">'label'</span>: label_pipeline},</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    batch_tfms<span class="op">=</span>batch_tfms,</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    batches_ahead<span class="op">=</span><span class="dv">2</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="validation-loader" class="level4">
+<h4 class="anchored" data-anchor-id="validation-loader">Validation Loader</h4>
+<p>Next is the validation <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a>.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>Loader(path<span class="op">/</span><span class="st">'imagenette_320_valid.ffcv'</span>,</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    batch_size<span class="op">=</span><span class="dv">64</span>,</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    pipelines<span class="op">=</span>{<span class="st">'image'</span>: valid_pipeline, <span class="st">'label'</span>: label_pipeline},</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    batch_tfms<span class="op">=</span>batch_tfms,</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>    batches_ahead<span class="op">=</span><span class="dv">2</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>This example only sets the required arguments, relying on the <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> defaults for the rest.</p>
+</section>
+</section>
+<section id="putting-it-all-together" class="level3">
+<h3 class="anchored" data-anchor-id="putting-it-all-together">Putting it all Together</h3>
+<p>The last step is to wrap both the training and validation <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> in a <a href="https://docs.fast.ai/data.core.html#dataloaders"><code>fastai.data.core.DataLoaders</code></a>.</p>
+<p>The example below shows all the steps covered so far in a single codeblock.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>loaders <span class="op">=</span> {}</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name <span class="kw">in</span> [<span class="st">'train'</span>, <span class="st">'valid'</span>]:</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    label_pipe <span class="op">=</span> [</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>        IntDecoder(), fx.ToTensorCategory(),</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        fx.Squeeze(), fx.ToDevice()</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> name<span class="op">==</span><span class="st">'train'</span>:</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>        image_pipe <span class="op">=</span> [</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>            RandomResizedCropRGBImageDecoder(output_size<span class="op">=</span>(<span class="dv">224</span>,<span class="dv">224</span>), scale<span class="op">=</span>(<span class="fl">0.35</span>, <span class="dv">1</span>)),</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>            fx.RandomHorizontalFlip(), fx.ToTensorImage(), fx.ToDevice()</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>        order <span class="op">=</span> OrderOption.RANDOM</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>        image_pipe <span class="op">=</span> [</span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>            CenterCropRGBImageDecoder(output_size<span class="op">=</span>(<span class="dv">224</span>,<span class="dv">224</span>), ratio<span class="op">=</span><span class="dv">1</span>),</span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>            fx.ToTensorImage(), fx.ToDevice()</span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>        order <span class="op">=</span> OrderOption.SEQUENTIAL</span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>    batch_tfms <span class="op">=</span> [IntToFloatTensor, <span class="op">*</span>aug_transforms(), Normalize.from_stats(<span class="op">*</span>imagenet_stats)]</span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>    loaders[name] <span class="op">=</span> Loader(path<span class="op">/</span><span class="ss">f'imagenette_320_</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">.ffcv'</span>,</span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>                        batch_size<span class="op">=</span><span class="dv">64</span> <span class="cf">if</span> name<span class="op">==</span><span class="st">'train'</span> <span class="cf">else</span> <span class="dv">128</span>,</span>
+<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>                        order<span class="op">=</span>order,</span>
+<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>                        pipelines<span class="op">=</span>{<span class="st">'image'</span>: image_pipe, <span class="st">'label'</span>: label_pipe},</span>
+<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>                        batch_tfms<span class="op">=</span>batch_tfms,</span>
+<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>                        batches_ahead<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>                        seed<span class="op">=</span><span class="dv">42</span></span>
+<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>                    )</span>
+<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>dls <span class="op">=</span> DataLoaders(loaders[<span class="st">'train'</span>], loaders[<span class="st">'valid'</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="training-with-a-fastxtend-loader" class="level2">
+<h2 class="anchored" data-anchor-id="training-with-a-fastxtend-loader">Training with a fastxtend Loader</h2>
+<p>With the <code>DataLoaders</code> created, the only thing left to do is create a <a href="https://docs.fast.ai/learner.html#learner"><code>fastai.learner.Learner</code></a> with our model, optimizer, loss function, metrics, and callbacks of choice.</p>
+<p>Here we create the setup which should train Imagenette to ~92.5% in ~226 seconds on a 3080 Ti, depending on randomness and hardware.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    learn <span class="op">=</span> Learner(dls, xresnext50(n_out<span class="op">=</span><span class="dv">10</span>), opt_func<span class="op">=</span>ranger(foreach<span class="op">=</span><span class="va">True</span>),</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>                    loss_func<span class="op">=</span>nn.CrossEntropyLoss(label_smoothing<span class="op">=</span><span class="fl">0.1</span>), metrics<span class="op">=</span>Accuracy(),</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                    cbs<span class="op">=</span>ProgressiveResize(increase_by<span class="op">=</span><span class="dv">16</span>)).to_channelslast()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The first batch will be slower, as Numba needs to compile and FFCV needs to allocate memory for each transform and operation.</p>
+<p>Once the compilation is over, we will benefit from FFCV’s accelerated data loading.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    learn.fit_flat_cos(<span class="dv">20</span>, <span class="fl">8e-3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Progressively increase the initial image size of [112, 112] by 16 pixels every 0.8333 epochs for 7 resizes. 
+Starting at epoch 10 and finishing at epoch 15 for a final training size of [224, 224].</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+
+<style>
+    /* Turns off some styling */
+    progress {
+        /* gets rid of default border in Firefox and Opera. */
+        border: none;
+        /* Needs to be in here for Safari polyfill so background images work as expected. */
+        background-size: auto;
+    }
+    progress:not([value]), progress:not([value])::-webkit-progress-bar {
+        background: repeating-linear-gradient(45deg, #7e7e7e, #7e7e7e 10px, #5c5c5c 10px, #5c5c5c 20px);
+    }
+    .progress-bar-interrupted, .progress-bar-interrupted::-webkit-progress-bar {
+        background: #F44336;
+    }
+</style>
+</div>
+<div class="cell-output cell-output-display">
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th">epoch</th>
+<th data-quarto-table-cell-role="th">train_loss</th>
+<th data-quarto-table-cell-role="th">valid_loss</th>
+<th data-quarto-table-cell-role="th">accuracy</th>
+<th data-quarto-table-cell-role="th">time</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>1.739842</td>
+<td>1.804805</td>
+<td>0.515924</td>
+<td>00:12</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>1.483479</td>
+<td>1.330434</td>
+<td>0.662930</td>
+<td>00:08</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>1.317108</td>
+<td>1.193714</td>
+<td>0.724076</td>
+<td>00:08</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>1.215840</td>
+<td>1.404873</td>
+<td>0.640255</td>
+<td>00:08</td>
+</tr>
+<tr class="odd">
+<td>4</td>
+<td>1.114017</td>
+<td>1.206947</td>
+<td>0.715924</td>
+<td>00:08</td>
+</tr>
+<tr class="even">
+<td>5</td>
+<td>1.068557</td>
+<td>0.985433</td>
+<td>0.817070</td>
+<td>00:08</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td>1.017356</td>
+<td>1.111050</td>
+<td>0.760255</td>
+<td>00:08</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td>0.985094</td>
+<td>1.069334</td>
+<td>0.767898</td>
+<td>00:08</td>
+</tr>
+<tr class="odd">
+<td>8</td>
+<td>0.960843</td>
+<td>0.889831</td>
+<td>0.847389</td>
+<td>00:08</td>
+</tr>
+<tr class="even">
+<td>9</td>
+<td>0.911082</td>
+<td>1.085570</td>
+<td>0.755159</td>
+<td>00:08</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td>0.895687</td>
+<td>0.927597</td>
+<td>0.836688</td>
+<td>00:09</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td>0.867939</td>
+<td>0.798519</td>
+<td>0.885860</td>
+<td>00:09</td>
+</tr>
+<tr class="odd">
+<td>12</td>
+<td>0.870780</td>
+<td>0.957848</td>
+<td>0.807388</td>
+<td>00:11</td>
+</tr>
+<tr class="even">
+<td>13</td>
+<td>0.843433</td>
+<td>0.894144</td>
+<td>0.846624</td>
+<td>00:13</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td>0.820972</td>
+<td>0.793127</td>
+<td>0.884076</td>
+<td>00:15</td>
+</tr>
+<tr class="even">
+<td>15</td>
+<td>0.797982</td>
+<td>0.948408</td>
+<td>0.824204</td>
+<td>00:17</td>
+</tr>
+<tr class="odd">
+<td>16</td>
+<td>0.766880</td>
+<td>0.769455</td>
+<td>0.896815</td>
+<td>00:17</td>
+</tr>
+<tr class="even">
+<td>17</td>
+<td>0.716646</td>
+<td>0.749211</td>
+<td>0.906242</td>
+<td>00:17</td>
+</tr>
+<tr class="odd">
+<td>18</td>
+<td>0.671945</td>
+<td>0.715331</td>
+<td>0.923057</td>
+<td>00:17</td>
+</tr>
+<tr class="even">
+<td>19</td>
+<td>0.649383</td>
+<td>0.699832</td>
+<td>0.926115</td>
+<td>00:17</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> less_random():</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    learn.fit_flat_cos(<span class="dv">5</span>, <span class="fl">8e-3</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="inference-with-ffcv-and-fastai" class="level2">
+<h2 class="anchored" data-anchor-id="inference-with-ffcv-and-fastai">Inference with FFCV and fastai</h2>
+<p>While the fastxtend <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> and custom FFCV file format are great for accelerated training, they are not as useful for inference. This tutorial we will use the fastai DataBlock for inference.</p>
+<p>Since FFCV uses OpenCV for resizing and fastai uses Pillow, we cannot use the default fastai pipeline.</p>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-13-contents" aria-controls="callout-13" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Important: Unlike fastai, FFCV uses OpenCV
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-13" class="callout-13-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>FFCV is hardcoded to use OpenCV’s <code>INTER_AREA</code> when resizing images, while fastai uses Pillow. This means we cannot use <a href="https://docs.fast.ai/vision.data.html#imageblock"><code>fastai.vision.data.ImageBlock</code></a> for inference.</p>
+</div>
+</div>
+</div>
+<p>fastxtend’s <a href="ffcv.inference.html">FFCV Inference module</a> provides a <a href="https://fastxtend.benjaminwarner.dev/ffcv.inference.html#ffaiimageblock"><code>FFAIImageBlock</code></a> and <a href="https://fastxtend.benjaminwarner.dev/ffcv.inference.html#ffaicentercrop"><code>FFAICenterCrop</code></a> item transform which use OpenCV for resizing images.</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-14-contents" aria-controls="callout-14" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip: FFAI is for Inference
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-14" class="callout-14-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<p>Any class or method with the prefix FFAI is intended for inference after training with the fastxtend <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a>.</p>
+</div>
+</div>
+</div>
+<p>We can create an inference dataloader using the fastai DataBlock API which will create images identically to the <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> pipeline we created earlier in this tutorial.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>inference_dblock <span class="op">=</span> DataBlock(blocks<span class="op">=</span>(FFAIImageBlock, CategoryBlock),</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>                             splitter<span class="op">=</span>GrandparentSplitter(valid_name<span class="op">=</span><span class="st">'val'</span>),</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>                             get_items<span class="op">=</span>get_image_files, get_y<span class="op">=</span>parent_label,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>                             item_tfms<span class="op">=</span>[FFAICenterCrop(<span class="dv">224</span>, ratio<span class="op">=</span><span class="dv">1</span>)],</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>                             batch_tfms<span class="op">=</span>[<span class="op">*</span>aug_transforms(), Normalize(<span class="op">*</span>imagenet_stats)])</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>inference_dls <span class="op">=</span> dblock.dataloaders(source, bs<span class="op">=</span><span class="dv">64</span>, num_workers<span class="op">=</span>num_cpus())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Then assuming we had a folder with test images in <code>'/test'</code>, we’d set the <code>learn</code> dataloader to the new <code>inference_dls</code> and perform inference like normal.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>learn.dls <span class="op">=</span> inference_dls</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>test_dl <span class="op">=</span> dls.test_dl(<span class="st">'/test'</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>preds, _ <span class="op">=</span> learn.get_preds(dl<span class="op">=</span>test_dl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>For more details on inference, check out my <a href="https://benjaminwarner.dev/2021/10/01/inference-with-fastai">Inference with fastai</a> tutorial.</p>
+</section>
+<section id="reproducibility-and-other-limitations" class="level2">
+<h2 class="anchored" data-anchor-id="reproducibility-and-other-limitations">Reproducibility and Other Limitations</h2>
+<p>One downside of FFCV is it provides less reproducibility than most dataloader solutions.</p>
+<p>While <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> has a <code>seed</code> argument, it currently only affects the order data is loaded. With a couple exceptions, the Numba transforms are neither seeded nor reproducible. These transforms are also independent across pipelines.</p>
+<p>This means many image-to-image training tasks, such as image segmentation, cannot easily use <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> as the inputs and outputs will not be identically resized, flipped, etc.</p>
+<p>However, this FFCV limitation might be resolved in the near future. As MetaAI recently announced <a href="https://github.com/facebookresearch/FFCV-SSL">FFCV-SSL</a>, a fork of FFCV which, among other things, has reproducible transforms.</p>
+</section>
+<section id="identical-fastai-and-ffcv-dataloaders" class="level2">
+<h2 class="anchored" data-anchor-id="identical-fastai-and-ffcv-dataloaders">Identical fastai and FFCV Dataloaders</h2>
+<p>The <a href="#creating-a-fastxtend-loader">fastai dataloader</a> and <a href="#putting-it-all-together">FFCV dataloader</a> we created in this tutorial do not produce identical validation images<a href="#fn10" class="footnote-ref" id="fnref10" role="doc-noteref"><sup>10</sup></a>.</p>
+<p>This is due to <a href="https://docs.fast.ai/vision.augment.html#randomresizedcrop"><code>fastai.vision.augment.RandomResizedCrop</code></a> adding padding and squishing validation images, while FFCV’s <a href="https://docs.ffcv.io/api/decoders.html#ffcv.fields.decoders.CenterCropRGBImageDecoder"><code>CenterCropRGBImageDecoder</code></a> creates validation images via center crop.</p>
+<p>There’s an easy way to create a fastai dataloader with identical behavior via the <a href="https://docs.fast.ai/tutorial.datablock.html">DataBlock API</a>, we just have to create it twice.</p>
+<p>First, create a dataloader like we did before using <code>RandomResizedCrop</code>. Then create a second dataloader except with <a href="https://docs.fast.ai/vision.augment.html#resize"><code>fastai.vision.augment.Resize</code></a>. <code>Resize</code> creates a center crop during validation, just like <code>CenterCropRGBImageDecoder</code> with <code>ratio=1</code>. Finally, set the first <code>DataLoaders</code>’ valid dataloader as our second valid dataloader. Then we can ptionally delete the second <code>DataLoaders</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>dblock <span class="op">=</span> DataBlock(blocks<span class="op">=</span>(ImageBlock, CategoryBlock),</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>                   splitter<span class="op">=</span>GrandparentSplitter(valid_name<span class="op">=</span><span class="st">'val'</span>),</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>                   get_items<span class="op">=</span>get_image_files, get_y<span class="op">=</span>parent_label,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>                   item_tfms<span class="op">=</span>[RandomResizedCrop(<span class="dv">224</span>), FlipItem(<span class="fl">0.5</span>)],</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>                   batch_tfms<span class="op">=</span>[<span class="op">*</span>aug_transforms(do_flip<span class="op">=</span><span class="va">False</span>),</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>                               Normalize.from_stats(<span class="op">*</span>imagenet_stats)])</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>dls <span class="op">=</span> dblock.dataloaders(source, bs<span class="op">=</span><span class="dv">64</span>, num_workers<span class="op">=</span>num_cpus())</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>vblock <span class="op">=</span> DataBlock(blocks<span class="op">=</span>(ImageBlock, CategoryBlock),</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>                   splitter<span class="op">=</span>GrandparentSplitter(valid_name<span class="op">=</span><span class="st">'val'</span>),</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>                   get_items<span class="op">=</span>get_image_files, get_y<span class="op">=</span>parent_label,</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>                   item_tfms<span class="op">=</span>Resize(<span class="dv">224</span>),</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>                   batch_tfms<span class="op">=</span>[<span class="op">*</span>aug_transforms(), Normalize.from_stats(<span class="op">*</span>imagenet_stats)])</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>vls <span class="op">=</span> vblock.dataloaders(source, bs<span class="op">=</span><span class="dv">64</span>, num_workers<span class="op">=</span>num_cpus())</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a>dls.valid <span class="op">=</span> vls.valid</span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>vls <span class="op">=</span> <span class="va">None</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+
+
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>MosiacML <a href="https://www.mosaicml.com/blog/composer-ffcv-faster-together">found</a> that using FFCV led to a ~1.85x increase in throughput, from ~17,800 images/sec to ~30,000 images/sec on a 2x 32-core CPU and 8x A100 system.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Miniconda with the faster <a href="https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community">libmamba solver</a> is recommended.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>If you want to include a full Cuda install, I find that specifying the Cuda version label <code>-c nvidia/label/cuda-12.1.0</code> usually results in better enviroment solving. Sometimes the label doesn’t have all the packages, so you’ll need to add them manually to the conda install packages <code>nvidia::missing_pacakge</code>.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>The FFCV Linux <a href="https://github.com/libffcv/ffcv#linux">installation guide states</a> the <code>compilers</code> package is rarely needed.<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>fastxtend Windows support is currently untested, but it should work. It is recommended to use WSL on Windows.<a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p>This will not be a one-to-one recreation, as <a href="https://docs.fast.ai/vision.augment.html#randomresizedcrop"><code>fastai.vision.augment.RandomResizedCrop</code></a> adds padding and squishes the validation images, while the fastxend <a href="https://fastxtend.benjaminwarner.dev/ffcv.loader.html#loader"><code>Loader</code></a> will use a standard center crop for validation. See the <a href="#identical-fastai-and-ffcv-dataloaders">Identical fastai and FFCV Dataloaders</a> section for how to create an identical fastai dataloader.<a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7"><p>Since this is a single label problem, we need to remove the added dimension after the batch is created. If this were a multi-labeled dataset, we’d skip the squeezing step.<a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn8"><p>CuPy is required to use for FFCV’s <a href="https://docs.ffcv.io/api/transforms.html#ffcv.transforms.NormalizeImage"><code>NormalizeImage</code></a> on the GPU. Add <code>cupy</code> to the conda installation script if using.<a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn9"><p>Assuming your machine has more than 8GB of RAM.<a href="#fnref9" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn10"><p>Ignoring the OpenCV vs Pillow resizing differences.<a href="#fnref10" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var filterRegex = new RegExp("https:\/\/fastxtend\.benjaminwarner\.dev\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+          // target, if specified
+          link.setAttribute("target", "_blank");
+      }
+    }
+});
+</script>
+</div> <!-- /content -->
+<footer class="footer">
+  <div class="nav-footer">
+    <div class="nav-footer-left">Copyright © 2023 Benjamin Warner, MIT License</div>   
+    <div class="nav-footer-center">
+      &nbsp;
+    </div>
+    <div class="nav-footer-right">
+      <ul class="footer-items list-unstyled">
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/warner-benjamin/fastxtend/">
+      <i class="bi bi-github" role="img">
+</i> 
+    </a>
+  </li>  
+    <li class="nav-item compact">
+    <a class="nav-link" href="https://twitter.com/benjamin_warner">
+      <i class="bi bi-twitter" role="img">
+</i> 
+    </a>
+  </li>  
+</ul>
+    </div>
+  </div>
+</footer>
+
+
+
+</body></html>
