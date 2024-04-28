@@ -24,6 +24,7 @@ website:
   twitter-card: true
   open-graph: true
   repo-actions: [issue]
+  bread-crumbs: false
   navbar:
     search: true
     left:

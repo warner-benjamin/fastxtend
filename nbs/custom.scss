@@ -44,8 +44,9 @@ $blockquote-border-color: $gray !default;
 /*-- scss:mixins --*/
 
 // Navbar
+$navbar-bg: $white;
 $navbar-dark-bg: $white;  // Background color for navbarPage(inverse = TRUE)
-$navbar-light-bg: $purple;  // Background color for navbarPage(inverse = FALSE)
+$navbar-light-bg: $white;  // Background color for navbarPage(inverse = FALSE)
 $navbar-dark-color: $black;
 $navbar-dark-hover-color: $purple;
 $navbar-dark-brand-color: $purple;
