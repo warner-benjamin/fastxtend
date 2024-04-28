@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from os import environ
 from typing import Mapping, Sequence
 
 import numpy as np
@@ -24,12 +25,15 @@ from .epoch_iterator import EpochIterator, AsyncEpochIterator
 from ..imports import *
 
 # %% auto 0
-__all__ = ['Loader', 'OrderOption']
+__all__ = ['ADDITIONAL_BATCHES_AHEAD', 'Loader', 'OrderOption']
 
 # %% ../../nbs/ffcv.loader.ipynb 5
 _all_ = ['OrderOption']
 
 # %% ../../nbs/ffcv.loader.ipynb 7
+ADDITIONAL_BATCHES_AHEAD = int(environ.get('FFCV_ADDITIONAL_BATCHES_AHEAD', "2"))
+
+# %% ../../nbs/ffcv.loader.ipynb 8
 class Loader(DataLoaderMixin, _Loader):
     "FFCV `Loader` with fastai Transformed DataLoader `TfmdDL` batch transforms"
     def __init__(self,
@@ -44,7 +48,7 @@ class Loader(DataLoaderMixin, _Loader):
         pipelines:Mapping[str, Sequence[Operation|nn.Module]]={}, # Dictionary defining for each field the sequence of Decoders and transforms to apply
         custom_fields:Mapping[str, Field]={}, # Dictonary informing `Loader` of the types associated to fields that are using a custom type
         drop_last:bool|None=None, # Drop non-full batch in each epoch. Defaults to True if order is `SEQEUNTIAL`
-        batches_ahead:int=2, # Number of batches prepared in advance; balances latency and memory
+        batches_ahead:int=1, # Number of batches prepared in advance; balances latency and memory use
         recompile:bool=False, # Recompile at every epoch. Required if FFCV augmentations change during training
         device:str|int|torch.device|None=None, # Device to place batch. Defaults to fastai's `default_device`
         async_tfms:bool=False, # Asynchronously run `batch_tfms` before batch is drawn.
@@ -56,8 +60,18 @@ class Loader(DataLoaderMixin, _Loader):
         if split_idx is None:
             split_idx = int(order==OrderOption.SEQUENTIAL)
 
-        self.async_tfms = async_tfms and len(kwargs['after_batch'].fs) > 0
+        gpu_tfms_key = None
+        if async_tfms:
+            if 'batch_tfms' in kwargs:
+                gpu_tfms_key = 'batch_tfms'
+            elif 'after_batch' in kwargs:
+                gpu_tfms_key = 'after_batch'
+
+        self.async_tfms = async_tfms and len(kwargs.get(gpu_tfms_key, [])) > 0
         self.cuda_streams = None
+
+        if not self.async_tfms and async_tfms:
+            warn(f'Ignored {async_tfms=}. Pass `batch_tfms` or `after_batch` transforms to `Loader` to use `async_tfms`.')
 
         if drop_last is None:
             drop_last != order==OrderOption.SEQUENTIAL
@@ -76,7 +90,7 @@ class Loader(DataLoaderMixin, _Loader):
 
     def one_batch(self, batches_ahead:bool=False):
         "Return one processed batch of input(s) and target(s), optionally loading `batches_ahead`"
-        for b in self._n_batches(self.batches_ahead + 2 if batches_ahead else 1):
+        for b in self._n_batches(self.batches_ahead + ADDITIONAL_BATCHES_AHEAD if batches_ahead else 1):
             # need to return the yield from _n_batches so `Loader` can reset to iterate the entire epoch
             pass
         return b
@@ -117,7 +131,7 @@ class Loader(DataLoaderMixin, _Loader):
         # Asynchronous transforms require using the same Cuda streams for the entire run
         if self.cuda_streams is None:
             self.cuda_streams = [(torch.cuda.Stream() if torch.cuda.is_available() else None)
-                                  for _ in range(self.batches_ahead + 2)]
+                                  for _ in range(self.batches_ahead + ADDITIONAL_BATCHES_AHEAD)]
         if self.async_tfms:
             return AsyncEpochIterator(self, selected_order, self.after_batch)
         else:
