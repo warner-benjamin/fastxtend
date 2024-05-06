@@ -41,7 +41,7 @@ class BatchRandTransform(DisplayedTransform):
 
     def __call__(self,
         b:Tensor|tuple[Tensor,...], # Batch item(s)
-        split_idx:int, # Train (0) or valid (1) index
+        split_idx:int|None=None, # Train (0) or valid (1) index
         **kwargs
     ) -> Tensor|tuple[Tensor,...]:
         "Call `super().__call__` if `self.do`"

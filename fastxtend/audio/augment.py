@@ -13,10 +13,12 @@ from collections import Counter
 from fractions import Fraction
 from functools import reduce
 from itertools import chain, count, islice, repeat
+from packaging.version import parse
 
 import colorednoise
 from primePy import primes
 
+import torchaudio
 from torch import _VF
 from torch.distributions import Bernoulli
 import torchaudio.transforms as tatfms
@@ -408,11 +410,13 @@ def _get_fast_stretches(
 def pitch_shift(x:TensorAudio, n_fft, hop_length, shift, sr, new_sr, gcd, kernel, width, padmode, constant, device):
     shape = x.shape
     x = x.reshape(shape[0] * shape[1], shape[2])
-    x = torch.stft(x, n_fft, hop_length, return_complex=True)
+    window = torch.hann_window(n_fft, device=device)
+    x = torch.stft(x, n_fft, hop_length, window=window, return_complex=True)
     phase_advance = torch.linspace(0, math.pi * hop_length, x.shape[1], device=device)[..., None]
     x = TAF.phase_vocoder(x, float(1 / shift), phase_advance)
     phase_advance = None
-    x = torch.istft(x, n_fft, hop_length)
+    x = torch.istft(x, n_fft, hop_length, window=window)
+    window = None
     x = retain_type(_apply_sinc_resample_kernel(x, sr, new_sr, gcd, kernel, width), typ=TensorAudio)
     crop_start = torch.randint(0, x.shape[-1]-shape[-1], (1,)) if shape[-1] < x.shape[-1]  else None
     pad_len = (shape[-1]-x.shape[-1]) if shape[-1] > x.shape[-1] else 0
@@ -430,6 +434,8 @@ class PitchShift(BatchRandTransform):
         constant:Numeric=0, # Value for `AudioPadMode.Constant`
         split:int|None=None # Apply transform to `split` items at a time. Use to prevent GPU OOM.
     ):
+        if parse(torch.__version__) < parse('2.1.0'):
+            raise ImportError(f"`PitchShift` requires a minimum of PyTorch 2.1. Current version: {torch.__version__}")
         super().__init__(p=p)
         store_attr(but='p')
         self.sr = 0
@@ -455,7 +461,7 @@ class PitchShift(BatchRandTransform):
             self.new_sr = int(self.sr/self.shift)
             self.gcd = math.gcd(self.sr, self.new_sr)
             self.kernel, self.width = _get_sinc_resample_kernel(self.sr, self.new_sr, self.gcd,
-                                                                6, 0.99, 'sinc_interpolation',
+                                                                6, 0.99, 'sinc_interp_hann',
                                                                 None, self.device, self.type)
 
     def encodes(self, x:TensorAudio) -> Tensor:
