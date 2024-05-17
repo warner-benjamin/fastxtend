@@ -58,7 +58,6 @@ class Spectrogram(DisplayedTransform):
         center:Listified[bool]=True,
         pad_mode:Listified[str]="reflect",
         onesided:Listified[bool]=True,
-        norm:Listified[str]|None=None
     ):
         super().__init__()
         listify_store_attr()
@@ -73,7 +72,7 @@ class Spectrogram(DisplayedTransform):
                                                      window_fn=self.window_fn[i], power=self.power[i],
                                                      normalized=self.normalized[i], wkwargs=self.wkwargs[i],
                                                      center=self.center[i], pad_mode=self.pad_mode[i],
-                                                     onesided=self.onesided[i], norm=self.norm[i]))
+                                                     onesided=self.onesided[i]))
 
                 self._attrs.append({k:v[i] for k,v in self._get_attrs().items()})
         else:
@@ -81,7 +80,7 @@ class Spectrogram(DisplayedTransform):
             self.spec = tatfms.Spectrogram(n_fft=self.n_fft, win_length=self.win_length, hop_length=self.hop_length,
                                            pad=self.pad, window_fn=self.window_fn, power=self.power,
                                            normalized=self.normalized, wkwargs=self.wkwargs, center=self.center,
-                                           pad_mode=self.pad_mode, onesided=self.onesided, norm=self.norm)
+                                           pad_mode=self.pad_mode, onesided=self.onesided)
 
             self._attrs = {k:v for k,v in self._get_attrs().items()}
 
@@ -195,13 +194,12 @@ def SpecBlock(cls=TensorAudio,
     wkwargs:Listified[dict]|None=None,
     center:Listified[bool]=True,
     pad_mode:Listified[str]="reflect",
-    norm:Listified[str]|None=None
 ):
     "A `TransformBlock` to read `TensorAudio` and then use the GPU to turn audio into one or more `Spectrogram`s"
     return TransformBlock(type_tfms=cls.create,
                           batch_tfms=[Spectrogram(n_fft=n_fft, win_length=win_length, hop_length=hop_length,
                                                   pad=pad, window_fn=window_fn, power=power, normalized=normalized,
-                                                  wkwargs=wkwargs, center=center, pad_mode=pad_mode, norm=norm)])
+                                                  wkwargs=wkwargs, center=center, pad_mode=pad_mode)])
 
 # %% ../../nbs/audio.02_data.ipynb 14
 def MelSpecBlock(cls=TensorAudio,
