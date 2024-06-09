@@ -13,6 +13,7 @@ import bitsandbytes.functional as BF
 
 from fastcore.basics import even_mults
 
+from .utils import FastaiOptimizerAdapter, _convert_params
 from ..imports import *
 
 # %% auto 0
@@ -20,20 +21,9 @@ __all__ = ['SGD8bitOptimizer', 'RMSProp8bitOptimizer', 'AdamW8bitOptimizer', 'LA
            'Lion8bitOptimizer']
 
 # %% ../../nbs/optimizer.eightbit.ipynb 7
-def _convert_params(o:list, **defaults) -> list:
-    "Convert fastai param_lists to PyTorch param_groups, adding defaults if group doesn't have it"
-    splitter = []
-    for group in o:
-        if isinstance(group, dict):
-            splitter.append({**defaults, **group})
-        else:
-            splitter.append({'params':group, **defaults})
-    return splitter
+class EightBitFastaiAdapter(FastaiOptimizerAdapter):
+    "Base for adding fastai optimizer functionality to eight-bit optimizers"
 
-# %% ../../nbs/optimizer.eightbit.ipynb 8
-class EightBitFastaiAdapter:
-    "Base for adding fastai optimizer functionality to EightBit Optimizers"
-    _keep_on_clear = ['force_train', 'do_wd']
     def get_config(self, gindex, pindex, group):
         config = {}
         config["mom"] = group["mom"]
@@ -52,81 +42,7 @@ class EightBitFastaiAdapter:
             config.update(self.mng.index2config[(gindex, pindex)])
         return config
 
-    def get_params(self,
-        n:slice|int=slice(None), # Extended slicing over the optimizer `param_lists`
-        with_grad:bool=False # Get all param tuples. If `True` select only those with a gradient
-    ):
-        "Slice of parameters and parameter states"
-        return L((p, self.state[p]) for pg in self.param_groups[n] for p in pg['params']
-                    if (hasattr(p, 'grad') and p.grad is not None) or with_grad==False)
-
-    def clear_state(self):
-        "Reset the state of the optimizer"
-        for p,state in self.get_params():
-            self.state[p] = {k: state[k] for k in self._keep_on_clear if k in state}
-
-    def _set_require_grad(self,
-        rg:bool, # Requires grad: if `True` sets gradient for parameters, else uses state `state["force_train"]`
-        p:Tensor, # Parameter to set gradient
-        state:dict, # Parameter's state dict
-    ):
-        p.requires_grad_(rg or state.get('force_train', False))
-
-    def freeze_to(self, n:int):
-        "Freeze parameter groups up to `n`"
-        self.frozen_idx = n if n >= 0 else len(self.param_groups) + n
-        if self.frozen_idx >= len(self.param_groups):
-            warn(f"Freezing {self.frozen_idx} groups; model has {len(self.param_groups)}; whole model is frozen.")
-        for o in self.get_params(slice(n, None)):
-            self._set_require_grad(True, *o)
-        for o in self.get_params(slice(None, n)):
-            self._set_require_grad(False, *o)
-
-    def freeze(self):
-        "Freeze up to last parameter group"
-        assert(len(self.param_groups) > 1)
-        self.freeze_to(-1)
-
-    def unfreeze(self):
-        "Unfreeze the entire model"
-        self.freeze_to(0)
-
-    @property
-    def hypers(self):
-        return [{k:v for k,v in pg.items() if k != 'params'} for pg in self.param_groups]
-
-    def set_hypers(self, **kwargs):
-        "`set_hyper` for all `kwargs`"
-        L(kwargs.items()).starmap(self.set_hyper)
-
-    def _set_hyper(self, k, v):
-        "Set the value(s) in `v` for hyper-parameter `k`"
-        for v_,h in zip(v, self.param_groups):
-            h[k] = v_
-
-    def set_hyper(self, k, v):
-        "Set the value(s) in `v` for hyper-parameter `k`"
-        if isinstance(v, slice):
-            if v.start:
-                v = even_mults(v.start, v.stop, len(self.param_groups))
-            else:
-                v = [v.stop/10]*(len(self.param_groups)-1) + [v.stop]
-        v = L(v, use_list=None)
-        if len(v)==1:
-            v = v*len(self.param_groups)
-        assert len(v) == len(self.param_groups), f"Trying to set {len(v)} values for {k} but there are {len(self.param_groups)} parameter groups."
-        self._set_hyper(k, v)
-
-    @property
-    def param_lists(self):
-        return [pg['params'] for pg in self.param_groups]
-
-    @param_lists.setter
-    def param_lists(self, v):
-        for pg,v_ in zip(self.param_groups,v):
-            pg['params'] = v_
-
-# %% ../../nbs/optimizer.eightbit.ipynb 10
+# %% ../../nbs/optimizer.eightbit.ipynb 9
 class EightBitCommon:
     "Common changes to EightBit Optimizers"
     @torch.no_grad()
@@ -167,7 +83,7 @@ class EightBitCommon:
 
         return loss
 
-# %% ../../nbs/optimizer.eightbit.ipynb 12
+# %% ../../nbs/optimizer.eightbit.ipynb 11
 class EightBit1StateOptimizer(EightBitCommon, EightBitFastaiAdapter, Optimizer1State):
     "Adds fastai optimizer functionality & compatability to `Optimizer1State`"
     def __init__(
@@ -200,9 +116,8 @@ class EightBit1StateOptimizer(EightBitCommon, EightBitFastaiAdapter, Optimizer1S
         if not 0.0 <= wd:
             raise ValueError(f"Invalid weight_decay value: {wd}")
         defaults = dict(lr=lr, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd)
-        params = L(params)
-        params = _convert_params(params, **defaults) if isinstance(params[0], (L,list)) else params
-        super(Optimizer1State, self).__init__(params, defaults, optim_bits, is_paged)
+        params = super().convert_params(params)
+        super(Optimizer1State, self).__init__(params=params, defaults=defaults, optim_bits=optim_bits, is_paged=is_paged)
 
         if args is None:
             args = {}
@@ -240,70 +155,70 @@ class EightBit1StateOptimizer(EightBitCommon, EightBitFastaiAdapter, Optimizer1S
 
         if state["state1"].dtype == torch.float:
             BF.optimizer_update_32bit(
-                self.optimizer_name,
-                grad,
-                p,
-                state["state1"],
-                config["mom"],
-                config["eps"],
-                step,
-                config["lr"],
-                None,
-                config['sqr_mom'],
-                state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
-                gnorm_scale,
-                state["unorm_vec"] if config["max_unorm"] > 0.0 else None,
+                optimizer_name=self.optimizer_name,
+                g=grad,
+                p=p,
+                state1=state["state1"],
+                beta1=config["mom"],
+                eps=config["eps"],
+                step=step,
+                lr=config["lr"],
+                state2=None,
+                beta2=config["sqr_mom"],
+                weight_decay=state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
+                gnorm_scale=gnorm_scale,
+                unorm_vec=state["unorm_vec"] if config["max_unorm"] > 0.0 else None,
                 max_unorm=config["max_unorm"],
                 skip_zeros=config["skip_zeros"],
             )
 
         elif state["state1"].dtype == torch.uint8 and not config["block_wise"]:
             BF.optimizer_update_8bit(
-                self.optimizer_name,
-                grad,
-                p,
-                state["state1"],
-                None,
-                config["mom"],
-                config['sqr_mom'],
-                config["eps"],
-                step,
-                config["lr"],
-                state["qmap1"],
-                None,
-                state["max1"],
-                None,
-                state["new_max1"],
-                None,
-                state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
-                gnorm_scale,
-                state["unorm_vec"] if config["max_unorm"] > 0.0 else None,
+                optimizer_name=self.optimizer_name,
+                g=grad,
+                p=p,
+                state1=state["state1"],
+                state2=None,
+                beta1=config["mom"],
+                beta2=config['sqr_mom'],
+                eps=config["eps"],
+                step=step,
+                lr=config["lr"],
+                qmap1=state["qmap1"],
+                qmap2=None,
+                max1=state["max1"],
+                max2=None,
+                new_max1=state["new_max1"],
+                new_max2=None,
+                weight_decay=state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
+                gnorm_scale=gnorm_scale,
+                unorm_vec=state["unorm_vec"] if config["max_unorm"] > 0.0 else None,
                 max_unorm=config["max_unorm"],
             )
 
             state["max1"], state["new_max1"] = state["new_max1"], state["max1"]
         elif state["state1"].dtype == torch.uint8 and config["block_wise"]:
             BF.optimizer_update_8bit_blockwise(
-                self.optimizer_name,
-                grad,
-                p,
-                state["state1"],
-                None,
-                config["mom"],
-                config['sqr_mom'],
-                config["eps"],
-                step,
-                config["lr"],
-                state["qmap1"],
-                None,
-                state["absmax1"],
-                None,
-                state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
+                optimizer_name=self.optimizer_name,
+                g=grad,
+                p=p,
+                state1=state["state1"],
+                state2=None,
+                beta1=config["mom"],
+                beta2=config['sqr_mom'],
+                eps=config["eps"],
+                step=step,
+                lr=config["lr"],
+                qmap1=state["qmap1"],
+                qmap2=None,
+                absmax1=state["absmax1"],
+                absmax2=None,
+                weight_decay=state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
                 gnorm_scale=gnorm_scale,
                 skip_zeros=config["skip_zeros"],
             )
 
-# %% ../../nbs/optimizer.eightbit.ipynb 14
+# %% ../../nbs/optimizer.eightbit.ipynb 13
 class EightBit2StateOptimizer(EightBitCommon, EightBitFastaiAdapter, Optimizer2State):
     "Adds fastai optimizer functionality & compatability to `Optimizer2State`"
     def __init__(
@@ -336,8 +251,7 @@ class EightBit2StateOptimizer(EightBitCommon, EightBitFastaiAdapter, Optimizer2S
         if not 0.0 <= wd:
             raise ValueError(f"Invalid weight_decay value: {wd}")
         defaults = dict(lr=lr, mom=mom, sqr_mom=sqr_mom, eps=eps, wd=wd)
-        params = L(params)
-        params = _convert_params(params, **defaults) if isinstance(params[0], (L,list)) else params
+        params = super().convert_params(params)
         super(Optimizer2State, self).__init__(params, defaults, optim_bits, is_paged)
 
         if args is None:
@@ -376,42 +290,42 @@ class EightBit2StateOptimizer(EightBitCommon, EightBitFastaiAdapter, Optimizer2S
 
         if state["state1"].dtype == torch.float:
             BF.optimizer_update_32bit(
-                self.optimizer_name,
-                grad,
-                p,
-                state["state1"],
-                config["mom"],
-                config["eps"],
-                step,
-                config["lr"],
-                state["state2"],
-                config["sqr_mom"],
-                state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
-                gnorm_scale,
-                state["unorm_vec"] if config["max_unorm"] > 0.0 else None,
+                optimizer_name=self.optimizer_name,
+                g=grad,
+                p=p,
+                state1=state["state1"],
+                beta1=config["mom"],
+                eps=config["eps"],
+                step=step,
+                lr=config["lr"],
+                state2=state["state2"],
+                beta2=config["sqr_mom"],
+                weight_decay=state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
+                gnorm_scale=gnorm_scale,
+                unorm_vec=state["unorm_vec"] if config["max_unorm"] > 0.0 else None,
                 max_unorm=config["max_unorm"],
                 skip_zeros=config["skip_zeros"],
             )
 
         elif state["state1"].dtype == torch.uint8 and not config["block_wise"]:
             BF.optimizer_update_8bit(
-                self.optimizer_name,
-                grad,
-                p,
-                state["state1"],
-                state["state2"],
-                config["mom"],
-                config['sqr_mom'],
-                config["eps"],
-                step,
-                config["lr"],
-                state["qmap1"],
-                state["qmap2"],
-                state["max1"],
-                state["max2"],
-                state["new_max1"],
-                state["new_max2"],
-                state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
+                optimizer_name=self.optimizer_name,
+                g=grad,
+                p=p,
+                state1=state["state1"],
+                state2=state["state2"],
+                beta1=config["mom"],
+                beta2=config['sqr_mom'],
+                eps=config["eps"],
+                step=step,
+                lr=config["lr"],
+                qmap1=state["qmap1"],
+                qmap2=state["qmap2"],
+                max1=state["max1"],
+                max2=state["max2"],
+                new_max1=state["new_max1"],
+                new_max2=state["new_max2"],
+                weight_decay=state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
                 gnorm_scale=gnorm_scale,
                 unorm_vec=state["unorm_vec"] if config["max_unorm"] > 0.0 else None,
                 max_unorm=config["max_unorm"],
@@ -422,26 +336,26 @@ class EightBit2StateOptimizer(EightBitCommon, EightBitFastaiAdapter, Optimizer2S
             state["max2"], state["new_max2"] = state["new_max2"], state["max2"]
         elif state["state1"].dtype == torch.uint8 and config["block_wise"]:
             BF.optimizer_update_8bit_blockwise(
-                self.optimizer_name,
-                grad,
-                p,
-                state["state1"],
-                state["state2"],
-                config["mom"],
-                config['sqr_mom'],
-                config["eps"],
-                step,
-                config["lr"],
-                state["qmap1"],
-                state["qmap2"],
-                state["absmax1"],
-                state["absmax2"],
-                state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
+                optimizer_name=self.optimizer_name,
+                g=grad,
+                p=p,
+                state1=state["state1"],
+                state2=state["state2"],
+                beta1=config["mom"],
+                beta2=config['sqr_mom'],
+                eps=config["eps"],
+                step=step,
+                lr=config["lr"],
+                qmap1=state["qmap1"],
+                qmap2=state["qmap2"],
+                absmax1=state["absmax1"],
+                absmax2=state["absmax2"],
+                weight_decay=state.get('wd', config['wd']) if state.get('do_wd', True) else 0.0,
                 gnorm_scale=gnorm_scale,
                 skip_zeros=config["skip_zeros"],
             )
 
-# %% ../../nbs/optimizer.eightbit.ipynb 17
+# %% ../../nbs/optimizer.eightbit.ipynb 16
 class SGD8bitOptimizer(EightBit1StateOptimizer):
     "A fastai-compatible bitsandbytes 8-bit SGD optimizer"
     def __init__(
@@ -458,11 +372,23 @@ class SGD8bitOptimizer(EightBit1StateOptimizer):
     ):
         if mom == 0:
             raise NotImplementedError(f"8-bit SGD without momentum {mom=} is not supported")
-        super().__init__("momentum", params, lr, mom, 0.0, 0.0, wd, 8, args,
-                         min_8bit_size, percentile_clipping, block_wise,
-                         sync_each_step=sync_each_step)
+        super().__init__(
+            optimizer_name="momentum",
+            params=params,
+            lr=lr,
+            mom=mom,
+            sqr_mom=0.0,
+            eps=0.0,
+            wd=wd,
+            optim_bits=8,
+            args=args,
+            min_8bit_size=min_8bit_size,
+            percentile_clipping=percentile_clipping,
+            block_wise=block_wise,
+            sync_each_step=sync_each_step
+        )
 
-# %% ../../nbs/optimizer.eightbit.ipynb 18
+# %% ../../nbs/optimizer.eightbit.ipynb 17
 class RMSProp8bitOptimizer(EightBit1StateOptimizer):
     "A fastai-compatible bitsandbytes 8-bit RMSProb optimizer"
     def __init__(
@@ -480,14 +406,27 @@ class RMSProp8bitOptimizer(EightBit1StateOptimizer):
     ):
         if sqr_mom == 0:
             raise NotImplementedError(f"8-bit RMSProp with {sqr_mom=} is not supported")
-        super().__init__("rmsprop", params, lr, sqr_mom, 0, eps, wd, 8, args,
-                         min_8bit_size, percentile_clipping, block_wise,
-                         sync_each_step=sync_each_step)
+        super().__init__(
+            optimizer_name="rmsprop",
+            params=params,
+            lr=lr,
+            mom=sqr_mom,
+            sqr_mom=0.0,
+            eps=eps,
+            wd=wd,
+            optim_bits=8,
+            args=args,
+            min_8bit_size=min_8bit_size,
+            percentile_clipping=percentile_clipping,
+            block_wise=block_wise,
+            sync_each_step=sync_each_step
+        )
 
-# %% ../../nbs/optimizer.eightbit.ipynb 19
+# %% ../../nbs/optimizer.eightbit.ipynb 18
 class AdamW8bitOptimizer(EightBit2StateOptimizer):
     "A fastai-compatible bitsandbytes 8-bit AdamW optimizer"
-    def __init__(self,
+    def __init__(
+        self,
         params,
         lr=1e-3,
         mom=0.9,
@@ -501,11 +440,24 @@ class AdamW8bitOptimizer(EightBit2StateOptimizer):
         is_paged=False,
         sync_each_step=False
     ):
-        super().__init__("adam", params, lr, mom, sqr_mom, eps, wd, 8, args,
-                         min_8bit_size, percentile_clipping, block_wise, is_paged=is_paged,
-                         sync_each_step=sync_each_step)
+        super().__init__(
+            optimizer_name="adam",
+            params=params,
+            lr=lr,
+            mom=mom,
+            sqr_mom=sqr_mom,
+            eps=eps,
+            wd=wd,
+            optim_bits=8,
+            args=args,
+            min_8bit_size=min_8bit_size,
+            percentile_clipping=percentile_clipping,
+            block_wise=block_wise,
+            is_paged=is_paged,
+            sync_each_step=sync_each_step
+        )
 
-# %% ../../nbs/optimizer.eightbit.ipynb 20
+# %% ../../nbs/optimizer.eightbit.ipynb 19
 class LARS8bitOptimizer(EightBit1StateOptimizer):
     "A fastai-compatible bitsandbytes 8-bit LARS optimizer"
     def __init__(
@@ -522,11 +474,24 @@ class LARS8bitOptimizer(EightBit1StateOptimizer):
     ):
         if mom == 0:
             raise NotImplementedError(f"8-bit LARS without momentum {mom=} is not supported")
-        super().__init__("lars", params, lr, mom, 0.0, 0.0, wd, 8, args,
-                         min_8bit_size, percentile_clipping, max_unorm=trust_coeff, block_wise=False,
-                         sync_each_step=sync_each_step)
+        super().__init__(
+            optimizer_name="lars",
+            params=params,
+            lr=lr,
+            mom=mom,
+            sqr_mom=0.0,
+            eps=0.0,
+            wd=wd,
+            optim_bits=8,
+            args=args,
+            min_8bit_size=min_8bit_size,
+            percentile_clipping=percentile_clipping,
+            max_unorm=trust_coeff,
+            block_wise=False,
+            sync_each_step=sync_each_step,
+        )
 
-# %% ../../nbs/optimizer.eightbit.ipynb 21
+# %% ../../nbs/optimizer.eightbit.ipynb 20
 class LAMB8bitOptimizer(EightBit2StateOptimizer):
     "A fastai-compatible bitsandbytes 8-bit LAMB optimizer"
     def __init__(
@@ -543,11 +508,24 @@ class LAMB8bitOptimizer(EightBit2StateOptimizer):
         block_wise=False,
         sync_each_step=False
     ):
-        super().__init__("lamb", params, lr, mom, sqr_mom, eps, wd, 8, args,
-                         min_8bit_size, percentile_clipping, block_wise, max_unorm=1.0,
-                         sync_each_step=sync_each_step)
+        super().__init__(
+            optimizer_name="lamb",
+            params=params,
+            lr=lr,
+            mom=mom,
+            sqr_mom=sqr_mom,
+            eps=eps,
+            wd=wd,
+            optim_bits=8,
+            args=args,
+            min_8bit_size=min_8bit_size,
+            percentile_clipping=percentile_clipping,
+            block_wise=block_wise,
+            max_unorm=1.0,
+            sync_each_step=sync_each_step,
+        )
 
-# %% ../../nbs/optimizer.eightbit.ipynb 22
+# %% ../../nbs/optimizer.eightbit.ipynb 21
 class Lion8bitOptimizer(EightBit1StateOptimizer):
     "A fastai-compatible bitsandbytes 8-bit Lion optimizer"
     def __init__(self,
@@ -563,6 +541,19 @@ class Lion8bitOptimizer(EightBit1StateOptimizer):
         is_paged=False,
         sync_each_step=False
     ):
-        super().__init__("lion", params, lr, beta1, beta2, 0., wd, 8, args,
-                         min_8bit_size, percentile_clipping, block_wise, is_paged=is_paged,
-                         sync_each_step=sync_each_step)
+        super().__init__(
+            optimizer_name="lion",
+            params=params,
+            lr=lr,
+            mom=beta1,
+            sqr_mom=beta2,
+            eps=0.0,
+            wd=wd,
+            optim_bits=8,
+            args=args,
+            min_8bit_size=min_8bit_size,
+            percentile_clipping=percentile_clipping,
+            block_wise=block_wise,
+            is_paged=is_paged,
+            sync_each_step=sync_each_step,
+        )
