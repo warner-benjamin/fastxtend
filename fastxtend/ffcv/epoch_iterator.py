@@ -15,7 +15,7 @@ from ffcv.utils import chunks
 from ffcv.loader.epoch_iterator import EpochIterator as _EpochIterator
 from ffcv.loader.epoch_iterator import select_buffer, QUASIRANDOM_ERROR_MSG
 
-from fastcore.transform import Pipeline
+from fasttransform import Pipeline
 
 from ..imports import *
 
