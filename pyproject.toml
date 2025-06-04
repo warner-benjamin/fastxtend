@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name="fastxtend"
+requires-python=">=3.10"
+dynamic = [ "keywords", "description", "version", "dependencies", "optional-dependencies", "readme", "license", "authors", "classifiers", "entry-points", "scripts", "urls"]
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { file = "settings.ini" }, { file = "setup.py" }]
+no-build-isolation-package = ["ffcv"]
+override-dependencies = ["opencv-python; sys_platform == 'never'", "opencv-python-headless; sys_platform == 'never'"]
+
+[[tool.uv.dependency-metadata]]
+name="fastxtend"
+version = "1.0.2"
+requires-dist = ["terminaltables", "pytorch_pfn_extras", "fastargs", "assertpy", "tqdm", "psutil", "numba"]
